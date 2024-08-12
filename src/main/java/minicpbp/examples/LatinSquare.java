@@ -32,9 +32,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -63,42 +60,66 @@ public class LatinSquare {
 	static final String SUM_PRODUCT_INIT = "sum-product-init";
 	static final String SUM_PRODUCT_NO_INIT = "sum-product-no-init";
 
-	public static void main(String[] args) {
-		// String[] models = { MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE,
-		// SUM_PRODUCT_INIT,
-		// SUM_PRODUCT_NO_INIT };
+	public static int[] filledList(int n) {
+		int first = (int) n * n * 8 / 20;
+		int second = (int) n * n * 9 / 20;
+		int[] result = { first, second };
+		return result;
+	}
 
-		String[] models = { MAX_PRODUCT_INIT };
-		int n = 5; // Integer.parseInt(args[0]);
-		int nbFilled = 8; // Integer.parseInt(args[1]);
-		int nbFile = 1; // Integer.parseInt(args[2]);
+	public static void main(String[] args) {
+		int n = 8;
+		int[] nbFilledArray = filledList(n);
+		int maxNbFile = 100;
+
+		for (int nbFilled : nbFilledArray) {
+			for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
+				runInstance(n, nbFilled, nbFile);
+			}
+		}
+
+		runInstance(8, 25, 93);
+	}
+
+	public static void runInstance(int n, int nbFilled, int nbFile) {
+		String[] models = { SUM_PRODUCT_NO_INIT, MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE,
+				SUM_PRODUCT_INIT };
+		String[] branchingSchemes = { MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK, FIRST_FAIL_RANDOM_VAL };
+
+		// String[] models = { MAX_PRODUCT_INIT };
+		// int n = 5; // Integer.parseInt(args[0]);
+		// int nbFilled = 8; // Integer.parseInt(args[1]);
+		// int nbFile = 1; // Integer.parseInt(args[2]);
 
 		PrintStream originalOut = System.out;
 
 		for (String model : models) {
-			// Set up a new output stream for this model
-			try {
-				FileOutputStream fos = new FileOutputStream(outputFilepath(n, nbFilled, nbFile, model), false);
-				PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
+			for (String branchingScheme : branchingSchemes) {
+				// Set up a new output stream for this model
+				try {
+					FileOutputStream fos = new FileOutputStream(
+							outputFilepath(n, nbFilled, nbFile, model, branchingScheme), false);
+					PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
 
-				// Redirect System.out to our new PrintStream
-				System.setOut(out);
+					// Redirect System.out to our new PrintStream
+					System.setOut(out);
 
-				// Run the model
-				run(n, nbFilled, nbFile, model);
+					// Run the model
+					run(n, nbFilled, nbFile, model, branchingScheme);
 
-				// Close the new PrintStream
-				out.close();
-			} catch (FileNotFoundException e) {
-				originalOut.println("Could not open out file for model: " + model);
-			} finally {
-				// Restore the original System.out
-				System.setOut(originalOut);
+					// Close the new PrintStream
+					out.close();
+				} catch (FileNotFoundException e) {
+					originalOut.println("Could not open out file for model: " + model);
+				} finally {
+					// Restore the original System.out
+					System.setOut(originalOut);
+				}
 			}
 		}
 	}
 
-	public static void run(int n, int nbFilled, int nbFile, String model) {
+	public static void run(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
 		Solver cp = makeSolver();
 
 		IntVar[][] x = makeModel(n, nbFilled, nbFile, model, cp);
@@ -109,43 +130,25 @@ public class LatinSquare {
 		// System.out.println("branching scheme: " + branchingScheme);
 		System.out.println("model: " + model);
 
-		String branchingScheme = MAX_MARGINAL;
 		Search dfs = makeSearch(branchingScheme, cp, xFlat);
 
 		cp.setTraceBPFlag(true);
 		cp.setTraceSearchFlag(true);
 
-		var solutions = new ArrayList<int[][]>();
-		dfs.onSolution(() -> {
-			int[][] solution = new int[n][n];
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					assert x[i][j].isBound();
-					solution[i][j] = x[i][j].min();
-				}
-			}
-			solutions.add(solution);
-		});
-
 		// solve
-		SearchStatistics stats = dfs.solve(stat -> stat.isCompleted()); // exhaustive search
-
-		// write all solutions to single file
-		try (FileWriter fw = new FileWriter(solutionFilepath(n, nbFilled, nbFile))) {
-			System.out.println("Writing file");
-			for (int[][] solution : solutions) {
-				for (int i = 0; i < solution.length; i++) {
-					for (int j = 0; j < solution[i].length; j++) {
-						fw.write(i + " " + j + " " + solution[i][j] + "\n");
-					}
-				}
-				fw.write("=======\n");
-			}
+		SearchStatistics stats = null;
+		try (FileWriter fw = new FileWriter(foundSolutionFilepath(n, nbFilled, nbFile, model, branchingScheme))) {
+			dfs.onSolution(() -> {
+				writeSolution(fw, n, x);
+			});
+			stats = dfs.solve(stat -> stat.numberOfSolutions() >= 1); // first solution
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("Errow while writting file");
 		}
+//		}
 		System.out.println(stats);
+
 	}
 
 	// --- Search ---
@@ -176,6 +179,10 @@ public class LatinSquare {
 		return "latinSquare" + n + "-filled" + nbFilled + "-" + nbFile;
 	}
 
+	public static String runFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+		return String.format("%s-%s-%s.out", baseFilename(n, nbFilled, nbFile), model, branchingScheme);
+	}
+
 	public static String instanceFilename(int n, int nbFilled, int nbFile) {
 		return baseFilename(n, nbFilled, nbFile) + ".dat";
 	}
@@ -192,18 +199,38 @@ public class LatinSquare {
 		return "./solutions/LatinSquare/" + solutionFilename(n, nbFilled, nbFile);
 	}
 
-	public static String outputFilename(int n, int nbFilled, int nbFile) {
-		return outputFilename(n, nbFilled, nbFile, "");
+	public static String outputFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+		return String.format("out-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
 	}
 
-	public static String outputFilename(int n, int nbFilled, int nbFile, String runName) {
-		String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-		String runNamePart = (runName != null && !runName.isEmpty()) ? "-" + runName : "";
-		return String.format("out-%s%s-%s.out", baseFilename(n, nbFilled, nbFile), runNamePart, timestamp);
+	public static String outputFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+		return "./logs/LatinSquare/traces/" + outputFilename(n, nbFilled, nbFile, model, branchingScheme);
 	}
 
-	public static String outputFilepath(int n, int nbFilled, int nbFile, String runName) {
-		return "./logs/LatinSquare/" + outputFilename(n, nbFilled, nbFile, runName);
+	public static String foundSolutionFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+		return String.format("out-solution-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
+	}
+
+	public static String foundSolutionFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+		return "./logs/LatinSquare/solutions/" + foundSolutionFilename(n, nbFilled, nbFile, model, branchingScheme);
+	}
+
+	// --- Write solution ---
+
+	public static void writeSolution(FileWriter fw, int n, IntVar[][] x) {
+		try {
+			for (int i = 0; i < n; i++) {
+				for (int j = 0; j < n; j++) {
+					assert x[i][j].isBound();
+					fw.write(i + " " + j + " " + x[i][j].min() + "\n");
+				}
+			}
+			fw.write("=======\n");
+			fw.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	// --- create Latin Square model ---
@@ -332,7 +359,8 @@ public class LatinSquare {
 		var.fillArray(values);
 
 		for (int i = 0; i < values.length; i++) {
-			var.setMarginal(values[i], (double) values[i] + 1);
+			int v = values[i];
+			var.setMarginalWithDefault(v, (double) v + 1);
 		}
 	}
 
