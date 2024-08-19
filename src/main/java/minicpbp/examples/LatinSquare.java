@@ -50,318 +50,371 @@ import minicpbp.util.io.TeeOutputStream;
  */
 public class LatinSquare {
 
-	static final String MAX_MARGINAL = "maxMarginal";
-	static final String MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK = "maxMarginalRegretRandomTieBreak";
-	static final String FIRST_FAIL_RANDOM_VAL = "firstFailRandomVal";
+    static final String MAX_MARGINAL = "maxMarginal";
+    static final String MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK = "maxMarginalRegretRandomTieBreak";
+    static final String FIRST_FAIL_RANDOM_VAL = "firstFailRandomVal";
 
-	static final String MAX_PRODUCT_ORACLE = "max-product-oracle";
-	static final String MAX_PRODUCT_INIT = "max-product-init";
-	static final String SUM_PRODUCT_ORACLE = "sum-product-oracle";
-	static final String SUM_PRODUCT_INIT = "sum-product-init";
-	static final String SUM_PRODUCT_NO_INIT = "sum-product-no-init";
+    static final String MAX_PRODUCT_ORACLE = "max-product-oracle";
+    static final String MAX_PRODUCT_INIT = "max-product-init";
+    static final String SUM_PRODUCT_ORACLE = "sum-product-oracle";
+    static final String SUM_PRODUCT_INIT = "sum-product-init";
+    static final String SUM_PRODUCT_NO_INIT = "sum-product-no-init";
+    static final String MAX_PRODUCT_INIT_EXP = "max-product-init-exp";
+    static final String SUM_PRODUCT_INIT_EXP = "sum-product-init-exp";
+    static final String MAX_PRODUCT_ORACLE_EXP = "max-product-oracle-exp";
+    static final String SUM_PRODUCT_ORACLE_EXP = "sum-product-oracle-exp";
 
-	public static int[] filledList(int n) {
-		int first = (int) n * n * 8 / 20;
-		int second = (int) n * n * 9 / 20;
-		int[] result = { first, second };
-		return result;
-	}
+    public static int[] filledList(int n) {
+        int first = (int) n * n * 8 / 20;
+        int second = (int) n * n * 9 / 20;
+        int[] result = {first, second};
+        return result;
+    }
 
-	public static void main(String[] args) {
-		int n = 8;
-		int[] nbFilledArray = filledList(n);
-		int maxNbFile = 100;
+    public static void main(String[] args) {
+        int n = 8;
+        int[] nbFilledArray = filledList(n);
+        int maxNbFile = 100;
 
-		for (int nbFilled : nbFilledArray) {
-			for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
-				runInstance(n, nbFilled, nbFile);
-			}
-		}
+        for (int nbFilled : nbFilledArray) {
+            for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
+                runInstance(n, nbFilled, nbFile);
+            }
+        }
+    }
 
-		runInstance(8, 25, 93);
-	}
+    public static void runInstance(int n, int nbFilled, int nbFile) {
+        // String[] models = {SUM_PRODUCT_NO_INIT, MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE, SUM_PRODUCT_INIT};
+        // String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK, FIRST_FAIL_RANDOM_VAL};
+        String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK};
+        String[] models = { MAX_PRODUCT_INIT_EXP, MAX_PRODUCT_ORACLE_EXP, SUM_PRODUCT_INIT_EXP, SUM_PRODUCT_ORACLE_EXP };
+        // int n = 5; // Integer.parseInt(args[0]);
+        // int nbFilled = 8; // Integer.parseInt(args[1]);
+        // int nbFile = 1; // Integer.parseInt(args[2]);
 
-	public static void runInstance(int n, int nbFilled, int nbFile) {
-		String[] models = { SUM_PRODUCT_NO_INIT, MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE,
-				SUM_PRODUCT_INIT };
-		String[] branchingSchemes = { MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK, FIRST_FAIL_RANDOM_VAL };
+        PrintStream originalOut = System.out;
 
-		// String[] models = { MAX_PRODUCT_INIT };
-		// int n = 5; // Integer.parseInt(args[0]);
-		// int nbFilled = 8; // Integer.parseInt(args[1]);
-		// int nbFile = 1; // Integer.parseInt(args[2]);
+        for (String model : models) {
+            for (String branchingScheme : branchingSchemes) {
+                // Set up a new output stream for this model
+                try {
+                    FileOutputStream fos = new FileOutputStream(
+                            outputFilepath(n, nbFilled, nbFile, model, branchingScheme), false);
+                    PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
 
-		PrintStream originalOut = System.out;
+                    // Redirect System.out to our new PrintStream
+                    System.setOut(out);
 
-		for (String model : models) {
-			for (String branchingScheme : branchingSchemes) {
-				// Set up a new output stream for this model
-				try {
-					FileOutputStream fos = new FileOutputStream(
-							outputFilepath(n, nbFilled, nbFile, model, branchingScheme), false);
-					PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
+                    // Run the model
+                    run(n, nbFilled, nbFile, model, branchingScheme);
 
-					// Redirect System.out to our new PrintStream
-					System.setOut(out);
+                    // Close the new PrintStream
+                    out.close();
+                } catch (FileNotFoundException e) {
+                    originalOut.println("Could not open out file for model: " + model);
+                } finally {
+                    // Restore the original System.out
+                    System.setOut(originalOut);
+                }
+            }
+        }
+    }
 
-					// Run the model
-					run(n, nbFilled, nbFile, model, branchingScheme);
+    public static void run(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        Solver cp = makeSolver();
 
-					// Close the new PrintStream
-					out.close();
-				} catch (FileNotFoundException e) {
-					originalOut.println("Could not open out file for model: " + model);
-				} finally {
-					// Restore the original System.out
-					System.setOut(originalOut);
-				}
-			}
-		}
-	}
+        IntVar[][] x = makeModel(n, nbFilled, nbFile, model, cp);
 
-	public static void run(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		Solver cp = makeSolver();
+        System.out.println(x[0][0].toString());
+        IntVar[] xFlat = flatten(x);
 
-		IntVar[][] x = makeModel(n, nbFilled, nbFile, model, cp);
+        // System.out.println("branching scheme: " + branchingScheme);
+        System.out.println("model: " + model);
 
-		System.out.println(x[0][0].toString());
-		IntVar[] xFlat = flatten(x);
+        Search dfs = makeSearch(branchingScheme, cp, xFlat);
 
-		// System.out.println("branching scheme: " + branchingScheme);
-		System.out.println("model: " + model);
+        cp.setTraceBPFlag(true);
+        cp.setTraceSearchFlag(true);
 
-		Search dfs = makeSearch(branchingScheme, cp, xFlat);
-
-		cp.setTraceBPFlag(true);
-		cp.setTraceSearchFlag(true);
-
-		// solve
-		SearchStatistics stats = null;
-		try (FileWriter fw = new FileWriter(foundSolutionFilepath(n, nbFilled, nbFile, model, branchingScheme))) {
-			dfs.onSolution(() -> {
-				writeSolution(fw, n, x);
-			});
-			stats = dfs.solve(stat -> stat.numberOfSolutions() >= 1); // first solution
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.out.println("Errow while writting file");
-		}
+        // solve
+        SearchStatistics stats = null;
+        try (FileWriter fw = new FileWriter(foundSolutionFilepath(n, nbFilled, nbFile, model, branchingScheme))) {
+            dfs.onSolution(() -> {
+                writeSolution(fw, n, x);
+            });
+            stats = dfs.solve(stat -> stat.numberOfSolutions() >= 1); // first solution
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Errow while writting file");
+        }
 //		}
-		System.out.println(stats);
+        System.out.println(stats);
 
-	}
+    }
 
-	// --- Search ---
-	public static Search makeSearch(String branchingScheme, Solver cp, IntVar[] xFlat) {
-		Search search;
-		switch (branchingScheme) {
-		case MAX_MARGINAL:
-			search = makeDfs(cp, maxMarginal(xFlat));
-			break;
-		case MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK:
-			search = makeDfs(cp, maxMarginalRegretRandomTieBreak(xFlat));
-			break;
+    // --- Search ---
+    public static Search makeSearch(String branchingScheme, Solver cp, IntVar[] xFlat) {
+        Search search;
+        switch (branchingScheme) {
+            case MAX_MARGINAL:
+                search = makeDfs(cp, maxMarginal(xFlat));
+                break;
+            case MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK:
+                search = makeDfs(cp, maxMarginalRegretRandomTieBreak(xFlat));
+                break;
 
-		case FIRST_FAIL_RANDOM_VAL:
-			search = makeDfs(cp, firstFailRandomVal(xFlat));
-			break;
-		default:
-			search = makeDfs(cp, firstFailRandomVal(xFlat));
-			break;
-		}
+            case FIRST_FAIL_RANDOM_VAL:
+                search = makeDfs(cp, firstFailRandomVal(xFlat));
+                break;
+            default:
+                search = makeDfs(cp, firstFailRandomVal(xFlat));
+                break;
+        }
 
-		return search;
-	}
+        return search;
+    }
 
-	// --- Filenames ---
+    // --- Filenames ---
 
-	public static String baseFilename(int n, int nbFilled, int nbFile) {
-		return "latinSquare" + n + "-filled" + nbFilled + "-" + nbFile;
-	}
+    public static String baseFilename(int n, int nbFilled, int nbFile) {
+        return "latinSquare" + n + "-filled" + nbFilled + "-" + nbFile;
+    }
 
-	public static String runFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		return String.format("%s-%s-%s.out", baseFilename(n, nbFilled, nbFile), model, branchingScheme);
-	}
+    public static String runFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        return String.format("%s-%s-%s.out", baseFilename(n, nbFilled, nbFile), model, branchingScheme);
+    }
 
-	public static String instanceFilename(int n, int nbFilled, int nbFile) {
-		return baseFilename(n, nbFilled, nbFile) + ".dat";
-	}
+    public static String instanceFilename(int n, int nbFilled, int nbFile) {
+        return baseFilename(n, nbFilled, nbFile) + ".dat";
+    }
 
-	public static String instanceFilepath(int n, int nbFilled, int nbFile) {
-		return "./src/main/java/minicpbp/examples/data/LatinSquare/" + instanceFilename(n, nbFilled, nbFile);
-	}
+    public static String instanceFilepath(int n, int nbFilled, int nbFile) {
+        return "./src/main/java/minicpbp/examples/data/LatinSquare/" + instanceFilename(n, nbFilled, nbFile);
+    }
 
-	public static String solutionFilename(int n, int nbFilled, int nbFile) {
-		return "solutions-" + baseFilename(n, nbFilled, nbFile) + ".sol";
-	}
+    public static String solutionFilename(int n, int nbFilled, int nbFile) {
+        return "solutions-" + baseFilename(n, nbFilled, nbFile) + ".sol";
+    }
 
-	public static String solutionFilepath(int n, int nbFilled, int nbFile) {
-		return "./solutions/LatinSquare/" + solutionFilename(n, nbFilled, nbFile);
-	}
+    public static String solutionFilepath(int n, int nbFilled, int nbFile) {
+        return "./solutions/LatinSquare/" + solutionFilename(n, nbFilled, nbFile);
+    }
 
-	public static String outputFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		return String.format("out-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
-	}
+    public static String outputFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        return String.format("out-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
+    }
 
-	public static String outputFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		return "./logs/LatinSquare/traces/" + outputFilename(n, nbFilled, nbFile, model, branchingScheme);
-	}
+    public static String outputFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        return "./logs/LatinSquare/traces/" + outputFilename(n, nbFilled, nbFile, model, branchingScheme);
+    }
 
-	public static String foundSolutionFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		return String.format("out-solution-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
-	}
+    public static String foundSolutionFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        return String.format("out-solution-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
+    }
 
-	public static String foundSolutionFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-		return "./logs/LatinSquare/solutions/" + foundSolutionFilename(n, nbFilled, nbFile, model, branchingScheme);
-	}
+    public static String foundSolutionFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+        return "./logs/LatinSquare/solutions/" + foundSolutionFilename(n, nbFilled, nbFile, model, branchingScheme);
+    }
 
-	// --- Write solution ---
+    // --- Write solution ---
 
-	public static void writeSolution(FileWriter fw, int n, IntVar[][] x) {
-		try {
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					assert x[i][j].isBound();
-					fw.write(i + " " + j + " " + x[i][j].min() + "\n");
-				}
-			}
-			fw.write("=======\n");
-			fw.flush();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    public static void writeSolution(FileWriter fw, int n, IntVar[][] x) {
+        try {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    assert x[i][j].isBound();
+                    fw.write(i + " " + j + " " + x[i][j].min() + "\n");
+                }
+            }
+            fw.write("=======\n");
+            fw.flush();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 
-	// --- create Latin Square model ---
+    // --- create Latin Square model ---
 
-	public static IntVar[][] makeModel(int n, int nbFilled, int nbFile, String model, Solver cp) {
-		IntVar[][] x;
+    public static IntVar[][] makeModel(int n, int nbFilled, int nbFile, String model, Solver cp) {
+        IntVar[][] x;
 
-		switch (model) {
-		case MAX_PRODUCT_INIT:
-			x = makeLatinSquareInit(cp, n, nbFilled, nbFile, true);
-			break;
-		case MAX_PRODUCT_ORACLE:
-			x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, true);
-			break;
-		case SUM_PRODUCT_NO_INIT:
-			x = makeLatinSquare(cp, n, nbFilled, nbFile, false);
-			break;
-		case SUM_PRODUCT_INIT:
-			x = makeLatinSquareInit(cp, n, nbFilled, nbFile, false);
-			break;
-		case SUM_PRODUCT_ORACLE:
-			x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, false);
-			break;
-		default:
-			throw new IllegalArgumentException("Unexpected value: " + model);
-		}
-		return x;
-	}
+        switch (model) {
+            case MAX_PRODUCT_INIT:
+                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, true);
+                break;
+            case MAX_PRODUCT_INIT_EXP:
+                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, true);
+                break;
+            case MAX_PRODUCT_ORACLE:
+                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, true);
+                break;
+            case MAX_PRODUCT_ORACLE_EXP:
+                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, true);
+                break;
+            case SUM_PRODUCT_NO_INIT:
+                x = makeLatinSquare(cp, n, nbFilled, nbFile, false);
+                break;
+            case SUM_PRODUCT_INIT:
+                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, false);
+                break;
+            case SUM_PRODUCT_INIT_EXP:
+                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, false);
+                break;
+            case SUM_PRODUCT_ORACLE:
+                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, false);
+                break;
+            case SUM_PRODUCT_ORACLE_EXP:
+                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, false);
+                break;
+            default:
+                throw new IllegalArgumentException("Unexpected value: " + model);
+        }
+        return x;
+    }
 
-	public static void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile) {
-		try {
-			Scanner scanner = new Scanner(new FileReader(instanceFilepath(n, nbFilled, nbFile)));
+    public static void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile) {
+        try {
+            Scanner scanner = new Scanner(new FileReader(instanceFilepath(n, nbFilled, nbFile)));
 
-			scanner.nextInt();
-			scanner.nextInt();
+            scanner.nextInt();
+            scanner.nextInt();
 
-			while (scanner.hasNextInt()) {
-				int row = scanner.nextInt(); // remove -1
-				int column = scanner.nextInt(); // remove -1
-				int value = scanner.nextInt();
-				vars[row][column].assign(value);
-			}
-			scanner.close();
-		} catch (IOException e) {
-			System.err.println("Error : " + e.getMessage());
-			System.exit(2);
-		}
-	}
+            while (scanner.hasNextInt()) {
+                int row = scanner.nextInt(); // remove -1
+                int column = scanner.nextInt(); // remove -1
+                int value = scanner.nextInt();
+                vars[row][column].assign(value);
+            }
+            scanner.close();
+        } catch (IOException e) {
+            System.err.println("Error : " + e.getMessage());
+            System.exit(2);
+        }
+    }
 
-	public static IntVar[] flatten(IntVar[][] x) {
-		IntVar[] xFlat = Arrays.stream(x).flatMap(Arrays::stream).toArray(IntVar[]::new);
-		return xFlat;
-	}
+    public static IntVar[] flatten(IntVar[][] x) {
+        IntVar[] xFlat = Arrays.stream(x).flatMap(Arrays::stream).toArray(IntVar[]::new);
+        return xFlat;
+    }
 
-	/*
-	 * Make latin square and set marginals on the diagonal to proportional values
-	 */
-	public static IntVar[][] makeLatinSquareInit(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
-		IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
+    /*
+     * Make latin square and set marginals on the diagonal to proportional values
+     */
+    public static IntVar[][] makeLatinSquareInit(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+        IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
-		// proportional oracle on diagonal
-		for (int i = 0; i < n; i++) {
-			setProportionalMarginals(x[i][i]);
-		}
-		return x;
-	}
+        // proportional init on diagonal
+        for (int i = 0; i < n; i++) {
+            setProportionalMarginals(x[i][i]);
+        }
+        return x;
+    }
 
-	/*
-	 * Make latin square with proportional oracle on the diagonal
-	 */
-	public static IntVar[][] makeLatinSquareOracle(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
-		IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
+    public static IntVar[][] makeLatinSquareInitExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+        IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
-		// proportional oracle on diagonal
-		for (int i = 0; i < n; i++) {
-			cp.post(proportionalOracle(x[i][i]));
-		}
-		return x;
-	}
+        // exponential init on diagonal
+        for (int i = 0; i < n; i++) {
+            setExponentialMarginals(x[i][i]);
+        }
+        return x;
+    }
 
-	public static IntVar[][] makeLatinSquare(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
-		IntVar[][] x = new IntVar[n][n];
+    /*
+     * Make latin square with proportional oracle on the diagonal
+     */
+    public static IntVar[][] makeLatinSquareOracle(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+        IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				x[i][j] = makeIntVar(cp, 0, n - 1);
-				x[i][j].setName("x" + "[" + i + "," + j + "]");
-			}
-		}
+        // proportional oracle on diagonal
+        for (int i = 0; i < n; i++) {
+            cp.post(proportionalOracle(x[i][i]));
+        }
+        return x;
+    }
 
-		partialAssignments(x, n, nbFilled, nbFile);
+    public static IntVar[][] makeLatinSquareOracleExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+        IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
+        // exponential oracle on diagonal
+        for (int i = 0; i < n; i++) {
+            cp.post(exponentialOracle(x[i][i]));
+        }
+        return x;
+    }
 
-		// allDifferent on lines
-		for (int i = 0; i < n; i++) {
-			Constraint c = maxProduct ? new AllDifferentDCMAP(x[i]) : new AllDifferentDC(x[i]);
-			cp.post(c);
-		}
+    public static IntVar[][] makeLatinSquare(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+        IntVar[][] x = new IntVar[n][n];
 
-		// allDifferent on columns
-		for (int j = 0; j < x.length; j++) {
-			IntVar[] column = new IntVar[n];
-			for (int i = 0; i < x.length; i++)
-				column[i] = x[i][j];
-			Constraint c = maxProduct ? new AllDifferentDCMAP(column) : new AllDifferentDC(column);
-			cp.post(c);
-		}
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                x[i][j] = makeIntVar(cp, 0, n - 1);
+                x[i][j].setName("x" + "[" + i + "," + j + "]");
+            }
+        }
 
-		return x;
-	}
+        partialAssignments(x, n, nbFilled, nbFile);
 
-	/* return an oracle where each marginal is proportional to value */
-	public static Constraint proportionalOracle(IntVar var) {
-		int[] values = new int[var.size()];
-		var.fillArray(values);
+        // allDifferent on lines
+        for (int i = 0; i < n; i++) {
+            Constraint c = maxProduct ? new AllDifferentDCMAP(x[i]) : new AllDifferentDC(x[i]);
+            cp.post(c);
+        }
 
-		double[] marginals = new double[var.size()];
-		for (int i = 0; i < marginals.length; i++) {
-			marginals[i] = (double) values[i] + 1;
-		}
+        // allDifferent on columns
+        for (int j = 0; j < x.length; j++) {
+            IntVar[] column = new IntVar[n];
+            for (int i = 0; i < x.length; i++)
+                column[i] = x[i][j];
+            Constraint c = maxProduct ? new AllDifferentDCMAP(column) : new AllDifferentDC(column);
+            cp.post(c);
+        }
 
-		return oracle(var, values, marginals);
-	}
+        return x;
+    }
 
-	public static void setProportionalMarginals(IntVar var) {
-		int[] values = new int[var.size()];
-		var.fillArray(values);
+    /* return an oracle where each marginal is proportional to value */
+    public static Constraint proportionalOracle(IntVar var) {
+        int[] values = new int[var.size()];
+        var.fillArray(values);
 
-		for (int i = 0; i < values.length; i++) {
-			int v = values[i];
-			var.setMarginalWithDefault(v, (double) v + 1);
-		}
-	}
+        double[] marginals = new double[var.size()];
+        for (int i = 0; i < marginals.length; i++) {
+            marginals[i] = (double) values[i] + 1;
+        }
 
+        return oracle(var, values, marginals);
+    }
+
+    public static Constraint exponentialOracle(IntVar var) {
+        int[] values = new int[var.size()];
+        var.fillArray(values);
+
+        double[] marginals = new double[var.size()];
+        for (int i = 0; i < marginals.length; i++) {
+            marginals[i] = (double) Math.pow(2, values[i]);
+        }
+
+        return oracle(var, values, marginals);
+    }
+
+    public static void setProportionalMarginals(IntVar var) {
+        int[] values = new int[var.size()];
+        var.fillArray(values);
+
+        for (int i = 0; i < values.length; i++) {
+            int v = values[i];
+            var.setMarginalWithDefault(v, (double) v + 1);
+        }
+    }
+
+    public static void setExponentialMarginals(IntVar var) {
+        int[] values = new int[var.size()];
+        var.fillArray(values);
+
+        for (int i = 0; i < values.length; i++) {
+            int v = values[i];
+            var.setMarginalWithDefault(v, (double) Math.pow(2, v));
+        }
+    }
 }

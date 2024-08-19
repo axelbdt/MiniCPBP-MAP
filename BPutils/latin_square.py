@@ -1,13 +1,14 @@
-from pathlib import Path
-import random
 import os
+import pickle
+import random
 import re
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
-import pickle
 from square_gen import rls
-from typing import List, Dict, Any, Tuple, Callable
 
 # Type aliases for clarity
 Solution = List[List[int]]
@@ -21,8 +22,10 @@ FIRST_FAIL_RANDOM_VAL = "firstFailRandomVal"
 
 MAX_PRODUCT_ORACLE = "max-product-oracle"
 MAX_PRODUCT_INIT = "max-product-init"
+MAX_PRODUCT_INIT_EXP = "max-product-init-exp"
 SUM_PRODUCT_ORACLE = "sum-product-oracle"
 SUM_PRODUCT_INIT = "sum-product-init"
+SUM_PRODUCT_INIT_EXP = "sum-product-init-exp"
 SUM_PRODUCT_NO_INIT = "sum-product-no-init"
 
 INSTANCE_NUMBER = 100
@@ -40,6 +43,10 @@ PLOT_COLORS = {
     SUM_PRODUCT_ORACLE: "red",
     SUM_PRODUCT_NO_INIT: "purple",
 }
+
+METRICS = [
+    RANK_FOUND_SOLUTION,
+]
 
 RANK = "rank"
 
