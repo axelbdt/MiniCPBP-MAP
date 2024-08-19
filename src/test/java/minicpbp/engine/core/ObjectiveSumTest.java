@@ -14,7 +14,7 @@ public class ObjectiveSumTest extends SolverTest {
     public void testObjectiveSum() {
         Solver cp = solverFactory.get();
 
-        IntVar x = makeIntVar(cp, Set.of(1, 2));
+        IntVar x = makeIntVar(cp, Set.of(1, 10));
         IntVar y = makeIntVar(cp, Set.of(10, 100));
 
         ObjectiveSum c = new ObjectiveSum(new IntVar[]{x, y});
@@ -26,11 +26,14 @@ public class ObjectiveSumTest extends SolverTest {
 
         cp.beliefPropa();
 
-        System.out.println("Hello");
         System.out.println(c.localBelief(0, 1));
-        System.out.println(c.localBelief(0, 2));
+        System.out.println(c.localBelief(0, 10));
+        // 0.4786729857819905
+        // 0.5213270142180094
 
         System.out.println(c.localBelief(1, 10));
         System.out.println(c.localBelief(1, 100));
+        // 0.15384615384615383
+        // 0.8461538461538461
     }
 }
