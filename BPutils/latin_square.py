@@ -27,6 +27,7 @@ SUM_PRODUCT_ORACLE = "sum-product-oracle"
 SUM_PRODUCT_INIT = "sum-product-init"
 SUM_PRODUCT_INIT_EXP = "sum-product-init-exp"
 SUM_PRODUCT_NO_INIT = "sum-product-no-init"
+MAX_PRODUCT_OBJECTIVE_DIAGONAL = "max-product-objective-diagonal"
 
 INSTANCE_NUMBER = 100
 
@@ -868,10 +869,20 @@ def load_all_solutions(
         filepath = solution_filepath(n, filled, file_number)
         # If pickle file not found, load from original file
         raw_data = load_raw_data(filepath)
-        solutions = parse_solution(raw_data)
+        solutions = parse_all_solutions(raw_data, n)
         # Save to pickle file for future use
         save_pickle(pickle_filepath, solutions)
         return solutions
+
+
+def parse_all_solutions(raw_data: List[str], n: int) -> List[Solution]:
+    solutions = []
+    solution_data = []
+    for line in raw_data:
+        if line.startswith("=====") and solution_data:
+            solutions.append(parse_solution(solution_data, n))
+            solution_data = []
+    return solutions
 
 
 def load_found_solution(

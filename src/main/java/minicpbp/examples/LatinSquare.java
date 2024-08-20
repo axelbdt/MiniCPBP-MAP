@@ -18,31 +18,22 @@
 
 package minicpbp.examples;
 
-import static minicpbp.cp.BranchingScheme.firstFailRandomVal;
-import static minicpbp.cp.BranchingScheme.maxMarginal;
-import static minicpbp.cp.BranchingScheme.maxMarginalRegretRandomTieBreak;
-import static minicpbp.cp.Factory.makeDfs;
-import static minicpbp.cp.Factory.makeIntVar;
-import static minicpbp.cp.Factory.makeSolver;
-import static minicpbp.cp.Factory.oracle;
-
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.Arrays;
-import java.util.Scanner;
-
 import minicpbp.engine.constraints.AllDifferentDC;
 import minicpbp.engine.constraints.AllDifferentDCMAP;
+import minicpbp.engine.constraints.ObjectiveSum;
 import minicpbp.engine.core.Constraint;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
 import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
 import minicpbp.util.io.TeeOutputStream;
+
+import java.io.*;
+import java.util.Arrays;
+import java.util.Scanner;
+
+import static minicpbp.cp.BranchingScheme.*;
+import static minicpbp.cp.Factory.*;
 
 /**
  * The Magic Square Completion problem.
@@ -63,6 +54,7 @@ public class LatinSquare {
     static final String SUM_PRODUCT_INIT_EXP = "sum-product-init-exp";
     static final String MAX_PRODUCT_ORACLE_EXP = "max-product-oracle-exp";
     static final String SUM_PRODUCT_ORACLE_EXP = "sum-product-oracle-exp";
+    static final String DIAGONAL_SUM = "max-product-objective-diagonal";
 
     public static int[] filledList(int n) {
         int first = (int) n * n * 8 / 20;
@@ -87,7 +79,7 @@ public class LatinSquare {
         // String[] models = {SUM_PRODUCT_NO_INIT, MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE, SUM_PRODUCT_INIT};
         // String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK, FIRST_FAIL_RANDOM_VAL};
         String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK};
-        String[] models = { MAX_PRODUCT_INIT_EXP, MAX_PRODUCT_ORACLE_EXP, SUM_PRODUCT_INIT_EXP, SUM_PRODUCT_ORACLE_EXP };
+        String[] models = {DIAGONAL_SUM};
         // int n = 5; // Integer.parseInt(args[0]);
         // int nbFilled = 8; // Integer.parseInt(args[1]);
         // int nbFile = 1; // Integer.parseInt(args[2]);
@@ -267,6 +259,9 @@ public class LatinSquare {
             case SUM_PRODUCT_ORACLE_EXP:
                 x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, false);
                 break;
+            case DIAGONAL_SUM:
+                x = makeLatinSquareObjective(cp, n, nbFilled, nbFile);
+                break;
             default:
                 throw new IllegalArgumentException("Unexpected value: " + model);
         }
@@ -342,6 +337,18 @@ public class LatinSquare {
         }
         return x;
     }
+
+    public static IntVar[][] makeLatinSquareObjective(Solver cp, int n, int nbFilled, int nbFile) {
+        IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, true);
+
+        IntVar[] diagonal = new IntVar[n];
+        for (int i = 0; i < n; i++) {
+            diagonal[i] = x[i][i];
+        }
+        cp.post(new ObjectiveSum(diagonal));
+        return x;
+    }
+
 
     public static IntVar[][] makeLatinSquare(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
         IntVar[][] x = new IntVar[n][n];
