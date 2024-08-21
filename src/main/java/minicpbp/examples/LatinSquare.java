@@ -68,11 +68,13 @@ public class LatinSquare {
         int[] nbFilledArray = filledList(n);
         int maxNbFile = 100;
 
-        for (int nbFilled : nbFilledArray) {
-            for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
-                runInstance(n, nbFilled, nbFile);
-            }
-        }
+        int nbFilled = 25;
+        int nbFile = 2;
+        // for (int nbFilled : nbFilledArray) {
+        //    for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
+        runInstance(n, nbFilled, nbFile);
+        //    }
+        //}
     }
 
     public static void runInstance(int n, int nbFilled, int nbFile) {

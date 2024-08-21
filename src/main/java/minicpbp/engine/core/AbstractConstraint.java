@@ -20,10 +20,7 @@ package minicpbp.engine.core;
 
 import minicpbp.state.StateBool;
 import minicpbp.state.StateDouble;
-
 import minicpbp.util.Belief;
-
-import minicpbp.util.exception.NotImplementedException;
 
 /**
  * Abstract class most of the constraints
@@ -60,7 +57,7 @@ public abstract class AbstractConstraint implements Constraint {
         active = cp.getStateManager().makeStateBool(true);
         beliefRep = cp.getBeliefRep();
         this.vars = new IntVar[vars.length];
-        System.arraycopy(vars,0,this.vars,0,vars.length); // required if constraint sets up offseted vars in the same array
+        System.arraycopy(vars, 0, this.vars, 0, vars.length); // required if constraint sets up offseted vars in the same array
         switch (cp.getWeighingScheme()) {
             case SAME:
                 weight = 1.0;
@@ -119,21 +116,23 @@ public abstract class AbstractConstraint implements Constraint {
 
 	}*/
 
-	public void incrementFailureCount() {
-		failureCount+=1;
-	}
+    public void incrementFailureCount() {
+        failureCount += 1;
+    }
 
-	public int getFailureCount() {
-		return failureCount;
-	}
+    public int getFailureCount() {
+        return failureCount;
+    }
 
-    public void post() {}
+    public void post() {
+    }
 
     public Solver getSolver() {
         return cp;
     }
 
-    public void propagate() {}
+    public void propagate() {
+    }
 
     public void setScheduled(boolean scheduled) {
         this.scheduled = scheduled;
@@ -173,6 +172,9 @@ public abstract class AbstractConstraint implements Constraint {
     }
 
     protected double setLocalBelief(int i, int val, double b) {
+        if (Double.isNaN(b)) {
+            assert false;
+        }
         return localBelief[i][val - ofs[i]].setValue(b);
     }
 
@@ -181,6 +183,9 @@ public abstract class AbstractConstraint implements Constraint {
     }
 
     protected double setOutsideBelief(int i, int val, double b) {
+        if (b == 0.0) {
+            System.out.println(i + " " + val + " " + b);
+        }
         outsideBelief[i][val - ofs[i]] = b;
         return b;
     }
@@ -223,16 +228,17 @@ public abstract class AbstractConstraint implements Constraint {
     public void resetLocalBelief() {
         for (int i = 0; i < vars.length; i++) {
             int s = vars[i].fillArray(domainValues);
-            double uniform = beliefRep.divide(beliefRep.one(),(double) s);
+            double uniform = beliefRep.divide(beliefRep.one(), (double) s);
             for (int j = 0; j < s; j++) {
                 setLocalBelief(i, domainValues[j], uniform);
             }
         }
     }
+
     public void resetOutsideBelief() {
         for (int i = 0; i < vars.length; i++) {
             int s = vars[i].fillArray(domainValues);
-            double uniform = beliefRep.divide(beliefRep.one(),(double) s);
+            double uniform = beliefRep.divide(beliefRep.one(), (double) s);
             for (int j = 0; j < s; j++) {
                 setOutsideBelief(i, domainValues[j], uniform);
             }
@@ -259,7 +265,8 @@ public abstract class AbstractConstraint implements Constraint {
                 for (int j = 0; j < s; j++) {
                     int val = domainValues[j];
                     assert localBelief(i, val) <= beliefRep.one() && localBelief(i, val) >= beliefRep.zero() : "c Should be normalized! localBelief(i,val) = " + localBelief(i, val);
-                    setOutsideBelief(i, val, vars[i].sendMessage(val, beliefRep.pow(localBelief(i, val), this.weight)));
+                    double outB = vars[i].sendMessage(val, beliefRep.pow(localBelief(i, val), this.weight));
+                    setOutsideBelief(i, val, outB);
                 }
                 normalizeBelief(i, (j, val) -> outsideBelief(j, val),
                         (j, val, b) -> setOutsideBelief(j, val, b));
@@ -277,17 +284,17 @@ public abstract class AbstractConstraint implements Constraint {
 
     public void sendMessages() {
         updateBelief();
- //       System.out.println(getName()+".sendMessages()");
+        //       System.out.println(getName()+".sendMessages()");
         for (int i = 0; i < vars.length; i++) {
             if (!vars[i].isBound()) { // if the variable is bound, it is pointless to send a "certainly true" message
                 normalizeBelief(i, (j, val) -> localBelief(j, val),
                         (j, val, b) -> setLocalBelief(j, val, b));
                 int s = vars[i].fillArray(domainValues);
- //               System.out.print(vars[i].getName()+": ");
+                //               System.out.print(vars[i].getName()+": ");
                 for (int j = 0; j < s; j++) {
                     int val = domainValues[j];
                     double localB = localBelief(i, val);
- //                   System.out.print(val+" "+localB+", ");
+                    //                   System.out.print(val+" "+localB+", ");
                     assert localB <= beliefRep.one() && localB >= beliefRep.zero() : "c Should be normalized! localB = " + localB;
                     if (getSolver().actingOnZeroOneBelief() && isExactWCounting()) {
                         if (beliefRep.isZero(localB)) { // no support from this constraint
@@ -349,7 +356,8 @@ public abstract class AbstractConstraint implements Constraint {
      * <p>
      * Default behaviour: does nothing
      */
-    public void setAuxVarsMarginalsWCounting() {}
+    public void setAuxVarsMarginalsWCounting() {
+    }
 
     /**
      * Computes and returns the weighted count of solutions (i.e. weighted model counting) given the outside beliefs.
