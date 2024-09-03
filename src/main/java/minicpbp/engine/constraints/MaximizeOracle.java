@@ -49,14 +49,18 @@ public class MaximizeOracle extends AbstractConstraint {
 
     @Override
     public void updateBelief() {
+        if (x.isBound()) {
+            setLocalBelief(0, x.min(), 1.0);
+            return;
+        }
         float sum = 0;
         int L = x.min();
         int U = x.max();
-        for (int val = L; val <= U; val++) {
-            if (x.contains(val)) {
-                sum += ((float) (val - L + 1)) / ((float) (Math.abs(val - L) + U - L + 1));
-                // val = L -> b = 1 / (U - L + 1)
-                // val = U -> b = (U - L + 1) / 1
+        for (int v = L; v <= U; v++) {
+            if (x.contains(v)) {
+                sum += ((float) (v - L + 1) / (U - L)) / ((float) (Math.abs(U - L)));
+                // v = L -> b = 1 / (U - L + 1) -> 0
+                // v = U -> b = (U - L + 1) / (U - L) -> b = 1
             }
         }
         for (int val = L; val <= U; val++) {
