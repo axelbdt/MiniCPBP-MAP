@@ -23,14 +23,14 @@ import minicpbp.engine.core.Solver;
 import minicpbp.engine.core.Solver.ConstraintWeighingScheme;
 import minicpbp.search.LimitedDiscrepancyBranching;
 import minicpbp.search.Sequencer;
-import minicpbp.util.Procedure;
 import minicpbp.util.Belief;
+import minicpbp.util.Procedure;
 import minicpbp.util.exception.NotImplementedException;
 
+import java.util.Random;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.Random;
 
 import static minicpbp.cp.Factory.*;
 
@@ -131,11 +131,11 @@ public final class BranchingScheme {
      * }
      * </pre>
      *
-     * @param x   the array on which the minimum value is searched
-     * @param p   the predicate that filters the element eligible for selection
-     * @param f   the evaluation function that returns a comparable when applied on an element of x
-     * @param <T> the type of the elements in x, for instance {@link IntVar}
-     * @param <N> the type on which the minimum is computed, for instance {@link Integer}
+     * @param x    the array on which the minimum value is searched
+     * @param p    the predicate that filters the element eligible for selection
+     * @param f    the evaluation function that returns a comparable when applied on an element of x
+     * @param <T>  the type of the elements in x, for instance {@link IntVar}
+     * @param <N>  the type on which the minimum is computed, for instance {@link Integer}
      * @param rand the random number generator from the solver
      * @return a minimum element in x that satisfies the predicate p, chosen uniformly at random,
      * or null if no element satisfies the predicate.
@@ -165,6 +165,7 @@ public final class BranchingScheme {
     }
 
     //TODO
+
     /**
      * Lexicographic strategy.
      * It selects the first variable with a domain larger than one.
@@ -213,26 +214,26 @@ public final class BranchingScheme {
      * @see Factory#makeDfs(Solver, Supplier)
      */
     public static Supplier<Procedure[]> lexicoMaxMarginalValue(IntVar... x) {
-	boolean tracing = x[0].getSolver().tracingSearch();
+        boolean tracing = x[0].getSolver().tracingSearch();
         return () -> {
             IntVar xs = selectMin(x,
                     xi -> xi.size() > 1,
-		    xi -> 1); // any constant value
+                    xi -> 1); // any constant value
             if (xs == null)
                 return EMPTY;
             else {
                 int v = xs.valueWithMaxMarginal();
                 return branch(
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"="+v);
-				  branchEqual(xs, v);
-			      },
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"!="+v);
-				  branchNotEqual(xs, v);
-			      } );
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
             }
         };
     }
@@ -249,26 +250,26 @@ public final class BranchingScheme {
      * @see Factory#makeDfs(Solver, Supplier)
      */
     public static Supplier<Procedure[]> lexicoBiasedWheelSelectVal(IntVar... x) {
-	boolean tracing = x[0].getSolver().tracingSearch();
+        boolean tracing = x[0].getSolver().tracingSearch();
         return () -> {
             IntVar xs = selectMin(x,
                     xi -> xi.size() > 1,
-		    xi -> 1); // any constant value
+                    xi -> 1); // any constant value
             if (xs == null)
                 return EMPTY;
             else {
                 int v = xs.biasedWheelValue();
                 return branch(
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"="+v);
-				  branchEqual(xs, v);
-			      },
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"!="+v);
-				  branchNotEqual(xs, v);
-			      } );
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
             }
         };
     }
@@ -396,26 +397,26 @@ public final class BranchingScheme {
      * @see Factory#makeDfs(Solver, Supplier)
      */
     public static Supplier<Procedure[]> firstFailMaxMarginalValue(IntVar... x) {
-	boolean tracing = x[0].getSolver().tracingSearch();
+        boolean tracing = x[0].getSolver().tracingSearch();
         return () -> {
             IntVar xs = selectMin(x,
                     xi -> xi.size() > 1,
-		    xi -> xi.size());
+                    xi -> xi.size());
             if (xs == null)
                 return EMPTY;
             else {
                 int v = xs.valueWithMaxMarginal();
                 return branch(
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"="+v);
-				  branchEqual(xs, v);
-			      },
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"!="+v);
-				  branchNotEqual(xs, v);
-			      } );
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
             }
         };
     }
@@ -432,28 +433,28 @@ public final class BranchingScheme {
      * @see Factory#makeDfs(Solver, Supplier)
      */
     public static Supplier<Procedure[]> firstFailRandomTieBreakMaxMarginalValue(IntVar... x) {
-	    boolean tracing = x[0].getSolver().tracingSearch();
+        boolean tracing = x[0].getSolver().tracingSearch();
         Random rand = x[0].getSolver().getRandomNbGenerator();
         return () -> {
             IntVar xs = selectMinRandomTieBreak(x,
                     xi -> xi.size() > 1,
-		            xi -> xi.size(),
+                    xi -> xi.size(),
                     rand);
             if (xs == null)
                 return EMPTY;
             else {
                 int v = xs.valueWithMaxMarginal();
                 return branch(
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"="+v);
-				  branchEqual(xs, v);
-			      },
-			      () -> {
-				  if (tracing)
-				      System.out.println("### branching on "+xs.getName()+"!="+v);
-				  branchNotEqual(xs, v);
-			      } );
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
             }
         };
     }
@@ -512,9 +513,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> minEntropy(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -555,15 +556,15 @@ public final class BranchingScheme {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         Random rand = x[0].getSolver().getRandomNbGenerator();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMinRandomTieBreak(x,
                     xi -> xi.size() > 1,
-		    xi -> Math.floor(precisionForTie * xi.entropy()) / precisionForTie, // tie = same first few decimal places
-		    rand);
+                    xi -> Math.floor(precisionForTie * xi.entropy()) / precisionForTie, // tie = same first few decimal places
+                    rand);
             if (xs == null)
                 return EMPTY;
             else {
@@ -599,9 +600,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> minEntropyRegisterImpact(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -629,9 +630,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> impactBasedSearch(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -659,9 +660,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> impactEntropy(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -701,9 +702,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> minEntropyBiasedWheelSelectVal(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -743,9 +744,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> maxMarginalStrength(IntVar[] x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -786,9 +787,9 @@ public final class BranchingScheme {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         Random rand = x[0].getSolver().getRandomNbGenerator();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMinRandomTieBreak(x,
@@ -803,6 +804,49 @@ public final class BranchingScheme {
                         () -> {
                             if (tracing)
                                 System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; strength=" + (beliefRep.rep2std(xs.maxMarginal()) - 1.0 / xs.size()) + "; nb of ties=" + nbTied);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    /**
+     * Maximum Marginal Regret strategy
+     * It selects an unbound variable with the largest marginal regret
+     * on one of the values in its domain.
+     * Then it creates two branches:
+     * the left branch assigning the variable to that value;
+     * the right branch removing this value from the domain.
+     *
+     * @param x the variable on which the max marginal regret strategy is applied.
+     * @return maxMarginalRegretRandomTieBreak branching strategy
+     * @see Factory#makeDfs(Solver, Supplier)
+     */
+    public static Supplier<Procedure[]> maxMarginalRegret(IntVar[] x) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> Math.floor(-beliefRep.rep2std(xi.maxMarginalRegret())) // tie = same first few decimal places
+            );
+            if (xs == null)
+                return EMPTY;
+            else {
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; regret=" + (beliefRep.rep2std(xs.maxMarginalRegret())) + "; nb of ties=" + nbTied);
                             branchEqual(xs, v);
                         },
                         () -> {
@@ -830,14 +874,14 @@ public final class BranchingScheme {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         Random rand = x[0].getSolver().getRandomNbGenerator();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMinRandomTieBreak(x,
                     xi -> xi.size() > 1,
-		    xi -> Math.floor(precisionForTie * (-beliefRep.rep2std(xi.maxMarginalRegret()))) / precisionForTie, // tie = same first few decimal places
+                    xi -> Math.floor(precisionForTie * (-beliefRep.rep2std(xi.maxMarginalRegret()))) / precisionForTie, // tie = same first few decimal places
                     rand);
             if (xs == null)
                 return EMPTY;
@@ -873,9 +917,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> minMarginalStrength(IntVar... x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -913,30 +957,32 @@ public final class BranchingScheme {
      */
     public static Supplier<Procedure[]> domWdeg(IntVar... x) {
         boolean tracing = x[0].getSolver().tracingSearch();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-            return () -> {
-                IntVar xs = selectMin(x,
-                        xi -> xi.size() > 1,
-                        xi -> ((double) xi.size())/((double) xi.wDeg()));
-                if (xs == null)
-                    return EMPTY;
-                else {
-                    int v = xs.min();
-                    return branch(
-                            () -> {
-                                if (tracing)
-                                    System.out.println("### branching on " + xs.getName() + "=" + v);
-                                branchEqual(xs, v);
-                            },
-                            () -> {
-                                if (tracing)
-                                    System.out.println("### branching on " + xs.getName() + "!=" + v);
-                                branchNotEqual(xs, v);
-                            });
-                }
-            };
-    };
+        return () -> {
+            IntVar xs = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+            if (xs == null)
+                return EMPTY;
+            else {
+                int v = xs.min();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    ;
 
     /**
      * Maximum Marginal strategy.
@@ -953,9 +999,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> maxMarginal(IntVar... x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -996,15 +1042,15 @@ public final class BranchingScheme {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         Random rand = x[0].getSolver().getRandomNbGenerator();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMinRandomTieBreak(x,
                     xi -> xi.size() > 1,
-		    xi -> Math.floor(precisionForTie * (- beliefRep.rep2std(xi.maxMarginal()))) / precisionForTie, // tie = same first few decimal places
-		    rand);
+                    xi -> Math.floor(precisionForTie * (-beliefRep.rep2std(xi.maxMarginal()))) / precisionForTie, // tie = same first few decimal places
+                    rand);
             if (xs == null)
                 return EMPTY;
             else {
@@ -1039,9 +1085,9 @@ public final class BranchingScheme {
     public static Supplier<Procedure[]> minMarginal(IntVar... x) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
-        for(IntVar a: x)
+        for (IntVar a : x)
             a.setForBranching(true);
-        if(x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
             x[0].getSolver().computeMinArity();
         return () -> {
             IntVar xs = selectMin(x,
@@ -1098,14 +1144,14 @@ public final class BranchingScheme {
     /**
      * Last conflict heuristic
      * Attempts to branch first on the last variable that caused an Inconsistency
-     *
+     * <p>
      * Lecoutre, C., Saïs, L., Tabary, S., & Vidal, V. (2009).
      * Reasoning from last conflict (s) in constraint programming.
      * Artificial Intelligence, 173(18), 1592-1614.
      *
      * @param variableSelector returns the next variable to bind
-     * @param valueSelector given a variable, returns the value to which
-     *                      it must be assigned on the left branch (and excluded on the right)
+     * @param valueSelector    given a variable, returns the value to which
+     *                         it must be assigned on the left branch (and excluded on the right)
      */
     public static Supplier<Procedure[]> lastConflict(Supplier<IntVar> variableSelector, Function<IntVar, Integer> valueSelector) {
         throw new NotImplementedException();
@@ -1113,15 +1159,15 @@ public final class BranchingScheme {
 
     /**
      * Conflict Ordering Search
-     *
+     * <p>
      * Gay, S., Hartert, R., Lecoutre, C., & Schaus, P. (2015).
      * Conflict ordering search for scheduling problems.
      * In International conference on principles and practice of constraint programming (pp. 140-148).
      * Springer.
      *
      * @param variableSelector returns the next variable to bind
-     * @param valueSelector given a variable, returns the value to which
-     *                      it must be assigned on the left branch (and excluded on the right)
+     * @param valueSelector    given a variable, returns the value to which
+     *                         it must be assigned on the left branch (and excluded on the right)
      */
     public static Supplier<Procedure[]> conflictOrderingSearch(Supplier<IntVar> variableSelector, Function<IntVar, Integer> valueSelector) {
         throw new NotImplementedException();

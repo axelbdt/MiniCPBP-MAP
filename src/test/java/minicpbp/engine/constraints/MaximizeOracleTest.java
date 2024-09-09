@@ -12,7 +12,7 @@ public class MaximizeOracleTest {
     @Test
     public void maximizeTest() {
         Solver cp = makeSolver();
-        IntVar x = makeIntVar(cp, 10, 20);
+        IntVar x = makeIntVar(cp, 1, 10);
 
         cp.setTraceBPFlag(true);
         cp.post(new MaximizeOracle(x));

@@ -183,9 +183,6 @@ public abstract class AbstractConstraint implements Constraint {
     }
 
     protected double setOutsideBelief(int i, int val, double b) {
-        if (b == 0.0) {
-            System.out.println(i + " " + val + " " + b);
-        }
         outsideBelief[i][val - ofs[i]] = b;
         return b;
     }

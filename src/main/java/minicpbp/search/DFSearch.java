@@ -15,14 +15,13 @@
 
 package minicpbp.search;
 
-import minicpbp.state.StateManager;
-import minicpbp.util.exception.InconsistencyException;
-import minicpbp.util.exception.NotImplementedException;
-import minicpbp.util.Procedure;
-
-import minicpbp.engine.core.IntVar;
 import minicpbp.cp.Factory;
 import minicpbp.cp.Factory.IntHolder;
+import minicpbp.engine.core.IntVar;
+import minicpbp.state.StateManager;
+import minicpbp.util.Procedure;
+import minicpbp.util.exception.InconsistencyException;
+import minicpbp.util.exception.NotImplementedException;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,7 +31,7 @@ import java.util.function.Supplier;
 /**
  * Depth First Search Branch and Bound implementation
  */
-public class DFSearch extends Search{
+public class DFSearch extends Search {
 
     private Supplier<Procedure[]> branching;
     private Supplier<Procedure[]> branchingSecond;
@@ -45,8 +44,8 @@ public class DFSearch extends Search{
      * Creates a Depth First Search object with a given branching
      * that defines the search tree dynamically.
      *
-     * @param sm the state manager that will be saved and restored
-     *           at each node of the search tree
+     * @param sm        the state manager that will be saved and restored
+     *                  at each node of the search tree
      * @param branching a generator of closures in charge of defining the ordered
      *                  children nodes at each node of the depth-first-search tree.
      *                  When it returns an empty array, a solution is found.
@@ -126,7 +125,7 @@ public class DFSearch extends Search{
      * to stop the search when it becomes true.
      *
      * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     *              that stops the search when it becomes true
      * @return an object with the statistics on the search
      */
     public SearchStatistics solve(Predicate<SearchStatistics> limit) {
@@ -145,8 +144,8 @@ public class DFSearch extends Search{
      * Any {@link InconsistencyException} that may
      * be throw when executing the closure is also catched.
      *
-     * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     * @param limit     a predicate called at each node
+     *                  that stops the search when it becomes true
      * @param subjectTo the closure to execute prior to the search starts
      * @return an object with the statistics on the search
      */
@@ -170,13 +169,13 @@ public class DFSearch extends Search{
             Predicate<SearchStatistics> restartLimit = limit.or(stat -> stat.numberOfFailures() > cumulCutoff[0]);
             sm.withNewState(() -> {
                 try {
-		            dfs(statistics, restartLimit);
+                    dfs(statistics, restartLimit);
                 } catch (StopSearchException ignored) {
                 } catch (StackOverflowError e) {
                     throw new NotImplementedException("dfs with explicit stack needed to pass this test");
                 }
             });
-            if(branchingSecond != null) {
+            if (branchingSecond != null) {
                 this.branching = this.branchingSecond;
                 this.branchingSecond = null;
             }
@@ -190,18 +189,17 @@ public class DFSearch extends Search{
     public void initializeImpact(IntVar... x) {
         int[] arrayVal;
         IntHolder value = new IntHolder();
-        for(IntVar a: x) {
+        for (IntVar a : x) {
             arrayVal = new int[a.size()];
             a.fillArray(arrayVal);
             value.setVar(a);
-            for(int i = 0; i < arrayVal.length; i++) {
+            for (int i = 0; i < arrayVal.length; i++) {
                 value.setVal(arrayVal[i]);
                 try {
                     sm.withNewState(() -> {
                         Factory.branchEqualRegisterImpact(value);
                     });
-                }
-                catch (InconsistencyException ignored) {
+                } catch (InconsistencyException ignored) {
                     sm.restoreState();
                 }
             }
@@ -212,18 +210,17 @@ public class DFSearch extends Search{
     public void initializeImpactDomains(IntVar... x) {
         int[] arrayVal;
         IntHolder value = new IntHolder();
-        for(IntVar a: x) {
+        for (IntVar a : x) {
             arrayVal = new int[a.size()];
             a.fillArray(arrayVal);
             value.setVar(a);
-            for(int i = 0; i < arrayVal.length; i++) {
+            for (int i = 0; i < arrayVal.length; i++) {
                 value.setVal(arrayVal[i]);
                 try {
                     sm.withNewState(() -> {
                         Factory.branchEqualRegisterImpactOnDomains(value);
-                        });
-                }
-                catch (InconsistencyException ignored) {
+                    });
+                } catch (InconsistencyException ignored) {
                     sm.restoreState();
                 }
             }
@@ -249,7 +246,7 @@ public class DFSearch extends Search{
      * to stop the search when it becomes true.
      *
      * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     *              that stops the search when it becomes true
      * @return an object with the statistics on the search
      */
     public SearchStatistics solveRestarts(Predicate<SearchStatistics> limit) {
@@ -262,8 +259,8 @@ public class DFSearch extends Search{
      * with a given predicate called at each node
      * to stop the search when it becomes true.
      *
-     * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     * @param limit         a predicate called at each node
+     *                      that stops the search when it becomes true
      * @param nbFailCutoff
      * @param restartFactor
      * @return an object with the statistics on the search
@@ -291,18 +288,22 @@ public class DFSearch extends Search{
      * and with a given predicate called at each node
      * to stop the search when it becomes true.
      *
-     * @param obj the objective to optimize that is tightened each
-     *            time a new solution is found
+     * @param obj   the objective to optimize that is tightened each
+     *              time a new solution is found
      * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     *              that stops the search when it becomes true
      * @return an object with the statistics on the search
      */
     public SearchStatistics optimize(Objective obj, Predicate<SearchStatistics> limit) {
         SearchStatistics statistics = new SearchStatistics();
 //         onSolution(() -> obj.tighten());
         onSolution(() -> {
-		//System.out.println(" (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)"); 
-		obj.tighten();});
+            //System.out.println(" (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
+            obj.tighten();
+        });
+        onSolution(() -> {
+            System.out.println("solution found in " + statistics.numberOfFailures() + " fails and " + statistics.timeElapsed() + " msecs");
+        });
         return solve(statistics, limit);
     }
 
@@ -318,10 +319,10 @@ public class DFSearch extends Search{
      * Any {@link InconsistencyException} that may
      * be throw when executing the closure is also catched.
      *
-     * @param obj the objective to optimize that is tightened each
-     *            time a new solution is found
-     * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     * @param obj       the objective to optimize that is tightened each
+     *                  time a new solution is found
+     * @param limit     a predicate called at each node
+     *                  that stops the search when it becomes true
      * @param subjectTo the closure to execute prior to the search starts
      * @return an object with the statistics on the search
      */
@@ -361,6 +362,5 @@ public class DFSearch extends Search{
         }
     }
 
-    
 
 }

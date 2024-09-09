@@ -58,7 +58,7 @@ public class MaximizeOracle extends AbstractConstraint {
         int U = x.max();
         for (int v = L; v <= U; v++) {
             if (x.contains(v)) {
-                sum += ((float) (v - L + 1) / (U - L)) / ((float) (Math.abs(U - L)));
+                sum += ((float) (v - L) / (U - L)) / ((float) (Math.abs(U - L)));
                 // v = L -> b = 1 / (U - L + 1) -> 0
                 // v = U -> b = (U - L + 1) / (U - L) -> b = 1
             }
