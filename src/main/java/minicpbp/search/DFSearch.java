@@ -298,11 +298,8 @@ public class DFSearch extends Search {
         SearchStatistics statistics = new SearchStatistics();
 //         onSolution(() -> obj.tighten());
         onSolution(() -> {
-            //System.out.println(" (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
+            System.out.println(statistics);
             obj.tighten();
-        });
-        onSolution(() -> {
-            System.out.println("solution found in " + statistics.numberOfFailures() + " fails and " + statistics.timeElapsed() + " msecs");
         });
         return solve(statistics, limit);
     }
