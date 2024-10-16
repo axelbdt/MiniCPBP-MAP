@@ -12,29 +12,27 @@
  *
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  *
- * mini-cpbp, replacing classic propagation by belief propagation 
+ * mini-cpbp, replacing classic propagation by belief propagation
  * Copyright (c)  2019. by Gilles Pesant
  */
 
 package minicpbp.search;
 
+import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateManager;
+import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.NotImplementedException;
-import minicpbp.util.Procedure;
-import minicpbp.engine.core.IntVar;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.antlr.v4.parse.ANTLRParser.throwsSpec_return;
-
 /**
  * Limited Discrepancy Search Branch and Bound implementation
  */
-public class LDSearch extends Search{
+public class LDSearch extends Search {
 
     private Supplier<Procedure[]> branching;
     private Supplier<Procedure[]> LDSbranching;
@@ -49,23 +47,23 @@ public class LDSearch extends Search{
      * Creates a Limited Discrepancy Search object with a given branching
      * that defines the search tree dynamically.
      *
-     * @param sm the state manager that will be saved and restored
-     *           at each node of the search tree
-     * @param branching a generator of closures in charge of defining the ordered
-     *                  children nodes at each node of the depth-first-search tree.
-     *                  When it returns an empty array, a solution is found.
-     *                  A backtrack occurs when a {@link InconsistencyException}
-     *                  is thrown.
-     * @param geometric to indicate whether the progression of maxDiscrepancy is geometric
+     * @param sm            the state manager that will be saved and restored
+     *                      at each node of the search tree
+     * @param branching     a generator of closures in charge of defining the ordered
+     *                      children nodes at each node of the depth-first-search tree.
+     *                      When it returns an empty array, a solution is found.
+     *                      A backtrack occurs when a {@link InconsistencyException}
+     *                      is thrown.
+     * @param geometric     to indicate whether the progression of maxDiscrepancy is geometric
      * @param discrepancyUB an upper bound on the number of discrepancies in the rightmost branch of a complete search tree
      */
     public LDSearch(StateManager sm, Supplier<Procedure[]> branching, boolean geometric, int discrepancyUB) {
         this.sm = sm;
         this.branching = branching;
-	this.geometric = geometric;
-	this.discrepancyUB = discrepancyUB;
+        this.geometric = geometric;
+        this.discrepancyUB = discrepancyUB;
     }
-	
+
     /**
      * Adds a listener that is called on each solution.
      *
@@ -98,26 +96,25 @@ public class LDSearch extends Search{
 
     private SearchStatistics solve(SearchStatistics statistics, Predicate<SearchStatistics> limit) {
         sm.withNewState(() -> {
-	    int maxDiscrepancy = 1;
+            int maxDiscrepancy = 1;
             try {
-		if (discrepancyUB==0) { // special case of all vars already being fixed
-		    LDSbranching = new LimitedDiscrepancyBranching(branching, 0);
-		    lds(statistics, limit);
-		}
-                else 
-		    while(maxDiscrepancy <= discrepancyUB) { // nb discrepancies of rightmost branch <= nb vars * (domain size - 1)
-			LDSbranching = new LimitedDiscrepancyBranching(branching, maxDiscrepancy);
-			// System.out.println("LDS: on search tree with max discrepancy = "+maxDiscrepancy);
-			lds(statistics, limit);
-			// System.out.println(statistics);
-			if (geometric)
-			    maxDiscrepancy *= 2;
-			else
-			    maxDiscrepancy++;
-		    }
+                if (discrepancyUB == 0) { // special case of all vars already being fixed
+                    LDSbranching = new LimitedDiscrepancyBranching(branching, 0);
+                    lds(statistics, limit);
+                } else
+                    while (maxDiscrepancy <= discrepancyUB) { // nb discrepancies of rightmost branch <= nb vars * (domain size - 1)
+                        LDSbranching = new LimitedDiscrepancyBranching(branching, maxDiscrepancy);
+                        // System.out.println("LDS: on search tree with max discrepancy = "+maxDiscrepancy);
+                        lds(statistics, limit);
+                        // System.out.println(statistics);
+                        if (geometric)
+                            maxDiscrepancy *= 2;
+                        else
+                            maxDiscrepancy++;
+                    }
                 statistics.setCompleted();
             } catch (StopSearchException ignored) {
- 		//System.out.println("c LDS: currently on search tree with max discrepancy = "+maxDiscrepancy);
+                //System.out.println("c LDS: currently on search tree with max discrepancy = "+maxDiscrepancy);
             } catch (StackOverflowError e) {
                 throw new NotImplementedException("c lds with explicit stack needed to pass this test");
             }
@@ -143,7 +140,7 @@ public class LDSearch extends Search{
      * to stop the search when it becomes true.
      *
      * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     *              that stops the search when it becomes true
      * @return an object with the statistics on the search
      */
     public SearchStatistics solve(Predicate<SearchStatistics> limit) {
@@ -162,8 +159,8 @@ public class LDSearch extends Search{
      * Any {@link InconsistencyException} that may
      * be throw when executing the closure is also catched.
      *
-     * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     * @param limit     a predicate called at each node
+     *                  that stops the search when it becomes true
      * @param subjectTo the closure to execute prior to the search starts
      * @return an object with the statistics on the search
      */
@@ -209,19 +206,20 @@ public class LDSearch extends Search{
      * and with a given predicate called at each node
      * to stop the search when it becomes true.
      *
-     * @param obj the objective to optimize that is tightened each
-     *            time a new solution is found
+     * @param obj   the objective to optimize that is tightened each
+     *              time a new solution is found
      * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     *              that stops the search when it becomes true
      * @return an object with the statistics on the search
      */
     public SearchStatistics optimize(Objective obj, Predicate<SearchStatistics> limit) {
         SearchStatistics statistics = new SearchStatistics();
 //         onSolution(() -> obj.tighten());
         onSolution(() -> {
-		//System.out.println("c (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)"); 
-		obj.tighten();
-    });
+            //System.out.println("c (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
+            System.out.println(statistics);
+            obj.tighten();
+        });
         return solve(statistics, limit);
     }
 
@@ -237,10 +235,10 @@ public class LDSearch extends Search{
      * Any {@link InconsistencyException} that may
      * be throw when executing the closure is also catched.
      *
-     * @param obj the objective to optimize that is tightened each
-     *            time a new solution is found
-     * @param limit a predicate called at each node
-     *             that stops the search when it becomes true
+     * @param obj       the objective to optimize that is tightened each
+     *                  time a new solution is found
+     * @param limit     a predicate called at each node
+     *                  that stops the search when it becomes true
      * @param subjectTo the closure to execute prior to the search starts
      * @return an object with the statistics on the search
      */
@@ -280,6 +278,5 @@ public class LDSearch extends Search{
         }
     }
 
-    
 
 }

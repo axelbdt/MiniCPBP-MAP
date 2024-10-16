@@ -39,7 +39,7 @@ import static minicpbp.cp.Factory.*;
  * The Magic Square Completion problem.
  * <a href="http://csplib.org/Problems/prob019/">CSPLib</a>.
  */
-public class LatinSquare {
+public class LatinSquareOld {
 
     static final String MAX_MARGINAL = "maxMarginal";
     static final String MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK = "maxMarginalRegretRandomTieBreak";
@@ -54,7 +54,10 @@ public class LatinSquare {
     static final String SUM_PRODUCT_INIT_EXP = "sum-product-init-exp";
     static final String MAX_PRODUCT_ORACLE_EXP = "max-product-oracle-exp";
     static final String SUM_PRODUCT_ORACLE_EXP = "sum-product-oracle-exp";
-    static final String DIAGONAL_SUM = "max-product-objective-diagonal";
+    static final String MAX_PRODUCT_OBJECTIVE = "max-product-objective";
+
+    static final String DIAGONAL = "diagonal";
+    static final String CROSS = "cross";
 
     public static int[] filledList(int n) {
         int first = (int) n * n * 8 / 20;
@@ -64,24 +67,28 @@ public class LatinSquare {
     }
 
     public static void main(String[] args) {
+        new LatinSquareOld();
+    }
+
+    public LatinSquareOld() {
         int n = 8;
         int[] nbFilledArray = filledList(n);
         int maxNbFile = 100;
 
-        int nbFilled = 25;
-        int nbFile = 2;
-        // for (int nbFilled : nbFilledArray) {
-        //    for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
-        runInstance(n, nbFilled, nbFile);
-        //    }
-        //}
+        for (int nbFilled : nbFilledArray) {
+            for (int nbFile = 1; nbFile <= maxNbFile; nbFile++) {
+                runInstance(n, nbFilled, nbFile);
+            }
+        }
     }
 
-    public static void runInstance(int n, int nbFilled, int nbFile) {
+    public void runInstance(int n, int nbFilled, int nbFile) {
+        ExperimentFilename fn = new ExperimentFilename("latinSquare");
         // String[] models = {SUM_PRODUCT_NO_INIT, MAX_PRODUCT_ORACLE, MAX_PRODUCT_INIT, SUM_PRODUCT_ORACLE, SUM_PRODUCT_INIT};
         // String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK, FIRST_FAIL_RANDOM_VAL};
         String[] branchingSchemes = {MAX_MARGINAL, MAX_MARGINAL_REGRET_RANDOM_TIE_BREAK};
-        String[] models = {DIAGONAL_SUM};
+        String[] models = {MAX_PRODUCT_OBJECTIVE};
+        String[] objectives = {CROSS};
         // int n = 5; // Integer.parseInt(args[0]);
         // int nbFilled = 8; // Integer.parseInt(args[1]);
         // int nbFile = 1; // Integer.parseInt(args[2]);
@@ -90,34 +97,37 @@ public class LatinSquare {
 
         for (String model : models) {
             for (String branchingScheme : branchingSchemes) {
-                // Set up a new output stream for this model
-                try {
-                    FileOutputStream fos = new FileOutputStream(
-                            outputFilepath(n, nbFilled, nbFile, model, branchingScheme), false);
-                    PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
+                for (String objective : objectives) {
+                    // Set up a new output stream for this model
+                    try {
+                        FileOutputStream fos = new FileOutputStream(
+                                fn.outputFilepath(n, nbFilled, nbFile, model, branchingScheme, objective), false);
+                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
 
-                    // Redirect System.out to our new PrintStream
-                    System.setOut(out);
+                        // Redirect System.out to our new PrintStream
+                        System.setOut(out);
 
-                    // Run the model
-                    run(n, nbFilled, nbFile, model, branchingScheme);
+                        // Run the model
+                        run(n, nbFilled, nbFile, model, branchingScheme, objective);
 
-                    // Close the new PrintStream
-                    out.close();
-                } catch (FileNotFoundException e) {
-                    originalOut.println("Could not open out file for model: " + model);
-                } finally {
-                    // Restore the original System.out
-                    System.setOut(originalOut);
+                        // Close the new PrintStream
+                        out.close();
+                    } catch (FileNotFoundException e) {
+                        originalOut.println("Could not open out file for model: " + model);
+                    } finally {
+                        // Restore the original System.out
+                        System.setOut(originalOut);
+                    }
                 }
             }
         }
     }
 
-    public static void run(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
+    public void run(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+        ExperimentFilename fn = new ExperimentFilename("latinSquare");
         Solver cp = makeSolver();
 
-        IntVar[][] x = makeModel(n, nbFilled, nbFile, model, cp);
+        IntVar[][] x = makeModel(n, nbFilled, nbFile, model, objective, cp);
 
         System.out.println(x[0][0].toString());
         IntVar[] xFlat = flatten(x);
@@ -132,7 +142,7 @@ public class LatinSquare {
 
         // solve
         SearchStatistics stats = null;
-        try (FileWriter fw = new FileWriter(foundSolutionFilepath(n, nbFilled, nbFile, model, branchingScheme))) {
+        try (FileWriter fw = new FileWriter(fn.foundSolutionFilepath(n, nbFilled, nbFile, model, branchingScheme, objective))) {
             dfs.onSolution(() -> {
                 writeSolution(fw, n, x);
             });
@@ -170,49 +180,65 @@ public class LatinSquare {
 
     // --- Filenames ---
 
-    public static String baseFilename(int n, int nbFilled, int nbFile) {
-        return "latinSquare" + n + "-filled" + nbFilled + "-" + nbFile;
-    }
+    public class ExperimentFilename {
+        private String modelName;
 
-    public static String runFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-        return String.format("%s-%s-%s.out", baseFilename(n, nbFilled, nbFile), model, branchingScheme);
-    }
+        public ExperimentFilename(String modelName) {
+            this.modelName = modelName;
+        }
 
-    public static String instanceFilename(int n, int nbFilled, int nbFile) {
-        return baseFilename(n, nbFilled, nbFile) + ".dat";
-    }
+        public static String capitalizeFirstLetter(String input) {
+            if (input == null || input.isEmpty()) {
+                return input;
+            }
+            return input.substring(0, 1).toUpperCase() + input.substring(1);
+        }
 
-    public static String instanceFilepath(int n, int nbFilled, int nbFile) {
-        return "./src/main/java/minicpbp/examples/data/LatinSquare/" + instanceFilename(n, nbFilled, nbFile);
-    }
+        public String baseFilename(int n, int nbFilled, int nbFile) {
+            return modelName + n + "-filled" + nbFilled + "-" + nbFile;
+        }
 
-    public static String solutionFilename(int n, int nbFilled, int nbFile) {
-        return "solutions-" + baseFilename(n, nbFilled, nbFile) + ".sol";
-    }
+        public String runFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+            return String.format("%s-%s-%s-%s.out", baseFilename(n, nbFilled, nbFile), model, branchingScheme, objective);
+        }
 
-    public static String solutionFilepath(int n, int nbFilled, int nbFile) {
-        return "./solutions/LatinSquare/" + solutionFilename(n, nbFilled, nbFile);
-    }
+        public String instanceFilename(int n, int nbFilled, int nbFile) {
+            return baseFilename(n, nbFilled, nbFile) + ".dat";
+        }
 
-    public static String outputFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-        return String.format("out-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
-    }
+        public String instanceFilepath(int n, int nbFilled, int nbFile) {
+            return "./src/main/java/minicpbp/examples/data/" + capitalizeFirstLetter(modelName) + "/" + instanceFilename(n, nbFilled, nbFile);
+        }
 
-    public static String outputFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-        return "./logs/LatinSquare/traces/" + outputFilename(n, nbFilled, nbFile, model, branchingScheme);
-    }
+        public String solutionFilename(int n, int nbFilled, int nbFile) {
+            return "solutions-" + baseFilename(n, nbFilled, nbFile) + ".sol";
+        }
 
-    public static String foundSolutionFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-        return String.format("out-solution-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme));
-    }
+        public String solutionFilepath(int n, int nbFilled, int nbFile) {
+            return "./solutions/" + capitalizeFirstLetter(modelName) + "/" + solutionFilename(n, nbFilled, nbFile);
+        }
 
-    public static String foundSolutionFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme) {
-        return "./logs/LatinSquare/solutions/" + foundSolutionFilename(n, nbFilled, nbFile, model, branchingScheme);
+        public String outputFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+            return String.format("out-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme, objective));
+        }
+
+        public String outputFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+            return "./logs/" + capitalizeFirstLetter(modelName) + "/traces/" + outputFilename(n, nbFilled, nbFile, model, branchingScheme, objective);
+        }
+
+        public String foundSolutionFilename(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+            return String.format("out-solution-%s", runFilename(n, nbFilled, nbFile, model, branchingScheme, objective));
+        }
+
+        public String foundSolutionFilepath(int n, int nbFilled, int nbFile, String model, String branchingScheme, String objective) {
+            return "./logs/" + capitalizeFirstLetter(modelName) + "/solutions/" + foundSolutionFilename(n, nbFilled, nbFile, model, branchingScheme, objective);
+        }
+
     }
 
     // --- Write solution ---
 
-    public static void writeSolution(FileWriter fw, int n, IntVar[][] x) {
+    public void writeSolution(FileWriter fw, int n, IntVar[][] x) {
         try {
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < n; j++) {
@@ -230,39 +256,39 @@ public class LatinSquare {
 
     // --- create Latin Square model ---
 
-    public static IntVar[][] makeModel(int n, int nbFilled, int nbFile, String model, Solver cp) {
+    public IntVar[][] makeModel(int n, int nbFilled, int nbFile, String model, String objective, Solver cp) {
         IntVar[][] x;
 
         switch (model) {
             case MAX_PRODUCT_INIT:
-                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, true);
+                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, true, objective);
                 break;
             case MAX_PRODUCT_INIT_EXP:
-                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, true);
+                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, true, objective);
                 break;
             case MAX_PRODUCT_ORACLE:
-                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, true);
+                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, true, objective);
                 break;
             case MAX_PRODUCT_ORACLE_EXP:
-                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, true);
+                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, true, objective);
                 break;
             case SUM_PRODUCT_NO_INIT:
                 x = makeLatinSquare(cp, n, nbFilled, nbFile, false);
                 break;
             case SUM_PRODUCT_INIT:
-                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, false);
+                x = makeLatinSquareInit(cp, n, nbFilled, nbFile, false, objective);
                 break;
             case SUM_PRODUCT_INIT_EXP:
-                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, false);
+                x = makeLatinSquareInitExp(cp, n, nbFilled, nbFile, false, objective);
                 break;
             case SUM_PRODUCT_ORACLE:
-                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, false);
+                x = makeLatinSquareOracle(cp, n, nbFilled, nbFile, false, objective);
                 break;
             case SUM_PRODUCT_ORACLE_EXP:
-                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, false);
+                x = makeLatinSquareOracleExp(cp, n, nbFilled, nbFile, false, objective);
                 break;
-            case DIAGONAL_SUM:
-                x = makeLatinSquareObjective(cp, n, nbFilled, nbFile);
+            case MAX_PRODUCT_OBJECTIVE:
+                x = makeLatinSquareObjective(cp, n, nbFilled, nbFile, objective);
                 break;
             default:
                 throw new IllegalArgumentException("Unexpected value: " + model);
@@ -270,9 +296,10 @@ public class LatinSquare {
         return x;
     }
 
-    public static void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile) {
+    public void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile) {
+        var fn = new ExperimentFilename("latinSquare");
         try {
-            Scanner scanner = new Scanner(new FileReader(instanceFilepath(n, nbFilled, nbFile)));
+            Scanner scanner = new Scanner(new FileReader(fn.instanceFilepath(n, nbFilled, nbFile)));
 
             scanner.nextInt();
             scanner.nextInt();
@@ -298,22 +325,22 @@ public class LatinSquare {
     /*
      * Make latin square and set marginals on the diagonal to proportional values
      */
-    public static IntVar[][] makeLatinSquareInit(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+    public IntVar[][] makeLatinSquareInit(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct, String objective) {
         IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
         // proportional init on diagonal
-        for (int i = 0; i < n; i++) {
-            setProportionalMarginals(x[i][i]);
+        for (var v : varPattern(x, n, objective)) {
+            setProportionalMarginals(v);
         }
         return x;
     }
 
-    public static IntVar[][] makeLatinSquareInitExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+    public IntVar[][] makeLatinSquareInitExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct, String objective) {
         IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
         // exponential init on diagonal
-        for (int i = 0; i < n; i++) {
-            setExponentialMarginals(x[i][i]);
+        for (var v : varPattern(x, n, objective)) {
+            setExponentialMarginals(v);
         }
         return x;
     }
@@ -321,38 +348,33 @@ public class LatinSquare {
     /*
      * Make latin square with proportional oracle on the diagonal
      */
-    public static IntVar[][] makeLatinSquareOracle(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+    public IntVar[][] makeLatinSquareOracle(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct, String objective) {
         IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
 
         // proportional oracle on diagonal
-        for (int i = 0; i < n; i++) {
-            cp.post(proportionalOracle(x[i][i]));
+        for (var v : varPattern(x, n, objective)) {
+            cp.post(proportionalOracle(v));
         }
         return x;
     }
 
-    public static IntVar[][] makeLatinSquareOracleExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+    public IntVar[][] makeLatinSquareOracleExp(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct, String objective) {
         IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, maxProduct);
         // exponential oracle on diagonal
-        for (int i = 0; i < n; i++) {
-            cp.post(exponentialOracle(x[i][i]));
+        for (var v : varPattern(x, n, objective)) {
+            cp.post(exponentialOracle(v));
         }
         return x;
     }
 
-    public static IntVar[][] makeLatinSquareObjective(Solver cp, int n, int nbFilled, int nbFile) {
+    public IntVar[][] makeLatinSquareObjective(Solver cp, int n, int nbFilled, int nbFile, String objective) {
         IntVar[][] x = makeLatinSquare(cp, n, nbFilled, nbFile, true);
-
-        IntVar[] diagonal = new IntVar[n];
-        for (int i = 0; i < n; i++) {
-            diagonal[i] = x[i][i];
-        }
-        cp.post(new ObjectiveSum(diagonal));
+        cp.post(new ObjectiveSum(varPattern(x, n, objective)));
         return x;
     }
 
 
-    public static IntVar[][] makeLatinSquare(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
+    public IntVar[][] makeLatinSquare(Solver cp, int n, int nbFilled, int nbFile, boolean maxProduct) {
         IntVar[][] x = new IntVar[n][n];
 
         for (int i = 0; i < n; i++) {
@@ -425,5 +447,33 @@ public class LatinSquare {
             int v = values[i];
             var.setMarginalWithDefault(v, (double) Math.pow(2, v));
         }
+    }
+
+    public IntVar[] varPattern(IntVar[][] vars, int n, String pattern) {
+        var result = new IntVar[n];
+        switch (pattern) {
+            case "diagonal":
+                for (int i = 0; i < n; i++) {
+                    result[i] = vars[i][i];
+                }
+                break;
+            case "cross":
+                if (!(n % 4 == 0 || n % 4 == 1)) {
+                    throw new IllegalArgumentException("n must 4k or 4k+1");
+                }
+                for (int i = 0; i < (n / 4); i++) {
+                    result[4 * i] = vars[n / 2 + i - 1][n / 2 - i];
+                    result[4 * i + 1] = vars[n / 2 - i][n / 2 + i - 1];
+                    result[4 * i + 2] = vars[n / 2 - i][n / 2 + i - 1];
+                    result[4 * i + 3] = vars[n / 2 + i - 1][n / 2 - i];
+                }
+                if (n % 4 == 1) {
+                    result[n - 1] = vars[n / 2][n / 2];
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown pattern: " + pattern);
+        }
+        return result;
     }
 }

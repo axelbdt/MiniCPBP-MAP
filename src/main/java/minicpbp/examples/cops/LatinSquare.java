@@ -5,8 +5,8 @@ import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.*;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
-import minicpbp.search.DFSearch;
 import minicpbp.search.Objective;
+import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
 import minicpbp.util.Procedure;
 import minicpbp.util.io.TeeOutputStream;
@@ -17,8 +17,10 @@ import java.io.FileReader;
 import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 import static minicpbp.cp.BranchingScheme.*;
 import static minicpbp.cp.Factory.*;
@@ -27,9 +29,12 @@ public class LatinSquare {
     public enum Branching {
         MAX_MARGINAL,
         MAX_MARGINAL_REGRET,
+        MAX_MARGINAL_STRENGTH,
         FIRST_FAIL,
         LEXICO,
-        MAX_VALUE;
+        MAX_VALUE,
+        DOM_WDEG,
+        DOM_WDEG_MAX_MARGINAL;
 
         @Override
         public String toString() {
@@ -37,13 +42,35 @@ public class LatinSquare {
         }
     }
 
-    public enum ObjectivePattern {
+    public enum ObjectivePatternType {
         DIAGONAL,
-        CROSS;
+        PSEUDODIAGONAL;
 
         @Override
         public String toString() {
             return name().toLowerCase();
+        }
+    }
+
+    public record ObjectivePattern(ObjectivePatternType type, int nbVars, int rowLength, int overlap) {
+        public ObjectivePattern(int n) {
+            this(ObjectivePatternType.DIAGONAL, n, 1, 0);
+        }
+
+        public ObjectivePattern {
+            if (nbVars % rowLength != 0) {
+                throw new IllegalArgumentException("nbVars must be a multiple of rowLength");
+            }
+            if (overlap < 0 || overlap > rowLength) {
+                throw new IllegalArgumentException("overlap must be between 0 and rowLength");
+            }
+        }
+
+        public String toString() {
+            return switch (type) {
+                case DIAGONAL -> "diagonal";
+                case PSEUDODIAGONAL -> String.format("pseudodiagonal_%d_%d_%d", nbVars, rowLength, overlap);
+            };
         }
     }
 
@@ -58,12 +85,20 @@ public class LatinSquare {
         }
     }
 
-    public record ExperimentSpec(BPAlgorithm bp, Branching branching, boolean oracle,
-                                 int truncateRate) {
+    public enum SearchType {
+        DFS,
+        LDS;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
+        }
+    }
+
+    public record ExperimentSpec(BPAlgorithm bp, Branching branching, boolean oracle) {
         public String toString() {
             String oracleStr = oracle ? "-oracle" : "";
-            String truncateRateStr = truncateRate == 0 ? "" : "-truncate" + truncateRate;
-            return String.format("%s-%s%s", bp, branching, oracleStr + truncateRateStr);
+            return String.format("%s-%s%s", bp, branching, oracleStr);
         }
 
     }
@@ -72,10 +107,10 @@ public class LatinSquare {
     private IntVar[][] x;
     private IntVar[] xFlat;
     private IntVar[] objectiveVars;
-    private DFSearch dfs;
+    private Search search;
     private Objective obj;
 
-    public LatinSquare(int n, int nbHoles, int nbFile, BPAlgorithm bp, Branching branching, ObjectivePattern objective, boolean oracle, int truncateRate) {
+    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, boolean oracle, int truncateRate) {
         // Create solver and square variables
         cp = makeSolver();
         if (BPAlgorithm.NO_BP == bp) {
@@ -113,25 +148,37 @@ public class LatinSquare {
         }
 
         // create objective and bind it to the variables
-        objectiveVars = new IntVar[n];
-        switch (objective) {
+        objectiveVars = new IntVar[objective.nbVars];
+        System.out.println("objective: " + objective);
+        System.out.println("objective.nbVars: " + objective.nbVars);
+        assert objective.nbVars <= n * n;
+        switch (objective.type) {
             case DIAGONAL:
                 for (int i = 0; i < n; i++) {
                     objectiveVars[i] = x[i][i];
                 }
                 break;
-            case CROSS:
-                if (!(n % 4 == 0 || n % 4 == 1)) {
-                    throw new IllegalArgumentException("n must 4k or 4k+1");
+            case PSEUDODIAGONAL:
+                int rowLength = objective.rowLength;
+                if (rowLength > n) {
+                    throw new IllegalArgumentException("rowLength must be less than n");
                 }
-                for (int i = 0; i < (n / 4); i++) {
-                    objectiveVars[4 * i] = x[n / 2 + i - 1][n / 2 - i];
-                    objectiveVars[4 * i + 1] = x[n / 2 - i][n / 2 + i - 1];
-                    objectiveVars[4 * i + 2] = x[n / 2 - i][n / 2 + i - 1];
-                    objectiveVars[4 * i + 3] = x[n / 2 + i - 1][n / 2 - i];
+                int nbVars = objective.nbVars;
+                int overlap = objective.overlap;
+                int nbRows = nbVars / rowLength;
+                if (nbRows > n) {
+                    throw new IllegalArgumentException("nbRows must be less than n");
                 }
-                if (n % 4 == 1) {
-                    objectiveVars[n - 1] = x[n / 2][n / 2];
+                if (n < rowLength + (nbRows - 1) * (rowLength - overlap)) {
+                    throw new IllegalArgumentException("pattern won't fit into square");
+                }
+                int col = 0;
+                for (int i = 0; i < nbRows; i++) {
+                    for (int j = 0; j < rowLength; j++) {
+                        objectiveVars[rowLength * i + j] = x[i][col];
+                        col++;
+                    }
+                    col -= overlap;
                 }
                 break;
             default:
@@ -204,12 +251,30 @@ public class LatinSquare {
             case MAX_MARGINAL_REGRET:
                 branchingProcedure = maxMarginalRegret(xFlat);
                 break;
+            case MAX_MARGINAL_STRENGTH:
+                branchingProcedure = maxMarginalStrength(xFlat);
+                break;
+            case DOM_WDEG:
+                branchingProcedure = domWdeg(xFlat);
+                break;
+            case DOM_WDEG_MAX_MARGINAL:
+                branchingProcedure = domWdegMaxMarginal(xFlat);
+                break;
             default:
                 throw new IllegalArgumentException("Unknown branching scheme: " + branching);
         }
-        dfs = makeDfs(cp, branchingProcedure);
-        dfs.onSolution(() -> {
-            var myDFS = dfs;
+
+        switch (searchType) {
+            case DFS:
+                search = makeDfs(cp, branchingProcedure);
+                break;
+            case LDS:
+                search = makeLds(cp, branchingProcedure);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown search type: " + searchType);
+        }
+        search.onSolution(() -> {
             // sum of objectiveVars
             int sum = Arrays.stream(objectiveVars).mapToInt(IntVar::min).sum();
             System.out.println("NEW SOLUTION FOUND");
@@ -221,7 +286,25 @@ public class LatinSquare {
 
 
     public SearchStatistics optimize() {
-        return dfs.optimize(obj, stat -> stat.isCompleted());
+        return search.optimize(obj, stat -> stat.isCompleted() || stat.timeElapsed() > 3600000);
+    }
+
+    public SearchStatistics solve() {
+        return search.solve(stat -> stat.isCompleted());
+    }
+
+    public void onSolution(Procedure listener) {
+        search.onSolution(listener);
+    }
+
+    public void printSolution() {
+        for (int i = 0; i < x.length; i++) {
+            for (int j = 0; j < x[i].length; j++) {
+                assert x[i][j].isBound();
+                System.out.println(i + " " + j + " " + x[i][j].min());
+            }
+        }
+
     }
 
     /**
@@ -277,54 +360,160 @@ public class LatinSquare {
         };
     }
 
+    public static HashMap<String, String> parseArgs(String[] args) {
+        HashMap<String, String> arguments = new HashMap<>();
+        for (String arg : args) {
+            if (arg.startsWith("--")) {
+                String[] parts = arg.substring(2).split("=", 2);
+                if (parts.length == 2) {
+                    arguments.put(parts[0], parts[1]);
+                }
+            }
+        }
+        return arguments;
+    }
+
+    public static int[] parseIntDefaultToArray(String arg, int[] array) {
+        if (arg == null) {
+            return array;
+        }
+        return new int[]{Integer.parseInt(arg)};
+    }
+
     public static void main(String[] args) {
-        int n = args.length > 0 ? Integer.parseInt(args[0]) : 30;
-        int nbHoles = args.length > 1 ? Integer.parseInt(args[1]) : 500;
-        int nbFile = args.length > 2 ? Integer.parseInt(args[2]) : 1;
-        int modelNumber = args.length > 3 ? Integer.parseInt(args[3]) : 0;
-        int truncateRate = args.length > 4 ? Integer.parseInt(args[4]) : 0;
-
-        // file nb is cli argument
-        ObjectivePattern objective = ObjectivePattern.DIAGONAL;
-
-        ExperimentSpec[] searchSpecs = {
-                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false, truncateRate),
-                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.FIRST_FAIL, false, truncateRate),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false, truncateRate),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true, truncateRate),
-                new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true, truncateRate),
+        ExperimentSpec[] searchSpecArray = {
+                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false),
+                // new ExperimentSpec(searchType, BPAlgorithm.NO_BP, Branching.FIRST_FAIL, false),
+                // new ExperimentSpec(searchType, BPAlgorithm.NO_BP, Branching.DOM_WDEG, false),
+                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false),
+                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
+                new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
+                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
+                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
+                // new ExperimentSpec(searchType, BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true, truncateRate),
+                new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
         };
-        var spec = searchSpecs[modelNumber];
+        var objectivePatternArray = new ObjectivePattern[]{
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 10),
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 15),
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 10),
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 15)
+        };
+        var nbHolesArray = new int[]{500, 600, 700};
+        var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
+        var nbFileArray = IntStream.rangeClosed(1, 10).toArray();
+        var truncateRateArray = new int[]{0};
 
-        // Run the model
-        try {
-            FileOutputStream fos = new FileOutputStream(
-                    String.format("logs/latin-square/latin-square%d-holes%d-%d-%s.out", n, nbHoles, nbFile, spec));
-            PrintStream out = new PrintStream(new TeeOutputStream(fos, System.out), true);
+        HashMap<String, String> arguments = parseArgs(args);
+        String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
+        int n = Integer.parseInt(arguments.getOrDefault("n", "30"));
+        String nbHolesArg = arguments.get("nbHoles");
+        String nbFileArg = arguments.get("nbFile");
+        String objectiveString = arguments.get("objective");
+        String searchTypeArg = arguments.get("searchType");
+        String modelNumberArg = arguments.get("modelNumber");
+        String truncateRateArg = arguments.get("truncateRate");
 
-            // Redirect System.out to our new PrintStream
-            System.setOut(out);
+        nbHolesArray = parseIntDefaultToArray(nbHolesArg, nbHolesArray);
+        searchTypeArray = searchTypeArg == null ? new SearchType[]{SearchType.DFS, SearchType.LDS} : searchTypeArray;
+        nbFileArray = parseIntDefaultToArray(nbFileArg, nbFileArray);
+        truncateRateArray = truncateRateArg == null ? new int[]{0} : truncateRateArray;
+        if (modelNumberArg != null) {
+            searchSpecArray = new ExperimentSpec[]{searchSpecArray[Integer.parseInt(modelNumberArg)]};
+        }
 
 
-            LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, spec.bp, spec.branching, objective, spec.oracle, spec.truncateRate);
+        if (objectiveString != null) {
+            ObjectivePattern singleObjective;
+            String[] parts = objectiveString.toUpperCase().split("_");
+            if (parts[0].equals("DIAGONAL")) {
+                singleObjective = new ObjectivePattern(n);
+            } else if (parts[0].equals("PSEUDODIAGONAL") && parts.length == 4) {
+                try {
+                    int numVars = Integer.parseInt(parts[1]);
+                    int numPerRow = Integer.parseInt(parts[2]);
+                    int overlap = Integer.parseInt(parts[3]);
+                    singleObjective = new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, numVars, numPerRow, overlap);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid pseudodiagonal parameters: " + objectiveString);
+                }
+            } else {
+                throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
+            }
+            objectivePatternArray = new ObjectivePattern[]{singleObjective};
+        }
 
-            System.out.println("INFO");
-            System.out.println("n : " + n);
-            System.out.println("nbHoles : " + nbHoles);
-            System.out.println("nbFile : " + nbFile);
-            System.out.println("bp : " + spec.bp);
-            System.out.println("branchingScheme : " + spec.branching);
-            System.out.println("oracle : " + spec.oracle);
-            System.out.println("objective : " + objective);
-            System.out.println("truncateRate : " + spec.truncateRate);
+        PrintStream originalOut = System.out;
 
-            System.out.println("START SEARCH");
-            SearchStatistics stats = ls.optimize();
-            System.out.println("END OF SEARCH");
+        for (var searchType : searchTypeArray) {
+            for (var truncateRate : truncateRateArray) {
+                for (var spec : searchSpecArray) {
+                    for (var nbHoles : nbHolesArray) {
+                        for (var objective : objectivePatternArray) {
+                            for (var nbFile : nbFileArray) {
+                                // var spec = searchSpecs[modelNumber];
 
-            System.out.println(stats);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException("Error while creating file", e);
+                                // Create the model
+                                LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, spec.bp, spec.branching, objective, spec.oracle, truncateRate);
+
+                                // Run the model
+                                SearchStatistics stats;
+                                if (mode.equals("SOLVE")) {
+                                    try {
+                                        // System.out to both the console and the log file
+                                        FileOutputStream fos = new FileOutputStream(
+                                                String.format("solutions/latin-square/latin-square%d-holes%d-%d.sol", n, nbHoles, nbFile));
+                                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
+                                        System.setOut(out);
+
+                                        System.out.println("INFO");
+                                        System.out.println("n : " + n);
+                                        System.out.println("nbHoles : " + nbHoles);
+                                        System.out.println("nbFile : " + nbFile);
+
+
+                                        ls.onSolution(ls::printSolution);
+                                        System.out.println("START SEARCH");
+                                        stats = ls.solve();
+                                    } catch (FileNotFoundException e) {
+                                        throw new RuntimeException("Error while creating file", e);
+                                    }
+                                } else {
+                                    try {
+                                        String truncateRateStr = truncateRate == 0 ? "" : "-truncate" + truncateRate;
+                                        String filename = String.format("logs/latin-square/latin-square%d-holes%d-%d-%s-%s-%s%s.out", n, nbHoles, nbFile, objective, searchType, spec, truncateRateStr);
+                                        // System.out to both the console and the log file
+                                        FileOutputStream fos = new FileOutputStream(filename);
+                                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
+                                        System.setOut(out);
+
+                                        System.out.println("INFO");
+                                        System.out.println("n : " + n);
+                                        System.out.println("nbHoles : " + nbHoles);
+                                        System.out.println("nbFile : " + nbFile);
+
+
+                                        System.out.println("objective : " + objective);
+                                        System.out.println("search: " + searchType);
+                                        System.out.println("bp : " + spec.bp);
+                                        System.out.println("branchingScheme : " + spec.branching);
+                                        System.out.println("oracle : " + spec.oracle);
+                                        System.out.println("truncateRate : " + truncateRate);
+
+                                        System.out.println("START SEARCH");
+                                        stats = ls.optimize();
+                                    } catch (FileNotFoundException e) {
+                                        throw new RuntimeException("Error while creating file", e);
+                                    }
+                                }
+                                System.out.println("END OF SEARCH");
+                                System.out.println(stats);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
