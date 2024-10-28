@@ -1,0 +1,87 @@
+objective : diagonal
+search: lds
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 694
+
+	#choice: 501
+	#fail: 13
+	execution time (ms): 9609
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 717
+
+	#choice: 524
+	#fail: 14
+	execution time (ms): 9771
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 731
+
+	#choice: 4938
+	#fail: 79
+	execution time (ms): 45210
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 743
+
+	#choice: 8707
+	#fail: 111
+	execution time (ms): 79962
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 744
+
+	#choice: 9759
+	#fail: 131
+	execution time (ms): 87798
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 745
+
+	#choice: 22189
+	#fail: 223
+	execution time (ms): 257356
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 753
+
+	#choice: 24952
+	#fail: 235
+	execution time (ms): 293680
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 754
+
+	#choice: 25255
+	#fail: 257
+	execution time (ms): 296620
+	#sols : 8
+	completed : false
+
+END OF SEARCH
+
+	#choice: 25519
+	#fail: 522
+	execution time (ms): 296626
+	#sols : 8
+	completed : true
+

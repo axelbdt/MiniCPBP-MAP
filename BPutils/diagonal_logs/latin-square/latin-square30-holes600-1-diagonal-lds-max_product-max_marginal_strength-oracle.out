@@ -1,0 +1,28 @@
+INFO
+n : 30
+nbHoles : 600
+nbFile : 1
+objective : diagonal
+search: lds
+bp : max_product
+branchingScheme : max_marginal_strength
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 633
+
+	#choice: 42843
+	#fail: 386
+	execution time (ms): 912087
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 43153
+	#fail: 697
+	execution time (ms): 912138
+	#sols : 1
+	completed : true
+

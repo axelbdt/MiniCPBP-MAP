@@ -1,0 +1,82 @@
+INFO
+n : 30
+nbHoles : 600
+nbFile : 7
+objective : diagonal
+search: lds
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 704
+
+	#choice: 412
+	#fail: 0
+	execution time (ms): 14476
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 714
+
+	#choice: 433
+	#fail: 11
+	execution time (ms): 14604
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 717
+
+	#choice: 439
+	#fail: 12
+	execution time (ms): 14635
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 720
+
+	#choice: 471
+	#fail: 31
+	execution time (ms): 14768
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 723
+
+	#choice: 736
+	#fail: 54
+	execution time (ms): 16211
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 724
+
+	#choice: 3007
+	#fail: 183
+	execution time (ms): 36471
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 725
+
+	#choice: 3335
+	#fail: 261
+	execution time (ms): 39986
+	#sols : 7
+	completed : false
+
+END OF SEARCH
+
+	#choice: 3510
+	#fail: 437
+	execution time (ms): 40002
+	#sols : 7
+	completed : true
+

@@ -1,0 +1,127 @@
+INFO
+n : 30
+nbHoles : 400
+nbFile : 7
+objective : pseudodiagonal_30_6_6
+search: lds
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 498
+
+	#choice: 52961
+	#fail: 2226
+	execution time (ms): 408753
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 500
+
+	#choice: 449064
+	#fail: 28614
+	execution time (ms): 3193536
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 503
+
+	#choice: 625945
+	#fail: 49933
+	execution time (ms): 4246699
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 520
+
+	#choice: 756223
+	#fail: 64964
+	execution time (ms): 5025315
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 521
+
+	#choice: 762871
+	#fail: 65593
+	execution time (ms): 5064899
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 525
+
+	#choice: 1083354
+	#fail: 103007
+	execution time (ms): 6817389
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 532
+
+	#choice: 1236015
+	#fail: 118510
+	execution time (ms): 7601360
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 535
+
+	#choice: 1434414
+	#fail: 138655
+	execution time (ms): 8572024
+	#sols : 8
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 538
+
+	#choice: 1440980
+	#fail: 139899
+	execution time (ms): 8598403
+	#sols : 9
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 544
+
+	#choice: 1836047
+	#fail: 160660
+	execution time (ms): 10752814
+	#sols : 10
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 549
+
+	#choice: 1881887
+	#fail: 163015
+	execution time (ms): 10991832
+	#sols : 11
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 554
+
+	#choice: 2251864
+	#fail: 189389
+	execution time (ms): 12843527
+	#sols : 12
+	completed : false
+
+END OF SEARCH
+
+	#choice: 2553233
+	#fail: 204490
+	execution time (ms): 14400140
+	#sols : 12
+	completed : false
+

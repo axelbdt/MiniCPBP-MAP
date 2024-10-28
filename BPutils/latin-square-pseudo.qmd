@@ -1,0 +1,74 @@
+---
+title: "Latin Square Experiment"
+author: "Axel Baudot"
+format:
+  html:
+    code-fold: true
+---
+
+# Latin Square Experiment : LDS, pseudodiagonal
+
+Latin Square are turned into a COP as we try to maximize the sum of the "pseudodiagonal" : a rectangular area of 2*15 cells.
+
+Different models and branching schemes are compared on the same instances.
+
+- **sum_product-max_marginal_regret**: bp with sum product, branching with max marginal regret
+- **sum_product-max_marginal_regret-oracle**: bp with sum product, oracle on objective, branching with max marginal regret
+- **max_product-max_marginal_regret-oracle**: bp with max product, oracle on objective, branching with max marginal regret
+- **max_product-dom_wdeg_max_marginal-oracle**: bp with max product, oracle on objective, variable selection with dom_wdeg, value selection with max_marginal
+- **no_bp-max_value**: select the max value on the diagonal
+
+```{python}
+import plot
+
+instance_numbers = range(1, 11)
+
+models1 = [
+  'lds-sum_product-max_marginal_regret',
+  'lds-max_product-max_marginal_regret-oracle',
+  'lds-max_product-dom_wdeg_max_marginal-oracle',
+  'lds-sum_product-dom_wdeg_max_marginal',
+  'lds-no_bp-max_value',
+]
+models2 = [
+  'lds-max_product-max_marginal_regret-oracle',
+  'lds-max_product-dom_wdeg_max_marginal-oracle',
+  'lds-sum_product-dom_wdeg_max_marginal',
+]
+```
+
+## 400 Holes
+
+```{python}
+  plot.hole_tables(n=30, holes=400, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=400, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  # plot.fail_graph(n=30, holes=400, models=models1, instance_numbers=[i for i in instance_numbers if (i not in [6])], objective="pseudodiagonal_30_6_6", legend=False)
+  plot.fail_graph(n=30, holes=400, models=models2, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+```
+
+## 500 Holes
+
+Same metrics on every graph, the slowest models are removed to change scale and make the graph more readable.
+
+```{python}
+  plot.hole_tables(n=30, holes=500, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=500, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=500, models=models2, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+```
+
+## 600 Holes
+
+```{python}
+  plot.hole_tables(n=30, holes=600, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=600, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=600, models=models2, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+```
+
+## 700 Holes
+
+```{python}
+  plot.hole_tables(n=30, holes=700, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=700, models=models1, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+  plot.fail_graph(n=30, holes=700, models=models2, instance_numbers=instance_numbers, objective="pseudodiagonal_30_6_6")
+```
+

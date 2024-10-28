@@ -1,0 +1,261 @@
+INFO
+n : 30
+nbHoles : 600
+nbFile : 3
+objective : diagonal
+search: lds
+bp : sum_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 584
+
+	#choice: 470
+	#fail: 1
+	execution time (ms): 2907
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 591
+
+	#choice: 518
+	#fail: 24
+	execution time (ms): 3038
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 592
+
+	#choice: 782
+	#fail: 142
+	execution time (ms): 3538
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 609
+
+	#choice: 1137
+	#fail: 245
+	execution time (ms): 4083
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 610
+
+	#choice: 1648
+	#fail: 247
+	execution time (ms): 4949
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 612
+
+	#choice: 1899
+	#fail: 248
+	execution time (ms): 5435
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 614
+
+	#choice: 2152
+	#fail: 249
+	execution time (ms): 5833
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 627
+
+	#choice: 2551
+	#fail: 324
+	execution time (ms): 6579
+	#sols : 8
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 628
+
+	#choice: 3249
+	#fail: 337
+	execution time (ms): 7732
+	#sols : 9
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 630
+
+	#choice: 3700
+	#fail: 390
+	execution time (ms): 8540
+	#sols : 10
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 631
+
+	#choice: 4091
+	#fail: 391
+	execution time (ms): 9244
+	#sols : 11
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 633
+
+	#choice: 4567
+	#fail: 440
+	execution time (ms): 10260
+	#sols : 12
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 635
+
+	#choice: 5028
+	#fail: 444
+	execution time (ms): 11121
+	#sols : 13
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 651
+
+	#choice: 5488
+	#fail: 445
+	execution time (ms): 11983
+	#sols : 14
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 652
+
+	#choice: 5937
+	#fail: 446
+	execution time (ms): 12882
+	#sols : 15
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 667
+
+	#choice: 6390
+	#fail: 449
+	execution time (ms): 13760
+	#sols : 16
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 680
+
+	#choice: 6846
+	#fail: 450
+	execution time (ms): 14673
+	#sols : 17
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 685
+
+	#choice: 7309
+	#fail: 451
+	execution time (ms): 15787
+	#sols : 18
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 689
+
+	#choice: 7772
+	#fail: 452
+	execution time (ms): 16777
+	#sols : 19
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 690
+
+	#choice: 8220
+	#fail: 453
+	execution time (ms): 17654
+	#sols : 20
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 695
+
+	#choice: 8683
+	#fail: 454
+	execution time (ms): 18549
+	#sols : 21
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 707
+
+	#choice: 9155
+	#fail: 456
+	execution time (ms): 19695
+	#sols : 22
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 712
+
+	#choice: 9616
+	#fail: 457
+	execution time (ms): 20645
+	#sols : 23
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 718
+
+	#choice: 10084
+	#fail: 459
+	execution time (ms): 21576
+	#sols : 24
+	completed : false
+NNEW SOLUTION FOUND
+solution score : 723
+
+	#choice: 10558
+	#fail: 460
+	execution time (ms): 22787
+	#sols : 25
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 729
+
+	#choice: 11036
+	#fail: 461
+	execution time (ms): 23720
+	#sols : 26
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 745
+
+	#choice: 11503
+	#fail: 462
+	execution time (ms): 24700
+	#sols : 27
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 759
+
+	#choice: 11966
+	#fail: 464
+	execution time (ms): 25665
+	#sols : 28
+	completed : false
+
+END OF SEARCH
+
+	#choice: 12449
+	#fail: 948
+	execution time (ms): 25676
+	#sols : 28
+	completed : true
+

@@ -1,0 +1,19 @@
+INFO
+n : 30
+nbHoles : 350
+nbFile : 7
+objective : pseudodiagonal_30_6_0
+search: lds
+bp : max_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 5868453
+	#fail: 2325495
+	execution time (ms): 14400028
+	#sols : 0
+	completed : false
+

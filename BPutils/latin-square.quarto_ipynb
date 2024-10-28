@@ -1,0 +1,186 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Latin Square Experiment\"\n",
+        "author: \"Axel Baudot\"\n",
+        "format:\n",
+        "  html:\n",
+        "    code-fold: true\n",
+        "---\n",
+        "\n",
+        "\n",
+        "# Latin Square Experiment\n",
+        "\n",
+        "Latin Square are turned into a COP as we try to maximize the sum of the diagonal.\n",
+        "\n",
+        "Different models and branching schemes are compared on the same instances.\n",
+        "\n",
+        "- **sum_product-max_marginal_regret**: bp with sum product, branching with max marginal regret\n",
+        "- **sum_product-max_marginal_regret-oracle**: bp with sum product, oracle on objective, branching with max marginal regret\n",
+        "- **max_product-max_marginal_regret-oracle**: bp with max product, oracle on objective, branching with max marginal regret\n",
+        "- **no_bp-first_fail**: select variable with smallest domain, select smallest value\n",
+        "- **no_bp-max_value**: select the max value on the diagonal\n",
+        "\n",
+        "**max_value** generally the fastest by far. Is beaten once by **max_product** though.\n",
+        "\n",
+        "**max_product** and **max_value** find the only one solution, the optimal one.\n"
+      ],
+      "id": "d35e22de"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import plot\n",
+        "\n",
+        "instance_numbers = range(1, 11)\n",
+        "\n",
+        "models = [\n",
+        "  'dfs-sum_product-max_marginal_regret',\n",
+        "  'dfs-sum_product-max_marginal_regret-oracle',\n",
+        "  'dfs-max_product-max_marginal_regret-oracle',\n",
+        "  'dfs-max_product-dom_wdeg_max_marginal-oracle',\n",
+        "  'dfs-no_bp-max_value',\n",
+        "  'dfs-no_bp-dom_wdeg',\n",
+        "]\n",
+        "models2 = [\n",
+        "    'dfs-sum_product-max_marginal_regret',\n",
+        "    'dfs-sum_product-max_marginal_regret-oracle',\n",
+        "    'dfs-max_product-max_marginal_regret-oracle',\n",
+        "    'dfs-max_product-dom_wdeg_max_marginal-oracle',\n",
+        "    'dfs-no_bp-max_value',\n",
+        "    #'dfs-no_bp-dom_wdeg',\n",
+        "  ]\n",
+        "models3 = [\n",
+        "    'dfs-sum_product-max_marginal_regret',\n",
+        "    'dfs-sum_product-max_marginal_regret-oracle',\n",
+        "    'dfs-max_product-max_marginal_regret-oracle',\n",
+        "    'dfs-max_product-dom_wdeg_max_marginal-oracle',\n",
+        "    # 'dfs-no_bp-max_value',\n",
+        "    #'dfs-no_bp-dom_wdeg',\n",
+        "  ]"
+      ],
+      "id": "7a38c554",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## 500 Holes\n",
+        "\n",
+        "Same metrics on every graph, the slowest models are removed to change scale and make the graph more readable.\n"
+      ],
+      "id": "4d0a756d"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "  plot.hole_tables(n=30, holes=500, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=500, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=500, models=models2, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=500, models=models3, instance_numbers=instance_numbers)"
+      ],
+      "id": "a892313f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## 600 Holes\n"
+      ],
+      "id": "f6ceb651"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "  plot.hole_tables(n=30, holes=600, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=600, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=600, models=models2, instance_numbers=instance_numbers)"
+      ],
+      "id": "b55e6d3f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## 700 Holes\n"
+      ],
+      "id": "529440a1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "  plot.hole_tables(n=30, holes=700, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=700, models=models, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=700, models=models2, instance_numbers=instance_numbers)"
+      ],
+      "id": "a5b8482f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Impact of a constraint z >= 0.5 * max(z)\n",
+        "\n",
+        "Truncating the domain of the objective to 50% of its maximum value. Won't make instances unsat or even skip first solutions found (they are usually above this threshold).\n",
+        "\n",
+        "Mostly it doubles the slope of the oracle function.\n",
+        "\n",
+        "**max_product-max_marginal_regret-oracle** is almost unaffected.\n",
+        "\n",
+        "Various effects for the other models : speed up, slow down, no effect... depending on the instance.\n",
+        "\n",
+        "Slow down is really surprising for **sum_product-max_marginal_regret** (no-oracle) as it supposedly only restricts the search space.\n",
+        "\n",
+        "Graphs : one color for each model, lighter and left is untruncated, darker and right is truncated.\n"
+      ],
+      "id": "94ea18e6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "  models_truncated = [\n",
+        "    'dfs-sum_product-max_marginal_regret',\n",
+        "    'dfs-sum_product-max_marginal_regret-truncate50',\n",
+        "    'dfs-sum_product-max_marginal_regret-oracle',\n",
+        "    'dfs-sum_product-max_marginal_regret-oracle-truncate50',\n",
+        "    'dfs-max_product-max_marginal_regret-oracle',\n",
+        "    'dfs-max_product-max_marginal_regret-oracle-truncate50',\n",
+        "  ]\n",
+        "\n",
+        "  plot.fail_graph(n=30, holes=500, models=models_truncated, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=600, models=models_truncated, instance_numbers=instance_numbers)\n",
+        "  plot.fail_graph(n=30, holes=700, models=models_truncated, instance_numbers=instance_numbers)"
+      ],
+      "id": "b5feabc9",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/home/axel/.local/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

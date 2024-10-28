@@ -1,0 +1,28 @@
+INFO
+n : 30
+nbHoles : 700
+nbFile : 9
+objective : pseudodiagonal_30_6_0
+search: lds
+bp : no_bp
+branchingScheme : max_value
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 709
+
+	#choice: 406
+	#fail: 0
+	execution time (ms): 833
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 21316720
+	#fail: 8661176
+	execution time (ms): 14400063
+	#sols : 1
+	completed : false
+

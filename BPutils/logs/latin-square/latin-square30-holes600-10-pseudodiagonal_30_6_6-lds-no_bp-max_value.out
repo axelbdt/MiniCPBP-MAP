@@ -1,0 +1,136 @@
+INFO
+n : 30
+nbHoles : 600
+nbFile : 10
+objective : pseudodiagonal_30_6_6
+search: lds
+bp : no_bp
+branchingScheme : max_value
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 697
+
+	#choice: 645
+	#fail: 25
+	execution time (ms): 899
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 698
+
+	#choice: 3260
+	#fail: 271
+	execution time (ms): 2421
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 701
+
+	#choice: 5495
+	#fail: 288
+	execution time (ms): 3646
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 704
+
+	#choice: 6931
+	#fail: 628
+	execution time (ms): 4285
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 707
+
+	#choice: 9313
+	#fail: 866
+	execution time (ms): 5614
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 708
+
+	#choice: 11852
+	#fail: 1175
+	execution time (ms): 6996
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 709
+
+	#choice: 13765
+	#fail: 1551
+	execution time (ms): 7832
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 710
+
+	#choice: 15235
+	#fail: 2069
+	execution time (ms): 8511
+	#sols : 8
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 713
+
+	#choice: 17691
+	#fail: 2509
+	execution time (ms): 9640
+	#sols : 9
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 715
+
+	#choice: 19908
+	#fail: 3052
+	execution time (ms): 10672
+	#sols : 10
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 716
+
+	#choice: 50593
+	#fail: 14170
+	execution time (ms): 23601
+	#sols : 11
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 717
+
+	#choice: 112772
+	#fail: 34852
+	execution time (ms): 51098
+	#sols : 12
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 718
+
+	#choice: 4049293
+	#fail: 1857315
+	execution time (ms): 1511932
+	#sols : 13
+	completed : false
+
+END OF SEARCH
+
+	#choice: 38815636
+	#fail: 19023168
+	execution time (ms): 14400085
+	#sols : 13
+	completed : false
+

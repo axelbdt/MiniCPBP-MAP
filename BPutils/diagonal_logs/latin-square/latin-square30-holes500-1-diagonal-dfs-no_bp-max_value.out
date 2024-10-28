@@ -1,0 +1,28 @@
+INFO
+n : 30
+nbHoles : 500
+nbFile : 1
+objective : diagonal
+search: dfs
+bp : no_bp
+branchingScheme : max_value
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 555
+
+	#choice: 655
+	#fail: 242
+	execution time (ms): 1377
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 826
+	#fail: 414
+	execution time (ms): 1395
+	#sols : 1
+	completed : true
+

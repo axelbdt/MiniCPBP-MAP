@@ -1,0 +1,388 @@
+INFO
+n : 30
+nbHoles : 600
+nbFile : 5
+objective : pseudodiagonal_30_6_6
+search: lds
+bp : sum_product
+branchingScheme : max_marginal_regret
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 432
+
+	#choice: 375
+	#fail: 0
+	execution time (ms): 2784
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 438
+
+	#choice: 972
+	#fail: 301
+	execution time (ms): 3802
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 442
+
+	#choice: 1269
+	#fail: 302
+	execution time (ms): 4567
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 451
+
+	#choice: 1580
+	#fail: 303
+	execution time (ms): 5201
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 453
+
+	#choice: 2195
+	#fail: 305
+	execution time (ms): 7160
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 471
+
+	#choice: 2612
+	#fail: 316
+	execution time (ms): 8573
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 487
+
+	#choice: 3257
+	#fail: 319
+	execution time (ms): 10130
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 488
+
+	#choice: 3585
+	#fail: 321
+	execution time (ms): 11027
+	#sols : 8
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 489
+
+	#choice: 3907
+	#fail: 322
+	execution time (ms): 11983
+	#sols : 9
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 490
+
+	#choice: 4234
+	#fail: 323
+	execution time (ms): 12655
+	#sols : 10
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 519
+
+	#choice: 4909
+	#fail: 325
+	execution time (ms): 14202
+	#sols : 11
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 527
+
+	#choice: 5231
+	#fail: 326
+	execution time (ms): 14936
+	#sols : 12
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 528
+
+	#choice: 5563
+	#fail: 327
+	execution time (ms): 15744
+	#sols : 13
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 553
+
+	#choice: 8024
+	#fail: 340
+	execution time (ms): 21659
+	#sols : 14
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 563
+
+	#choice: 9043
+	#fail: 343
+	execution time (ms): 23857
+	#sols : 15
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 566
+
+	#choice: 11835
+	#fail: 351
+	execution time (ms): 28479
+	#sols : 16
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 586
+
+	#choice: 12901
+	#fail: 354
+	execution time (ms): 30610
+	#sols : 17
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 609
+
+	#choice: 14311
+	#fail: 358
+	execution time (ms): 34373
+	#sols : 18
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 626
+
+	#choice: 15383
+	#fail: 361
+	execution time (ms): 36744
+	#sols : 19
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 641
+
+	#choice: 16832
+	#fail: 365
+	execution time (ms): 39993
+	#sols : 20
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 642
+
+	#choice: 17203
+	#fail: 366
+	execution time (ms): 40786
+	#sols : 21
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 643
+
+	#choice: 18290
+	#fail: 369
+	execution time (ms): 43237
+	#sols : 22
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 659
+
+	#choice: 18822
+	#fail: 373
+	execution time (ms): 44600
+	#sols : 23
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 676
+
+	#choice: 19935
+	#fail: 376
+	execution time (ms): 47042
+	#sols : 24
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 686
+
+	#choice: 20547
+	#fail: 684
+	execution time (ms): 47593
+	#sols : 25
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 690
+
+	#choice: 22244
+	#fail: 1109
+	execution time (ms): 49950
+	#sols : 26
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 692
+
+	#choice: 25302
+	#fail: 1353
+	execution time (ms): 54672
+	#sols : 27
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 698
+
+	#choice: 31778
+	#fail: 1715
+	execution time (ms): 67283
+	#sols : 28
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 699
+
+	#choice: 34900
+	#fail: 2036
+	execution time (ms): 71014
+	#sols : 29
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 700
+
+	#choice: 43164
+	#fail: 2267
+	execution time (ms): 83989
+	#sols : 30
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 701
+
+	#choice: 48090
+	#fail: 2397
+	execution time (ms): 91470
+	#sols : 31
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 703
+
+	#choice: 49789
+	#fail: 2443
+	execution time (ms): 94084
+	#sols : 32
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 704
+
+	#choice: 51199
+	#fail: 2489
+	execution time (ms): 96087
+	#sols : 33
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 705
+
+	#choice: 63625
+	#fail: 2961
+	execution time (ms): 113412
+	#sols : 34
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 706
+
+	#choice: 1388274
+	#fail: 129695
+	execution time (ms): 1377263
+	#sols : 35
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 707
+
+	#choice: 1390126
+	#fail: 129999
+	execution time (ms): 1379907
+	#sols : 36
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 709
+
+	#choice: 1407073
+	#fail: 131301
+	execution time (ms): 1399880
+	#sols : 37
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 710
+
+	#choice: 1412870
+	#fail: 131596
+	execution time (ms): 1407943
+	#sols : 38
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 711
+
+	#choice: 1431660
+	#fail: 132882
+	execution time (ms): 1427821
+	#sols : 39
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 712
+
+	#choice: 1684744
+	#fail: 148789
+	execution time (ms): 1702562
+	#sols : 40
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 714
+
+	#choice: 1713105
+	#fail: 150556
+	execution time (ms): 1735340
+	#sols : 41
+	completed : false
+
+END OF SEARCH
+
+	#choice: 21747019
+	#fail: 5062010
+	execution time (ms): 14400158
+	#sols : 41
+	completed : false
+

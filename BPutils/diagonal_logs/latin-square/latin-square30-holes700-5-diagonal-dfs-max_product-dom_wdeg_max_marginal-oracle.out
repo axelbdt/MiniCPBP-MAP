@@ -1,0 +1,24 @@
+objective : diagonal
+search: dfs
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 779
+
+	#choice: 550
+	#fail: 2
+	execution time (ms): 28876
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 1096
+	#fail: 549
+	execution time (ms): 29025
+	#sols : 1
+	completed : true
+

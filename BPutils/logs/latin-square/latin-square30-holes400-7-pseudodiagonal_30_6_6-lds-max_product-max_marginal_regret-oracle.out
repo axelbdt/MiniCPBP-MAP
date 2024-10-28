@@ -1,0 +1,55 @@
+INFO
+n : 30
+nbHoles : 400
+nbFile : 7
+objective : pseudodiagonal_30_6_6
+search: lds
+bp : max_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 574
+
+	#choice: 139381
+	#fail: 13632
+	execution time (ms): 1129703
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 575
+
+	#choice: 1064710
+	#fail: 64748
+	execution time (ms): 9041802
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 579
+
+	#choice: 1365044
+	#fail: 137717
+	execution time (ms): 10823547
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 580
+
+	#choice: 1719633
+	#fail: 222161
+	execution time (ms): 13126310
+	#sols : 4
+	completed : false
+
+END OF SEARCH
+
+	#choice: 1720135
+	#fail: 222455
+	execution time (ms): 13129255
+	#sols : 4
+	completed : true
+
