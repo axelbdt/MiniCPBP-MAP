@@ -18,6 +18,7 @@ import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Scanner;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -34,6 +35,7 @@ public class LatinSquare {
         LEXICO,
         MAX_VALUE,
         DOM_WDEG,
+        DOM_WDEG_BEST_VALUE,
         DOM_WDEG_MAX_MARGINAL;
 
         @Override
@@ -149,8 +151,6 @@ public class LatinSquare {
 
         // create objective and bind it to the variables
         objectiveVars = new IntVar[objective.nbVars];
-        System.out.println("objective: " + objective);
-        System.out.println("objective.nbVars: " + objective.nbVars);
         assert objective.nbVars <= n * n;
         switch (objective.type) {
             case DIAGONAL:
@@ -185,7 +185,7 @@ public class LatinSquare {
                 throw new IllegalArgumentException("Unknown objective: " + objective);
         }
 
-        int maxObj = n * (n - 1);
+        int maxObj = objective.nbVars * (n - 1); // var from 0 to n-1
         int minObj = Math.max(n, truncateRate * maxObj / 100);
         IntVar z = makeIntVar(cp, minObj, maxObj);
         switch (bp) {
@@ -257,6 +257,9 @@ public class LatinSquare {
             case DOM_WDEG:
                 branchingProcedure = domWdeg(xFlat);
                 break;
+            case DOM_WDEG_BEST_VALUE:
+                branchingProcedure = domWdegBestValue();
+                break;
             case DOM_WDEG_MAX_MARGINAL:
                 branchingProcedure = domWdegMaxMarginal(xFlat);
                 break;
@@ -286,7 +289,9 @@ public class LatinSquare {
 
 
     public SearchStatistics optimize() {
-        return search.optimize(obj, stat -> stat.isCompleted() || stat.timeElapsed() > 3600000);
+        int timeLimit = 4 * 3600000; // 4 hours
+        // int timeLimit = 10 * 60000; // 10 minutes
+        return search.optimize(obj, stat -> stat.isCompleted() || stat.timeElapsed() > timeLimit);
     }
 
     public SearchStatistics solve() {
@@ -360,6 +365,48 @@ public class LatinSquare {
         };
     }
 
+    /**
+     * DomWDeg variable selection and best value selection
+     * It selects the largest value in all the variables.
+     * Then it creates two branches:
+     * the left branch assigning the variable to its maximum value;
+     * the right branch removing this maximum value from the domain.
+     *
+     * @return a lexicographic branching strategy
+     * @see Factory#makeDfs(Solver, Supplier)
+     */
+    public Supplier<Procedure[]> domWdegBestValue() {
+        boolean tracing = cp.tracingSearch();
+        for (IntVar a : xFlat)
+            a.setForBranching(true);
+
+        HashSet<String> objectiveVarSet = new HashSet<>();
+        for (var a : objectiveVars)
+            objectiveVarSet.add(a.getName());
+
+        return () -> {
+            IntVar xs = selectMin(xFlat,
+                    xi -> xi.size() > 1,
+                    xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+            if (xs == null)
+                return EMPTY;
+            else {
+                int v = objectiveVarSet.contains(xs.getName()) ? xs.max() : xs.min();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
     public static HashMap<String, String> parseArgs(String[] args) {
         HashMap<String, String> arguments = new HashMap<>();
         for (String arg : args) {
@@ -382,22 +429,27 @@ public class LatinSquare {
 
     public static void main(String[] args) {
         ExperimentSpec[] searchSpecArray = {
+                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.DOM_WDEG_BEST_VALUE, false),
                 new ExperimentSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false),
                 // new ExperimentSpec(searchType, BPAlgorithm.NO_BP, Branching.FIRST_FAIL, false),
                 // new ExperimentSpec(searchType, BPAlgorithm.NO_BP, Branching.DOM_WDEG, false),
                 new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
+                // new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
                 new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
+                // new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
+                // new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
                 // new ExperimentSpec(searchType, BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true, truncateRate),
                 new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
+                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, false)
         };
         var objectivePatternArray = new ObjectivePattern[]{
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 10),
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 15),
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 10),
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 15)
+                new ObjectivePattern(30),
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 6, 0),
+                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 6, 6),
+                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 10),
+                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 15),
+                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 10),
+                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 15)
         };
         var nbHolesArray = new int[]{500, 600, 700};
         var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
@@ -415,11 +467,12 @@ public class LatinSquare {
         String truncateRateArg = arguments.get("truncateRate");
 
         nbHolesArray = parseIntDefaultToArray(nbHolesArg, nbHolesArray);
-        searchTypeArray = searchTypeArg == null ? new SearchType[]{SearchType.DFS, SearchType.LDS} : searchTypeArray;
+        searchTypeArray = searchTypeArg != null ? new SearchType[]{SearchType.valueOf(searchTypeArg.toUpperCase())} : searchTypeArray;
         nbFileArray = parseIntDefaultToArray(nbFileArg, nbFileArray);
-        truncateRateArray = truncateRateArg == null ? new int[]{0} : truncateRateArray;
+        truncateRateArray = parseIntDefaultToArray(truncateRateArg, truncateRateArray);
         if (modelNumberArg != null) {
-            searchSpecArray = new ExperimentSpec[]{searchSpecArray[Integer.parseInt(modelNumberArg)]};
+            int modelNumber = Integer.parseInt(modelNumberArg);
+            searchSpecArray = new ExperimentSpec[]{searchSpecArray[modelNumber]};
         }
 
 
@@ -442,6 +495,16 @@ public class LatinSquare {
             }
             objectivePatternArray = new ObjectivePattern[]{singleObjective};
         }
+
+        // Manually define an instance
+        // n = 20;
+        // searchTypeArray = new SearchType[]{SearchType.LDS};
+        // truncateRateArray = new int[]{0};
+        // searchSpecArray = new ExperimentSpec[]{searchSpecArray[0]};
+        // nbHolesArray = new int[]{300};
+        // objectivePatternArray = new ObjectivePattern[]{objectivePatternArray[2]};
+        // nbFileArray = new int[]{1};
+
 
         PrintStream originalOut = System.out;
 
