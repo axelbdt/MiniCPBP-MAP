@@ -364,9 +364,9 @@ public class SumDCMAP extends AbstractConstraint {
                     double belief = beliefRep.zero();
                     for (int k = Math.max(minState[i + 1], minState[i] + v); k <= Math.min(maxState[i + 1], maxState[i] + v); k++) {
                         if (!beliefRep.isZero(op[i][k])) {
-                            // add the combination of op[i][k] and outsideBelief(idx,v) to op[i-1][k-v]
+                            // take the max of (combination of op[i][k] and outsideBelief(idx,v)) and op[i-1][k-v]
                             op[i - 1][k - v] = Math.max(op[i - 1][k - v], beliefRep.multiply(op[i][k], outsideBelief(idx, v)));
-                            // add the combination of ip[i][k-v] and op[i][k] to belief
+                            // take the max of (the combination of ip[i][k-v] and op[i][k]) and belief
                             belief = Math.max(belief, beliefRep.multiply(ip[i][k - v], op[i][k]));
                         }
                     }
