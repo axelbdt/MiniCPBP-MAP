@@ -1,0 +1,465 @@
+searchTypeArg: lds
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : no_bp
+branchingScheme : max_value
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 712
+
+	#choice: 233
+	#fail: 26
+	execution time (ms): 855
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 414
+	#fail: 208
+	execution time (ms): 876
+	#sols : 1
+	completed : true
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : sum_product
+branchingScheme : max_marginal_regret
+oracle : false
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 1631
+	#fail: 717
+	execution time (ms): 2007
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : sum_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 1275
+	#fail: 541
+	execution time (ms): 2010
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : max_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 1881
+	#fail: 841
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : sum_product
+branchingScheme : max_marginal_strength
+oracle : false
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 2959
+	#fail: 1403
+	execution time (ms): 2002
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : sum_product
+branchingScheme : max_marginal_strength
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 3191
+	#fail: 1517
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: dfs
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 343
+
+	#choice: 265
+	#fail: 6
+	execution time (ms): 146
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 357
+
+	#choice: 306
+	#fail: 24
+	execution time (ms): 178
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 358
+
+	#choice: 316
+	#fail: 28
+	execution time (ms): 184
+	#sols : 3
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 361
+
+	#choice: 386
+	#fail: 68
+	execution time (ms): 270
+	#sols : 4
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 364
+
+	#choice: 408
+	#fail: 76
+	execution time (ms): 285
+	#sols : 5
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 377
+
+	#choice: 429
+	#fail: 87
+	execution time (ms): 294
+	#sols : 6
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 385
+
+	#choice: 459
+	#fail: 102
+	execution time (ms): 324
+	#sols : 7
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 388
+
+	#choice: 744
+	#fail: 245
+	execution time (ms): 545
+	#sols : 8
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 389
+
+	#choice: 782
+	#fail: 262
+	execution time (ms): 574
+	#sols : 9
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 392
+
+	#choice: 921
+	#fail: 333
+	execution time (ms): 692
+	#sols : 10
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 402
+
+	#choice: 932
+	#fail: 340
+	execution time (ms): 702
+	#sols : 11
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 403
+
+	#choice: 2158
+	#fail: 954
+	execution time (ms): 1567
+	#sols : 12
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 407
+
+	#choice: 2335
+	#fail: 1042
+	execution time (ms): 1627
+	#sols : 13
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 408
+
+	#choice: 2461
+	#fail: 1110
+	execution time (ms): 1655
+	#sols : 14
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 411
+
+	#choice: 2536
+	#fail: 1144
+	execution time (ms): 1691
+	#sols : 15
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 412
+
+	#choice: 2950
+	#fail: 1356
+	execution time (ms): 1992
+	#sols : 16
+	completed : false
+
+END OF SEARCH
+
+	#choice: 3023
+	#fail: 1409
+	execution time (ms): 2001
+	#sols : 16
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : no_bp
+branchingScheme : max_value
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 712
+
+	#choice: 254
+	#fail: 10
+	execution time (ms): 161
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 445
+	#fail: 202
+	execution time (ms): 163
+	#sols : 1
+	completed : true
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : sum_product
+branchingScheme : max_marginal_regret
+oracle : false
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 409
+
+	#choice: 3691
+	#fail: 76
+	execution time (ms): 1796
+	#sols : 1
+	completed : false
+
+END OF SEARCH
+
+	#choice: 4143
+	#fail: 81
+	execution time (ms): 2001
+	#sols : 1
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : sum_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 3671
+	#fail: 76
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : max_product
+branchingScheme : max_marginal_regret
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 2162
+	#fail: 58
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : sum_product
+branchingScheme : max_marginal_strength
+oracle : false
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 3968
+	#fail: 76
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : sum_product
+branchingScheme : max_marginal_strength
+oracle : true
+truncateRate : 0
+START SEARCH
+END OF SEARCH
+
+	#choice: 4036
+	#fail: 77
+	execution time (ms): 2001
+	#sols : 0
+	completed : false
+
+INFO
+n : 30
+nbHoles : 500
+nbFile : 2
+objective : diagonal
+search: lds
+bp : max_product
+branchingScheme : dom_wdeg_max_marginal
+oracle : true
+truncateRate : 0
+START SEARCH
+NEW SOLUTION FOUND
+solution score : 343
+
+	#choice: 1600
+	#fail: 42
+	execution time (ms): 640
+	#sols : 1
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 354
+
+	#choice: 1718
+	#fail: 44
+	execution time (ms): 685
+	#sols : 2
+	completed : false
+
+NEW SOLUTION FOUND
+solution score : 366
+
+	#choice: 2369
+	#fail: 56
+	execution time (ms): 921
+	#sols : 3
+	completed : false
+
+END OF SEARCH
+
+	#choice: 5500
+	#fail: 92
+	execution time (ms): 2001
+	#sols : 3
+	completed : false
+

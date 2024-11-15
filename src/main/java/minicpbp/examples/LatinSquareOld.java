@@ -20,7 +20,6 @@ package minicpbp.examples;
 
 import minicpbp.engine.constraints.AllDifferentDC;
 import minicpbp.engine.constraints.AllDifferentDCMAP;
-import minicpbp.engine.constraints.ObjectiveSum;
 import minicpbp.engine.core.Constraint;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;

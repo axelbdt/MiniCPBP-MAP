@@ -837,7 +837,7 @@ public final class BranchingScheme {
         return () -> {
             IntVar xs = selectMin(x,
                     xi -> xi.size() > 1,
-                    xi -> Math.floor(-beliefRep.rep2std(xi.maxMarginalRegret())) // tie = same first few decimal places
+                    xi -> -xi.maxMarginalRegret()
             );
             if (xs == null)
                 return EMPTY;

@@ -27,20 +27,31 @@ import minicpbp.engine.core.IntVar;
  */
 public class MaximizeOracle extends AbstractConstraint {
     private IntVar x;
+    // the reference value used to compute the marginal
+    // must be lower than the min of the domain of x
+    private int reference;
 
     /**
      * @param x the variable
      *          Note: any domain value not appearing in v will be assigned a zero marginal
      */
     public MaximizeOracle(IntVar x) {
+        this(x, 0);
+    }
+
+    public MaximizeOracle(IntVar x, int reference) {
         super(x.getSolver(), new IntVar[]{x});
         setName("Max Oracle");
         this.x = x;
+        this.reference = reference;
         setExactWCounting(true);
     }
 
     @Override
     public void post() {
+        if (x.min() <= reference) {
+            throw new IllegalArgumentException("The reference value must be lower than the min of the domain of x");
+        }
     }
 
     @Override
@@ -54,16 +65,12 @@ public class MaximizeOracle extends AbstractConstraint {
             return;
         }
         float sum = 0;
-        int L = x.min();
-        int U = x.max();
-        for (int v = L; v <= U; v++) {
-            if (x.contains(v)) {
-                sum += ((float) (v - L) / (U - L)) / ((float) (Math.abs(U - L)));
-                // v = L -> b = 1 / (U - L + 1) -> 0
-                // v = U -> b = (U - L + 1) / (U - L) -> b = 1
+        for (int val = x.min(); val <= x.max(); val++) {
+            if (x.contains(val)) {
+                sum += val - reference;
             }
         }
-        for (int val = L; val <= U; val++) {
+        for (int val = x.min(); val <= x.max(); val++) {
             if (x.contains(val)) {
                 setLocalBelief(0, val, val / sum);
             }
