@@ -364,9 +364,9 @@ public class SumDCMAP extends AbstractConstraint {
                     double belief = beliefRep.zero();
                     for (int k = Math.max(minState[i + 1], minState[i] + v); k <= Math.min(maxState[i + 1], maxState[i] + v); k++) {
                         if (!beliefRep.isZero(op[i][k])) {
-                            // take the max of (combination of op[i][k] and outsideBelief(idx,v)) and op[i-1][k-v]
+                            // add the combination of op[i][k] and outsideBelief(idx,v) to op[i-1][k-v]
                             op[i - 1][k - v] = Math.max(op[i - 1][k - v], beliefRep.multiply(op[i][k], outsideBelief(idx, v)));
-                            // take the max of (the combination of ip[i][k-v] and op[i][k]) and belief
+                            // add the combination of ip[i][k-v] and op[i][k] to belief
                             belief = Math.max(belief, beliefRep.multiply(ip[i][k - v], op[i][k]));
                         }
                     }
@@ -392,7 +392,7 @@ public class SumDCMAP extends AbstractConstraint {
                     for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
                         if (!beliefRep.isZero(ip[i][k + offset])) {
                             // add the combination of ip[i][k+offset] and outsideBelief(i,v) to ip[i+1][k+offset+v]
-                            ip[i + 1][k + offset + v] = beliefRep.add(ip[i + 1][k + offset + v], beliefRep.multiply(ip[i][k + offset], outsideBelief(i, v)));
+                            ip[i + 1][k + offset + v] = Math.max(ip[i + 1][k + offset + v], beliefRep.multiply(ip[i][k + offset], outsideBelief(i, v)));
                         }
                     }
                 }
@@ -411,9 +411,9 @@ public class SumDCMAP extends AbstractConstraint {
                     for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
                         if (!beliefRep.isZero(op[i][k + offset + v])) {
                             // add the combination of op[i][k+offset+v] and outsideBelief(i,v) to op[i-1][k+offset]
-                            op[i - 1][k + offset] = beliefRep.add(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
+                            op[i - 1][k + offset] = Math.max(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
                             // add the combination of ip[i][k+offset] and op[i][k+offset+V] to belief
-                            belief = beliefRep.add(belief, beliefRep.multiply(ip[i][k + offset], op[i][k + offset + v]));
+                            belief = Math.max(belief, beliefRep.multiply(ip[i][k + offset], op[i][k + offset + v]));
                         }
                     }
                     setLocalBelief(i, v, belief);

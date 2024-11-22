@@ -1,4 +1,4 @@
-package minicpbp.examples;
+package minicpbp.examples.basic;
 
 import minicpbp.engine.constraints.AllDifferentDCMAP;
 import minicpbp.engine.constraints.LessOrEqualMAP;
@@ -9,12 +9,13 @@ import minicpbp.engine.core.Solver;
 import minicpbp.search.Search;
 import minicpbp.util.Procedure;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 import static minicpbp.cp.BranchingScheme.maxMarginalRegret;
 import static minicpbp.cp.Factory.*;
 
-public class ExampleMAP {
+public class ExampleMAPSum {
     public static void main(String[] args) {
         Solver cp = makeSolver();
         IntVar a = makeIntVar(cp, 1, 4);
@@ -28,11 +29,23 @@ public class ExampleMAP {
         c.setName("c");
         d.setName("d");
 
+        System.out.println("Max product");
+        System.out.println("oracle: " + true);
+        IntVar[] objective = new IntVar[]{c, d};
+        System.out.println("objective: " + Arrays.stream(objective).map(IntVar::getName).collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString());
+
         cp.post(new AllDifferentDCMAP(new IntVar[]{a, b, c}));
         cp.post(new SumDCMAP(allVars, 7));
         cp.post(new LessOrEqualMAP(c, d));
 
-        cp.post(new MaximizeOracle(a));
+        IntVar z = makeIntVar(cp, 0, 16);
+        z.setName("z");
+        cp.post(new SumDCMAP(objective, z));
+
+        MaximizeOracle maximizeOracle = new MaximizeOracle(z);
+        maximizeOracle.setWeight(1);
+        cp.post(maximizeOracle);
+
 
         cp.setTraceBPFlag(true);
         cp.setTraceSearchFlag(true);
