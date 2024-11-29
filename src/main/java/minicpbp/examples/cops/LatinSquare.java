@@ -299,6 +299,7 @@ public class LatinSquare {
     }
 
     public SearchStatistics solve() {
+        onSolution(this::printSolution);
         return search.solve(stat -> stat.isCompleted());
     }
 
@@ -313,7 +314,6 @@ public class LatinSquare {
                 System.out.println(i + " " + j + " " + x[i][j].min());
             }
         }
-
     }
 
     /**
@@ -537,7 +537,6 @@ public class LatinSquare {
                                         System.out.println("nbFile : " + nbFile);
 
 
-                                        ls.onSolution(ls::printSolution);
                                         System.out.println("START SEARCH");
                                         SearchStatistics stats = ls.solve();
                                         System.out.println("END OF SEARCH");

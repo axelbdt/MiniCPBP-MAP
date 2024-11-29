@@ -27,9 +27,9 @@ public class Example {
 
         System.out.println("Sum product");
         boolean oracle = true;
-        oracle = false;
+        // oracle = false;
         System.out.println("oracle: " + oracle);
-        IntVar objective = d;
+        IntVar objective = a;
         System.out.println("objective: " + objective.getName());
 
         cp.post(allDifferent(new IntVar[]{a, b, c}));

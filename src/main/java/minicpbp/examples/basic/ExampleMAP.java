@@ -31,7 +31,7 @@ public class ExampleMAP {
         System.out.println("Max product");
         boolean oracle = true;
         System.out.println("oracle: " + oracle);
-        IntVar objective = d;
+        IntVar objective = a;
         System.out.println("objective: " + objective.getName());
 
         cp.post(new AllDifferentDCMAP(new IntVar[]{a, b, c}));

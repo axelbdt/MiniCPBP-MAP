@@ -28,12 +28,12 @@ public class ExampleSum {
 
         System.out.println("Sum product");
         boolean oracle = true;
-        oracle = false;
+        // oracle = false;
         System.out.println("oracle: " + oracle);
-        IntVar[] objective = new IntVar[]{a, b, c, d};
+        IntVar[] objective = new IntVar[]{a, c};
         System.out.println("objective: " + Arrays.stream(objective).map(IntVar::getName).collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString());
 
-        cp.post(allDifferent(new IntVar[]{a, b, d}));
+        cp.post(allDifferent(new IntVar[]{a, b, c}));
         cp.post(sum(allVars, 7));
         cp.post(lessOrEqual(c, d));
 

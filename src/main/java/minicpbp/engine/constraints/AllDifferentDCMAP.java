@@ -290,11 +290,11 @@ public class AllDifferentDCMAP extends AbstractConstraint {
         for (int j = 0; j < nbVar; j++) {
             if (j != var) {
                 int jj = j > var ? j - 1 : j; // adjust index relative to var
-                int i = varIndices[jj];
+                int i = varIndices[j];
                 for (int k = 0; k < nbVal; k++) {
                     if (k != val) {
                         int kk = k > val ? k - 1 : k; // adjust index relative to val
-                        int v = vals[kk];
+                        int v = vals[k];
                         if (x[i].contains(v)) {
                             double b = outsideBelief(i, v);
 
