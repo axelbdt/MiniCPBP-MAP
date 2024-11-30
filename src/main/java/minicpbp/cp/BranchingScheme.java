@@ -819,12 +819,13 @@ public final class BranchingScheme {
      * Maximum Marginal Regret strategy
      * It selects an unbound variable with the largest marginal regret
      * on one of the values in its domain.
+     * Lexicographic tie-breaking is used for both variable and value selection.
      * Then it creates two branches:
      * the left branch assigning the variable to that value;
      * the right branch removing this value from the domain.
      *
      * @param x the variable on which the max marginal regret strategy is applied.
-     * @return maxMarginalRegretRandomTieBreak branching strategy
+     * @return maxMarginalRegret branching strategy
      * @see Factory#makeDfs(Solver, Supplier)
      */
     public static Supplier<Procedure[]> maxMarginalRegret(IntVar[] x) {
