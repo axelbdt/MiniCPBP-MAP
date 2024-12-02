@@ -251,8 +251,6 @@ public class SolveXCSPFZN {
                 xcsp.dynamicStopBP(dynamicStopBP);
                 xcsp.traceNbIter(traceNbIter);
                 xcsp.traceEntropy(traceEntropy);
-                System.out.println("Solving... (Hello!)");
-
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
             }
         } catch (Exception e) {

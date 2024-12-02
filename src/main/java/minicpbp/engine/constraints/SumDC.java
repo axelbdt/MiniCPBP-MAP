@@ -311,6 +311,7 @@ public class SumDC extends AbstractConstraint {
 
     @Override
     public void updateBeliefSumProduct() {
+        // System.out.println("SumDC - SumProduct");
         int idx, s, v;
         if (incrementalUpdateBelief) { // incremental version using unBounds[]
             // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()
@@ -414,6 +415,126 @@ public class SumDC extends AbstractConstraint {
                             op[i - 1][k + offset] = beliefRep.add(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
                             // add the combination of ip[i][k+offset] and op[i][k+offset+V] to belief
                             belief = beliefRep.add(belief, beliefRep.multiply(ip[i][k + offset], op[i][k + offset + v]));
+                        }
+                    }
+                    setLocalBelief(i, v, belief);
+                }
+            }
+            s = x[0].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                v = domainValues[j];
+                setLocalBelief(0, v, op[0][offset + v]);
+            }
+
+        }
+    }
+
+    @Override
+    public void updateBeliefMaxProduct() {
+        // System.out.println("SumDC - MaxProduct");
+        int idx, s, v;
+        if (incrementalUpdateBelief) { // incremental version using unBounds[]
+            // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()
+            if (nUnBounds.value() == 0)
+                return;
+            // compute the range of feasible states for each layer
+            int fwd_hi = offset + sumBounds.value();
+            int fwd_lo = fwd_hi;
+            int bwd_hi = offset;
+            int bwd_lo = bwd_hi;
+            for (int i = 0; i < nUnBounds.value(); i++) {
+                idx = unBounds[i];
+                bwd_hi -= x[idx].min();
+                bwd_lo -= x[idx].max();
+            }
+            for (int i = 0; i < nUnBounds.value(); i++) {
+                minState[i] = Math.max(fwd_lo, bwd_lo);
+                maxState[i] = Math.min(fwd_hi, bwd_hi);
+                idx = unBounds[i];
+                fwd_hi += x[idx].max();
+                fwd_lo += x[idx].min();
+                bwd_hi += x[idx].min();
+                bwd_lo += x[idx].max();
+            }
+            minState[nUnBounds.value()] = Math.max(fwd_lo, bwd_lo);
+            maxState[nUnBounds.value()] = Math.min(fwd_hi, bwd_hi);
+            // Reach forward
+            ip[0][minState[0]] = beliefRep.one();
+            for (int i = 0; i < nUnBounds.value() - 1; i++) {
+                idx = unBounds[i];
+                Arrays.fill(ip[i + 1], minState[i + 1], maxState[i + 1] + 1, beliefRep.zero());
+                s = x[idx].fillArray(domainValues);
+                for (int j = 0; j < s; j++) {
+                    v = domainValues[j];
+                    for (int k = Math.max(minState[i], minState[i + 1] - v); k <= Math.min(maxState[i], maxState[i + 1] - v); k++) {
+                        if (!beliefRep.isZero(ip[i][k])) {
+                            // add the combination of ip[i][k] and outsideBelief(idx,v) to ip[i+1][k+v]
+                            ip[i + 1][k + v] = Math.max(ip[i + 1][k + v], beliefRep.multiply(ip[i][k], outsideBelief(idx, v)));
+                        }
+                    }
+                }
+            }
+            // Reach backward and set local beliefs
+            op[nUnBounds.value() - 1][minState[nUnBounds.value()]] = beliefRep.one();
+            for (int i = nUnBounds.value() - 1; i > 0; i--) {
+                idx = unBounds[i];
+                Arrays.fill(op[i - 1], minState[i], maxState[i] + 1, beliefRep.zero());
+                s = x[idx].fillArray(domainValues);
+                for (int j = 0; j < s; j++) {
+                    v = domainValues[j];
+                    double belief = beliefRep.zero();
+                    for (int k = Math.max(minState[i + 1], minState[i] + v); k <= Math.min(maxState[i + 1], maxState[i] + v); k++) {
+                        if (!beliefRep.isZero(op[i][k])) {
+                            // add the combination of op[i][k] and outsideBelief(idx,v) to op[i-1][k-v]
+                            op[i - 1][k - v] = Math.max(op[i - 1][k - v], beliefRep.multiply(op[i][k], outsideBelief(idx, v)));
+                            // add the combination of ip[i][k-v] and op[i][k] to belief
+                            belief = Math.max(belief, beliefRep.multiply(ip[i][k - v], op[i][k]));
+                        }
+                    }
+                    setLocalBelief(idx, v, belief);
+                }
+            }
+            idx = unBounds[0];
+            s = x[idx].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                v = domainValues[j];
+                setLocalBelief(idx, v, op[0][minState[0] + v]); // unlike propagate(), second index cannot be out of bounds (would have been filtered out already)
+            }
+        } else { // non-incremental version
+            for (int i = 0; i < n; i++) {
+                Arrays.fill(ip[i], beliefRep.zero());
+            }
+            // Reach forward
+            ip[0][offset] = beliefRep.one();
+            for (int i = 0; i < n - 1; i++) {
+                s = x[i].fillArray(domainValues);
+                for (int j = 0; j < s; j++) {
+                    v = domainValues[j];
+                    for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
+                        if (!beliefRep.isZero(ip[i][k + offset])) {
+                            // add the combination of ip[i][k+offset] and outsideBelief(i,v) to ip[i+1][k+offset+v]
+                            ip[i + 1][k + offset + v] = Math.max(ip[i + 1][k + offset + v], beliefRep.multiply(ip[i][k + offset], outsideBelief(i, v)));
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < n; i++) {
+                Arrays.fill(op[i], beliefRep.zero());
+            }
+            // Reach backward and set local beliefs
+            op[n - 1][offset] = beliefRep.one();
+            for (int i = n - 1; i > 0; i--) {
+                s = x[i].fillArray(domainValues);
+                for (int j = 0; j < s; j++) {
+                    v = domainValues[j];
+                    double belief = beliefRep.zero();
+                    for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
+                        if (!beliefRep.isZero(op[i][k + offset + v])) {
+                            // add the combination of op[i][k+offset+v] and outsideBelief(i,v) to op[i-1][k+offset]
+                            op[i - 1][k + offset] = Math.max(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
+                            // add the combination of ip[i][k+offset] and op[i][k+offset+V] to belief
+                            belief = Math.max(belief, beliefRep.multiply(ip[i][k + offset], op[i][k + offset + v]));
                         }
                     }
                     setLocalBelief(i, v, belief);

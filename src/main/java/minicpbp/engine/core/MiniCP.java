@@ -49,7 +49,7 @@ public class MiniCP implements Solver {
     // BP /* belief propagation */
     // SBP /* first apply support propagation, then belief propagation */
     private static PropaMode mode = PropaMode.SBP;
-    private static BPAlgorithm bpAlgorithm = BPAlgorithm.SUM_PRODUCT;
+    private static BPAlgorithm bpAlgorithm = BPAlgorithm.MAX_PRODUCT;
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages

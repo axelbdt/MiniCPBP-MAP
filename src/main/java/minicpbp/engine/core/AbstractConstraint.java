@@ -329,7 +329,17 @@ public abstract class AbstractConstraint implements Constraint {
                 updateBeliefMaxProduct();
                 break;
             default:
-                throw new InvalidParameterException("unknown BP algorithm");
+                if (!updateBeliefWarningPrinted) {
+                    if (getName() != null) // do not print warning for unnamed constraint
+                        System.out.println("c Warning: BP algorithm not known. Using uniform belief instead.");
+                    updateBeliefWarningPrinted = true;
+                }
+                for (int i = 0; i < vars.length; i++) {
+                    for (int j = 0; j < localBelief[i].length; j++) {
+                        localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+                    }
+                }
+
         }
     }
 

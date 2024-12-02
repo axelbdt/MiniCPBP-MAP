@@ -176,6 +176,7 @@ public class TableCT extends AbstractConstraint {
 
     @Override
     public void updateBeliefSumProduct() {
+        // System.out.println("TableCT - SumProduct");
 
         // Compute supportedTuples as
         // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &
@@ -233,6 +234,65 @@ public class TableCT extends AbstractConstraint {
         }
     }
 
+    @Override
+    public void updateBeliefMaxProduct() {
+        // System.out.println("TableCT - MaxProduct");
+
+        // Compute supportedTuples as
+        // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &
+        //                   (supports[x.length][x[0].min()] | ... | supports[x.length][x[0].max()] )
+        //
+        supportedTuples.set(0, tableLength); // set them all to true
+        for (int i = 0; i < xLength; i++) {
+            supporti.clear(); // set them all to false
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                supporti.or(supports[i][domainValues[j] - ofs[i]]);
+            }
+            supportedTuples.and(supporti);
+        }
+
+        // Each tuple has its own weight given by the product of the outside_belief of its elements.
+        // Compute these products, but only for supported tuples.
+        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
+            tupleWeight[k] = beliefRep.one();
+            for (int i = 0; i < xLength; i++) {
+                tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
+            }
+        }
+
+        for (int i = 0; i < xLength; i++) {
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                int v = domainValues[j];
+                double belief = beliefRep.zero();
+                double outsideBelief_i_v = outsideBelief(i, v);
+                BitSet support_i_v = supports[i][v - ofs[i]];
+                // Iterate over supports[i][v] /\ supportedTuples, accumulating the weight of tuples.
+                if (!beliefRep.isZero(outsideBelief_i_v)) {
+                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                        if (supportedTuples.get(k)) {
+                            belief = Math.max(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
+                        }
+                    }
+                } else { // special case of null outside belief (avoid division by zero)
+                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                        if (supportedTuples.get(k)) {
+                            double weight = beliefRep.one();
+                            for (int i2 = 0; i2 < i; i2++) {
+                                weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                            }
+                            for (int i2 = i + 1; i2 < xLength; i2++) {
+                                weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                            }
+                            belief = Math.max(belief, weight);
+                        }
+                    }
+                }
+                setLocalBelief(i, v, belief);
+            }
+        }
+    }
     // FOR SIMPLE COUNTING:
     // the frequency of x[i]=v is given by (supports[i][v] /\ supportedTuples).cardinality()
 

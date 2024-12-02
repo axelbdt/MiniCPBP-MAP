@@ -48,9 +48,6 @@ public class Example {
             System.out.println("solution: " + a.min() + " " + b.min() + " " + c.min() + " " + d.min());
         });
 
-        // cp.fixPoint();
-        // cp.vanillaBP(10);
-        // cp.beliefPropa();
         search.solve(stat -> stat.isCompleted());
     }
 }

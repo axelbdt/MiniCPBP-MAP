@@ -20,9 +20,10 @@ package minicpbp.engine.constraints;
 
 import minicpbp.engine.core.AbstractConstraint;
 import minicpbp.engine.core.IntVar;
+import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
-import minicpbp.state.StateSparseSet;
+import minicpbp.util.HungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
 import java.util.ArrayList;
@@ -235,6 +236,7 @@ public class AllDifferentDC extends AbstractConstraint {
 
     @Override
     public void updateBeliefSumProduct() {
+        // System.out.println("AllDifferentDC - SumProduct");
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);
@@ -327,6 +329,83 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
         }
+    }
+
+
+    @Override
+    public void updateBeliefMaxProduct() {
+        // System.out.println("AllDifferentDC - MaxProduct");
+        int nbVar, nbVal;
+        // update freeVars/Vals according to bound variables
+        nbVar = freeVars.fillArray(varIndices);
+        for (int j = 0; j < nbVar; j++) {
+            int i = varIndices[j];
+            if (x[i].isBound()) {
+                freeVars.remove(i);
+                int val = x[i].min();
+                freeVals.remove(val);
+                // set trivial local belief for bound var...
+                setLocalBelief(i, val, beliefRep.one());
+                // ...and for other vars on that value
+                for (int k = 0; k < j; k++) {
+                    int l = varIndices[k];
+                    if (x[l].contains(val))
+                        setLocalBelief(l, val, beliefRep.zero());
+                }
+                for (int k = j + 1; k < nbVar; k++) {
+                    int l = varIndices[k];
+                    if (x[l].contains(val))
+                        setLocalBelief(l, val, beliefRep.zero());
+                }
+            }
+        }
+        nbVar = freeVars.fillArray(varIndices);
+        nbVal = freeVals.fillArray(vals);
+        // Initialize cost matrix for Hungarian Algorithm and max matching
+        // fill array
+        if (nbVar > 1) {
+            for (int j = 0; j < nbVar; j++) {
+                int i = varIndices[j];
+                for (int k = 0; k < nbVal; k++) {
+                    int val = vals[k];
+                    if (x[i].contains(val)) {
+                        double[][] costs = createCostMatrix(j, k, nbVar, nbVal);
+                        double matchingCost = HungarianAlgorithm.hgAlgorithm(costs, "min");
+                        double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
+                                : beliefRep.log2rep(-matchingCost);
+                        assert !Double.isNaN(newBelief);
+                        setLocalBelief(i, val, newBelief);
+                    }
+                }
+            }
+        }
+
+        // may need to add dummy rows in order to make the beliefs matrix square
+    }
+
+    public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
+        double[][] costs = new double[nbVar - 1][nbVal - 1];
+        for (int j = 0; j < nbVar; j++) {
+            if (j != var) {
+                int jj = j > var ? j - 1 : j; // adjust index relative to var
+                int i = varIndices[j];
+                for (int k = 0; k < nbVal; k++) {
+                    if (k != val) {
+                        int kk = k > val ? k - 1 : k; // adjust index relative to val
+                        int v = vals[k];
+                        if (x[i].contains(v)) {
+                            double b = outsideBelief(i, v);
+
+                            costs[jj][kk] = !beliefRep.isZero(b) ? -beliefRep.rep2log(b) : Double.MAX_VALUE;
+                        } else {
+                            costs[jj][kk] = Double.MAX_VALUE;
+                        }
+                    }
+                }
+            }
+        }
+
+        return costs;
     }
 
     @Override
