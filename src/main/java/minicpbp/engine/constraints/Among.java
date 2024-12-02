@@ -156,7 +156,7 @@ public class Among extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         for (int i = 0; i < x.length; i++) {
             double belief = beliefRep.zero();
             int s = x[i].fillArray(domainValues);
@@ -192,14 +192,14 @@ public class Among extends AbstractConstraint {
             // set marginals for y[i]
             vars[x.length + i].receiveMessage(1, belief);
             vars[x.length + i].receiveMessage(0, beliefRep.complement(belief));
-            System.out.println("marginal for indicator var y["+i+"]=1 is "+belief);
+            System.out.println("marginal for indicator var y[" + i + "]=1 is " + belief);
         }
     }
 
     @Override
     public double weightedCounting() {
         // reported by Sum constraint over indicator variables
-        System.out.println("weighted count for "+this.getName()+" constraint is reported by a SumDC constraint");
+        System.out.println("weighted count for " + this.getName() + " constraint is reported by a SumDC constraint");
         return beliefRep.one();
     }
 

@@ -56,7 +56,7 @@ public class LessOrEqualMAP extends AbstractConstraint { // x <= y
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         double belief;
         int vx, vy;
         // Treatment of x

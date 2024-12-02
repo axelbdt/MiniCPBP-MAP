@@ -33,7 +33,7 @@ public class Absolute extends AbstractConstraint {
      * @param y the variable that represents the absolute value of x
      */
     public Absolute(IntVar x, IntVar y) {
-        super(x.getSolver(), new IntVar[]{x,y});
+        super(x.getSolver(), new IntVar[]{x, y});
         setName("Absolute");
         this.x = x;
         this.y = y;
@@ -91,7 +91,7 @@ public class Absolute extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         // Proceed from y
         int nVal = y.fillArray(domainValues);
         for (int k = 0; k < nVal; k++) {

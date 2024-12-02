@@ -60,23 +60,23 @@ public class IsEqualVar extends AbstractConstraint { // b <=> x == y
         eqC = Factory.equal(x, y);
         neqC = Factory.notEqual(x, y);
         witness = getSolver().getStateManager().makeStateInt(Math.max(x.min(), y.min())); // smallest potential witness
-	    setExactWCounting(true);
+        setExactWCounting(true);
     }
 
     @Override
     public void post() {
         propagate();
-	    switch (getSolver().getMode()) {
-	    case BP:
-	        break;
-	    case SP:
-	    case SBP:
-	        if (isActive()) {
-		        x.propagateOnDomainChange(this);
-		        y.propagateOnDomainChange(this);
-		        b.propagateOnBind(this);
-	        }
-	    }
+        switch (getSolver().getMode()) {
+            case BP:
+                break;
+            case SP:
+            case SBP:
+                if (isActive()) {
+                    x.propagateOnDomainChange(this);
+                    y.propagateOnDomainChange(this);
+                    b.propagateOnBind(this);
+                }
+        }
     }
 
     @Override
@@ -97,44 +97,44 @@ public class IsEqualVar extends AbstractConstraint { // b <=> x == y
     }
 
     private boolean commonValue() {
-	    if (x.contains(witness.value()) && y.contains(witness.value()))
-	        return true;
-        for (int v = witness.value()+1; v <= Math.min(x.max(), y.max()); v++) {
-	        if (x.contains(v) && y.contains(v)) {
-		        witness.setValue(v);
-		        return true;
-	        }
-	    }
-	    return false;
+        if (x.contains(witness.value()) && y.contains(witness.value()))
+            return true;
+        for (int v = witness.value() + 1; v <= Math.min(x.max(), y.max()); v++) {
+            if (x.contains(v) && y.contains(v)) {
+                witness.setValue(v);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
-    public void updateBelief() {
-	    double beliefSAT;
-	    int v;
+    public void updateBeliefSumProduct() {
+        double beliefSAT;
+        int v;
         beliefSAT = beliefRep.zero(); // that x=y is satisfied
         // Treatment of x
         int nVal = x.fillArray(domainValues);
-	    for (int k = 0; k < nVal; k++) {
-	        v = domainValues[k];
-	        if (y.contains(v)) {
-                setLocalBelief(1, v, beliefRep.add( beliefRep.multiply(outsideBelief(2,v), outsideBelief(0,1)), beliefRep.multiply(beliefRep.complement(outsideBelief(2,v)), outsideBelief(0,0)) ));
-		        beliefSAT = beliefRep.add(beliefSAT,beliefRep.multiply(outsideBelief(1,v),outsideBelief(2,v)));
-	        } else
-                setLocalBelief(1, v, outsideBelief(0,0));
-	    }
+        for (int k = 0; k < nVal; k++) {
+            v = domainValues[k];
+            if (y.contains(v)) {
+                setLocalBelief(1, v, beliefRep.add(beliefRep.multiply(outsideBelief(2, v), outsideBelief(0, 1)), beliefRep.multiply(beliefRep.complement(outsideBelief(2, v)), outsideBelief(0, 0))));
+                beliefSAT = beliefRep.add(beliefSAT, beliefRep.multiply(outsideBelief(1, v), outsideBelief(2, v)));
+            } else
+                setLocalBelief(1, v, outsideBelief(0, 0));
+        }
         // Treatment of y
         nVal = y.fillArray(domainValues);
-	    for (int k = 0; k < nVal; k++) {
-	        v = domainValues[k];
-	        if (x.contains(v))
-                setLocalBelief(2, v, beliefRep.add( beliefRep.multiply(outsideBelief(1,v), outsideBelief(0,1)), beliefRep.multiply(beliefRep.complement(outsideBelief(1,v)), outsideBelief(0,0)) ));
-	        else
-                setLocalBelief(2, v, outsideBelief(0,0));
-	    }
+        for (int k = 0; k < nVal; k++) {
+            v = domainValues[k];
+            if (x.contains(v))
+                setLocalBelief(2, v, beliefRep.add(beliefRep.multiply(outsideBelief(1, v), outsideBelief(0, 1)), beliefRep.multiply(beliefRep.complement(outsideBelief(1, v)), outsideBelief(0, 0))));
+            else
+                setLocalBelief(2, v, outsideBelief(0, 0));
+        }
         // Treatment of b
-	    setLocalBelief(0, 1, beliefSAT);
-	    setLocalBelief(0, 0, beliefRep.complement(beliefSAT));
+        setLocalBelief(0, 1, beliefSAT);
+        setLocalBelief(0, 0, beliefRep.complement(beliefSAT));
     }
 
 }

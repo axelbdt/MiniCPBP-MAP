@@ -175,7 +175,7 @@ public class TableCTMAP extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
 
         // Compute supportedTuples as
         // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &

@@ -50,9 +50,9 @@ public class Grammar extends AbstractConstraint {
      *
      * @param x an array of variables
      * @param g a context-free grammar
-     *
-     * (code adapted from that of Claude-Guy Quimper)
-     * NOTE: The grammar must be in its Chomsky form
+     *          <p>
+     *          (code adapted from that of Claude-Guy Quimper)
+     *          NOTE: The grammar must be in its Chomsky form
      */
     public Grammar(IntVar[] x, CFG g) {
         super(x[0].getSolver(), x);
@@ -60,10 +60,10 @@ public class Grammar extends AbstractConstraint {
         this.x = x;
         n = x.length;
         this.g = g;
-        V = new Set[n*(n+1)/2];
-        flags = new Set[n*(n+1)/2];
-        belief = new double[n*(n+1)/2][g.nonTerminalCount()];
-        forks = new double[n*(n+1)/2][g.nonTerminalCount()];
+        V = new Set[n * (n + 1) / 2];
+        flags = new Set[n * (n + 1) / 2];
+        belief = new double[n * (n + 1) / 2][g.nonTerminalCount()];
+        forks = new double[n * (n + 1) / 2][g.nonTerminalCount()];
         for (int i = 0; i < V.length; i++) {
             V[i] = new HashSet<Integer>();
             flags[i] = new HashSet<Integer>();
@@ -172,7 +172,7 @@ public class Grammar extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         // adapted from CYK algorithm
         // after fixpoint() has been called, flags contains the nonterminals involved in some derivation tree
         // Clear table of beliefs
@@ -214,7 +214,7 @@ public class Grammar extends AbstractConstraint {
             }
         }
         // Initialize top row (starting nonterminal)
-        forks[idx(0,n)][0] = beliefRep.one();
+        forks[idx(0, n)][0] = beliefRep.one();
         // Go down the rows, accumulating the product of beliefs that branch off
         for (int j = n; j > 1; j--) {
             for (int i = 0; i <= n - j; i++) {

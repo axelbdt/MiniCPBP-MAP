@@ -280,7 +280,7 @@ public abstract class AbstractConstraint implements Constraint {
     }
 
     public void sendMessages() {
-        updateBelief();
+        updateBeliefSumProduct();
         //       System.out.println(getName()+".sendMessages()");
         for (int i = 0; i < vars.length; i++) {
             if (!vars[i].isBound()) { // if the variable is bound, it is pointless to send a "certainly true" message
@@ -319,11 +319,24 @@ public abstract class AbstractConstraint implements Constraint {
      * <p>
      * Default behaviour: uniform belief
      * CAVEAT: may set zero/one beliefs but should not directly remove domain values (only done in sendMessages() if actOnZeroOneBelief flag is set)
+     * protected void updateBelief() {
+     * switch (getSolver().getBPAlgorithm()) {
+     * case SUM_PRODUCT:
+     * updateBeliefSumProduct();
+     * break;
+     * case MAX_PRODUCT:
+     * updateBeliefMaxProduct();
+     * break;
+     * default:
+     * throw new InvalidParameterException("unknown BP algorithm");
+     * }
+     * }
      */
-    protected void updateBelief() {
+
+    protected void updateBeliefSumProduct() {
         if (!updateBeliefWarningPrinted) {
             if (getName() != null) // do not print warning for unnamed constraint
-                System.out.println("c Warning: method updateBelief not implemented yet for " + getName() + " constraint. Using uniform belief instead.");
+                System.out.println("c Warning: method updateBeliefSumProduct not implemented yet for " + getName() + " constraint. Using uniform belief instead.");
             updateBeliefWarningPrinted = true;
         }
         for (int i = 0; i < vars.length; i++) {
@@ -333,6 +346,20 @@ public abstract class AbstractConstraint implements Constraint {
         }
     }
 
+    /**
+     protected void updateBeliefMaxProduct() {
+     if (!updateBeliefWarningPrinted) {
+     if (getName() != null) // do not print warning for unnamed constraint
+     System.out.println("c Warning: method updateBeliefMaxProduct not implemented yet for " + getName() + " constraint. Using uniform belief instead.");
+     updateBeliefWarningPrinted = true;
+     }
+     for (int i = 0; i < vars.length; i++) {
+     for (int j = 0; j < localBelief[i].length; j++) {
+     localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+     }
+     }
+     }
+     */
     /**
      * Collects messages (outside beliefs) from the variables in its scope.
      * Used to compute a loss function via weighted counting

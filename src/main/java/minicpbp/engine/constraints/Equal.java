@@ -34,7 +34,7 @@ public class Equal extends AbstractConstraint {
      * @see minicpbp.cp.Factory#equal(IntVar, IntVar)
      */
     public Equal(IntVar x, IntVar y) { // x == y
-        super(x.getSolver(), new IntVar[]{x,y});
+        super(x.getSolver(), new IntVar[]{x, y});
         setName("Equal");
         this.x = x;
         this.y = y;
@@ -46,32 +46,30 @@ public class Equal extends AbstractConstraint {
         if (y.isBound()) {
             x.assign(y.min());
             setActive(false);
-	    }
-	    else if (x.isBound()) {
+        } else if (x.isBound()) {
             y.assign(x.min());
             setActive(false);
-	    }
-        else {
+        } else {
             boundsIntersect();
             pruneEquals(y, x);
             pruneEquals(x, y);
-	    switch (getSolver().getMode()) {
-	    case BP:
-		break;
-	    case SP:
-	    case SBP:
-		x.whenDomainChange(() -> {
-			boundsIntersect();
-			pruneEquals(x, y);
-		    });
-		y.whenDomainChange(() -> {
-			boundsIntersect();
-			pruneEquals(y, x);
-		    });
-	    }
-	    }
+            switch (getSolver().getMode()) {
+                case BP:
+                    break;
+                case SP:
+                case SBP:
+                    x.whenDomainChange(() -> {
+                        boundsIntersect();
+                        pruneEquals(x, y);
+                    });
+                    y.whenDomainChange(() -> {
+                        boundsIntersect();
+                        pruneEquals(y, x);
+                    });
+            }
+        }
     }
-            
+
     // dom consistent filtering in the direction from -> to
     // every value of to has a support in from
     private void pruneEquals(IntVar from, IntVar to) {
@@ -100,25 +98,25 @@ public class Equal extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         // Treatment of x
         int nVal = x.fillArray(domainValues);
         for (int k = 0; k < nVal; k++) {
-	        int vx = domainValues[k];
+            int vx = domainValues[k];
             if (y.contains(vx))
-		        setLocalBelief(0, vx, outsideBelief(1, vx));
-	        else
-		        setLocalBelief(0, vx, beliefRep.zero());
-	    }
+                setLocalBelief(0, vx, outsideBelief(1, vx));
+            else
+                setLocalBelief(0, vx, beliefRep.zero());
+        }
         // Treatment of y
         nVal = y.fillArray(domainValues);
         for (int k = 0; k < nVal; k++) {
-	        int vy = domainValues[k];
+            int vy = domainValues[k];
             if (x.contains(vy))
-		        setLocalBelief(1, vy, outsideBelief(0, vy));
-	        else
-		        setLocalBelief(1, vy, beliefRep.zero());
-	    }
+                setLocalBelief(1, vy, outsideBelief(0, vy));
+            else
+                setLocalBelief(1, vy, beliefRep.zero());
+        }
     }
 
 }

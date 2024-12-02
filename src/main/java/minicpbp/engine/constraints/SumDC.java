@@ -65,7 +65,7 @@ public class SumDC extends AbstractConstraint {
      * @param y the right hand side of the sum
      */
     public SumDC(IntVar[] x, IntVar y) {
-        this(ArrayUtil.append(x,Factory.minus(y)));
+        this(ArrayUtil.append(x, Factory.minus(y)));
     }
 
     /**
@@ -77,7 +77,7 @@ public class SumDC extends AbstractConstraint {
      * @param y the right hand side of the sum
      */
     public SumDC(IntVar[] x, int y) {
-        this(ArrayUtil.append(x,Factory.makeIntVar(x[0].getSolver(), -y, -y)));
+        this(ArrayUtil.append(x, Factory.makeIntVar(x[0].getSolver(), -y, -y)));
     }
 
     /**
@@ -163,7 +163,7 @@ public class SumDC extends AbstractConstraint {
     public void propagate() {
         // Update the unbound vars and the partial sum
         int nU = nUnBounds.value();
-         for (int i = nU - 1; i >= 0; i--) {
+        for (int i = nU - 1; i >= 0; i--) {
             int idx = unBounds[i];
             if (x[idx].isBound()) {
                 sumBounds.setValue(sumBounds.value() + x[idx].min());
@@ -232,13 +232,13 @@ public class SumDC extends AbstractConstraint {
                         if (op[i][k] == 1.0) {
                             op[i - 1][k - v] = 1.0;
                             if (ip[i][k - v] == 1.0) {
-				                supported = true;
-			                 }
+                                supported = true;
+                            }
                         }
                     }
                     if (!supported) {
-			            x[idx].remove(v);
-		            }
+                        x[idx].remove(v);
+                    }
                 }
             }
             idx = unBounds[0];
@@ -254,7 +254,7 @@ public class SumDC extends AbstractConstraint {
                 for (int j = 0; j < s; j++) {
                     v = domainValues[j];
                     if ((minState[0] + v < minState[1]) || (minState[0] + v > maxState[1]) || (op[0][minState[0] + v] == 0)) {
-                            x[idx].remove(v);
+                        x[idx].remove(v);
                     }
                 }
             }
@@ -289,28 +289,28 @@ public class SumDC extends AbstractConstraint {
                     for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
                         if (op[i][k + offset + v] == 1.0) {
                             op[i - 1][k + offset] = 1.0;
-			                if (ip[i][k + offset] == 1.0) {
-				                supported = true;
-			                }
+                            if (ip[i][k + offset] == 1.0) {
+                                supported = true;
+                            }
                         }
                     }
                     if (!supported) {
-			            x[i].remove(v);
-		            }
+                        x[i].remove(v);
+                    }
                 }
             }
             s = x[0].fillArray(domainValues);
             for (int j = 0; j < s; j++) {
                 v = domainValues[j];
                 if (op[0][offset + v] == 0) {
-		            x[0].remove(v);
-		        }
+                    x[0].remove(v);
+                }
             }
         }
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         int idx, s, v;
         if (incrementalUpdateBelief) { // incremental version using unBounds[]
             // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()
@@ -444,7 +444,7 @@ public class SumDC extends AbstractConstraint {
                 for (int k = mini - (v < 0 ? v : 0); k <= maxi - (v > 0 ? v : 0); k++) {
                     if (!beliefRep.isZero(op[i][k + offset + v])) {
                         // add the combination of op[i][k+offset+v] and outsideBelief(i,v) to op[i-1][k+offset]
-                            op[i - 1][k + offset] = beliefRep.add(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
+                        op[i - 1][k + offset] = beliefRep.add(op[i - 1][k + offset], beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
 //                            System.out.println("outsideBelief(i,v)="+outsideBelief(i, v));
 //                            System.out.println(k+" "+op[i - 1][k + offset]);
                     }
@@ -457,7 +457,7 @@ public class SumDC extends AbstractConstraint {
             v = domainValues[j];
             weightedCount = beliefRep.add(weightedCount, beliefRep.multiply(op[0][offset + v], outsideBelief(0, v)));
         }
-        System.out.println("weighted count for "+this.getName()+" constraint: "+weightedCount);
+        System.out.println("weighted count for " + this.getName() + " constraint: " + weightedCount);
         return weightedCount;
     }
 }

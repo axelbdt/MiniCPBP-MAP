@@ -234,7 +234,7 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);
@@ -322,7 +322,7 @@ public class AllDifferentDC extends AbstractConstraint {
                         // note: will be normalized later in AbstractConstraint.sendMessages()
                         // put beliefs back to their original representation
                         setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_UB3_faster(j, k, nbVal, nbVal - nbVar)));
-  //                      setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_UB3(j, k, beliefs, nbVal, nbVal - nbVar)));
+                        //                      setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_UB3(j, k, beliefs, nbVal, nbVal - nbVar)));
                     }
                 }
             }
@@ -361,7 +361,7 @@ public class AllDifferentDC extends AbstractConstraint {
         // may need to add dummy rows in order to make the beliefs matrix square
         for (int j = 0; j < nbVal - nbVar; j++) {
             for (int k = 0; k < nbVal; k++) {
-                beliefs[nbVar + j][k] = 1.0 ; // (STANDARD REPRESENTATION)
+                beliefs[nbVar + j][k] = 1.0; // (STANDARD REPRESENTATION)
             }
         }
         if (nbVal <= exactPermanentThreshold) {
@@ -369,14 +369,14 @@ public class AllDifferentDC extends AbstractConstraint {
             setExactWCounting(true);
             weightedCount *= permanent(beliefs, nbVal);
             // that value should actually be divided by (# dummy rows)!
-            for (int i=2; i <= nbVal - nbVar; i++)
+            for (int i = 2; i <= nbVal - nbVar; i++)
                 weightedCount /= (double) i;
         } else {
             // approximate permanent
             setExactWCounting(false);
             weightedCount *= costBasedPermanent_UB3(-1, -1, nbVal, nbVal - nbVar);
         }
-        System.out.println("weighted count for "+this.getName()+" constraint: "+beliefRep.std2rep(weightedCount));
+        System.out.println("weighted count for " + this.getName() + " constraint: " + beliefRep.std2rep(weightedCount));
         return beliefRep.std2rep(weightedCount); // put beliefs back to their original representation
     }
 
@@ -431,7 +431,7 @@ public class AllDifferentDC extends AbstractConstraint {
         return U3;
     }
 
-   private void costBasedPermanent_UB3_precomputeRowMax(int dim) {
+    private void costBasedPermanent_UB3_precomputeRowMax(int dim) {
         double tmp;
         for (int i = 0; i < dim; i++) {
             rowMax[i] = rowMaxSecondBest[i] = 0;
@@ -440,13 +440,13 @@ public class AllDifferentDC extends AbstractConstraint {
                 if (tmp > rowMax[i]) {
                     rowMaxSecondBest[i] = rowMax[i];
                     rowMax[i] = tmp;
-                }
-                else if (tmp > rowMaxSecondBest[i]) {
+                } else if (tmp > rowMaxSecondBest[i]) {
                     rowMaxSecondBest[i] = tmp;
                 }
             }
         }
     }
+
     private void costBasedPermanent_UB3_precomputeRowMax_sparseMatrix(int dim) {
         double tmp;
         for (int i = 0; i < dim; i++) {
@@ -458,13 +458,13 @@ public class AllDifferentDC extends AbstractConstraint {
                 if (tmp > rowMax[i]) {
                     rowMaxSecondBest[i] = rowMax[i];
                     rowMax[i] = tmp;
-                }
-                else if (tmp > rowMaxSecondBest[i]) {
+                } else if (tmp > rowMaxSecondBest[i]) {
                     rowMaxSecondBest[i] = tmp;
                 }
             }
         }
     }
+
     private double costBasedPermanent_UB3_faster(int var, int val, int dim, int nbDummyRows) {
         // permanent upper bound U^3 for nonnegative matrices (from Soules 2003)
         // for matrix m without row of var and column of val
@@ -477,7 +477,7 @@ public class AllDifferentDC extends AbstractConstraint {
         for (int i = 0; i < dim; i++) {
             if (i != var) { // exclude row of var whose belief we are computing
                 rSum = 1.0 - beliefs[i][val]; // each row of m (beliefs) sums to one
-                rMax = (rowMax[i]==beliefs[i][val]? rowMaxSecondBest[i] : rowMax[i]);
+                rMax = (rowMax[i] == beliefs[i][val] ? rowMaxSecondBest[i] : rowMax[i]);
                 if (rMax == 0)
                     return 0;
                 tmp = rSum / rMax;
@@ -509,8 +509,7 @@ public class AllDifferentDC extends AbstractConstraint {
                     tmp = beliefRep.rep2std(outsideBelief(j, val));
                     rSum = 1.0 - tmp; // each row of m (beliefs) sums to one
                     rMax = (rowMax[i] == tmp ? rowMaxSecondBest[i] : rowMax[i]);
-                }
-                else {
+                } else {
                     rSum = 1.0;
                     rMax = rowMax[i];
                 }

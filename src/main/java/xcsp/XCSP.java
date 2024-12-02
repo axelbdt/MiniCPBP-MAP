@@ -24,6 +24,7 @@ import minicpbp.engine.core.IntVarViewOffset;
 import minicpbp.engine.core.Solver;
 import minicpbp.engine.core.Solver.PropaMode;
 import minicpbp.search.LDSearch;
+import minicpbp.search.Objective;
 import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
 import minicpbp.util.Procedure;
@@ -2309,16 +2310,25 @@ public class XCSP implements XCallbacks2 {
         });
 
         SearchStatistics stats;
-        if (!restart) {
-            stats = search.solve(ss -> {
-                return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
-                // GP; print all solns
-//				return (System.currentTimeMillis() - t0 >= timeout * 1000);
+        if (isCOP()) {
+            System.out.println("optimizing...");
+            Objective objective = minicp.minimize(objectiveMinimize.get());
+
+            stats = search.optimize(objective, ss -> {
+                return (System.currentTimeMillis() - t0 >= timeout * 1000);
             });
         } else {
-            stats = search.solveRestarts(ss -> {
-                return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
-            }, nbFailCutof, restartFactor);
+            if (!restart) {
+                stats = search.solve(ss -> {
+                    return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
+                    // GP; print all solns
+//				return (System.currentTimeMillis() - t0 >= timeout * 1000);
+                });
+            } else {
+                stats = search.solveRestarts(ss -> {
+                    return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
+                }, nbFailCutof, restartFactor);
+            }
         }
 
         if (!competitionOutput) {

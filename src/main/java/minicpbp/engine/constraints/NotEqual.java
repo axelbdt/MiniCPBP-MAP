@@ -51,12 +51,10 @@ public class NotEqual extends AbstractConstraint {
         if (y.isBound()) {
             x.remove(y.min() + c);
             setActive(false);
-        }
-        else if (x.isBound()) {
+        } else if (x.isBound()) {
             y.remove(x.min() - c);
             setActive(false);
-        }
-        else switch (getSolver().getMode()) {
+        } else switch (getSolver().getMode()) {
             case BP:
                 break;
             case SP:
@@ -76,7 +74,7 @@ public class NotEqual extends AbstractConstraint {
 
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         // Treatment of x
         for (int vx = x.min(); vx <= x.max(); vx++) {
             if (x.contains(vx)) {

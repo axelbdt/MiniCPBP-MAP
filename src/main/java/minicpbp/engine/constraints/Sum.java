@@ -65,7 +65,7 @@ public class Sum extends AbstractConstraint {
      * @param y the right hand side of the sum
      */
     public Sum(IntVar[] x, IntVar y) {
-        this(ArrayUtil.append(x,Factory.minus(y)));
+        this(ArrayUtil.append(x, Factory.minus(y)));
     }
 
     /**
@@ -77,7 +77,7 @@ public class Sum extends AbstractConstraint {
      * @param y the right hand side of the sum
      */
     public Sum(IntVar[] x, int y) {
-        this(ArrayUtil.append(x,Factory.makeIntVar(x[0].getSolver(), -y, -y)));
+        this(ArrayUtil.append(x, Factory.makeIntVar(x[0].getSolver(), -y, -y)));
     }
 
     /**
@@ -192,7 +192,7 @@ public class Sum extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         int idx, s, v;
         if (incrementalUpdateBelief) { // incremental version using unBounds[]
             // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()

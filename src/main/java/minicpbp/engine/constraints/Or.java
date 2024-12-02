@@ -90,31 +90,31 @@ public class Or extends AbstractConstraint { // x1 or x2 or ... xn
             assert (wL.value() != wR.value());
             assert (!x[wL.value()].isBound());
             assert (!x[wR.value()].isBound());
-    	    switch (getSolver().getMode()) {
+            switch (getSolver().getMode()) {
                 case BP:
                     break;
                 case SP:
                 case SBP:
-		            x[wL.value()].propagateOnBind(this);
-		            x[wR.value()].propagateOnBind(this);
-	        }
+                    x[wL.value()].propagateOnBind(this);
+                    x[wR.value()].propagateOnBind(this);
+            }
         }
     }
 
     @Override
-    public void updateBelief() {
-	    double beliefAllFalse = beliefRep.one();
+    public void updateBeliefSumProduct() {
+        double beliefAllFalse = beliefRep.one();
         for (int i = wL.value(); i <= wR.value(); i++) {
-	        beliefAllFalse = beliefRep.multiply(beliefAllFalse, outsideBelief(i,0));
-	    }
+            beliefAllFalse = beliefRep.multiply(beliefAllFalse, outsideBelief(i, 0));
+        }
         for (int i = wL.value(); i <= wR.value(); i++) {
-	        if (!x[i].isBound()) {
-		        assert(!beliefRep.isZero(outsideBelief(i,0)));
-		        // will be normalized
-		        setLocalBelief(i, 1, beliefRep.one());
-		        setLocalBelief(i, 0, beliefRep.complement(beliefRep.divide(beliefAllFalse,outsideBelief(i,0))));
-	        }
-	    }
+            if (!x[i].isBound()) {
+                assert (!beliefRep.isZero(outsideBelief(i, 0)));
+                // will be normalized
+                setLocalBelief(i, 1, beliefRep.one());
+                setLocalBelief(i, 0, beliefRep.complement(beliefRep.divide(beliefAllFalse, outsideBelief(i, 0))));
+            }
+        }
     }
 
 }

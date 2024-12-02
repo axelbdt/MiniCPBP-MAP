@@ -48,7 +48,7 @@ public class IsOr extends AbstractConstraint { // b <=> x1 or x2 or ... xn
      * @param x a non empty array of variables
      */
     public IsOr(BoolVar b, BoolVar[] x) {
-        super(b.getSolver(), ArrayUtil.append(b,x));
+        super(b.getSolver(), ArrayUtil.append(b, x));
         setName("IsOr");
         this.b = b;
         this.x = x;
@@ -60,25 +60,25 @@ public class IsOr extends AbstractConstraint { // b <=> x1 or x2 or ... xn
         for (int i = 0; i < n; i++) {
             unBounds[i] = i;
         }
-	    setExactWCounting(true);
+        setExactWCounting(true);
 
     }
 
     @Override
     public void post() {
-	    propagate();
-	    switch (getSolver().getMode()) {
-	    case BP:
-	        break;
-	    case SP:
-	    case SBP:
-	        if (isActive()) {
-		        b.propagateOnBind(this);
-		        for (BoolVar xi : x) {
-		            xi.propagateOnBind(this);
-		        }
-	        }
-	    }
+        propagate();
+        switch (getSolver().getMode()) {
+            case BP:
+                break;
+            case SP:
+            case SBP:
+                if (isActive()) {
+                    b.propagateOnBind(this);
+                    for (BoolVar xi : x) {
+                        xi.propagateOnBind(this);
+                    }
+                }
+        }
     }
 
     @Override
@@ -117,24 +117,24 @@ public class IsOr extends AbstractConstraint { // b <=> x1 or x2 or ... xn
     }
 
     @Override
-    public void updateBelief() {
-	    double beliefAllFalse = beliefRep.one();
-	    for (int i = nUnBounds.value() - 1; i >= 0; i--) {
-	        beliefAllFalse = beliefRep.multiply(beliefAllFalse, outsideBelief(1+unBounds[i],0));
-	    }
+    public void updateBeliefSumProduct() {
+        double beliefAllFalse = beliefRep.one();
+        for (int i = nUnBounds.value() - 1; i >= 0; i--) {
+            beliefAllFalse = beliefRep.multiply(beliefAllFalse, outsideBelief(1 + unBounds[i], 0));
+        }
         // Treatment of x
-	    for (int i = nUnBounds.value() - 1; i >= 0; i--) {
-	        int idx = unBounds[i];
-	        if (!x[idx].isBound()) { // in case of BP mode
-		        assert(!beliefRep.isZero(outsideBelief(1+idx,0)));
-		        // will be normalized
-                setLocalBelief(1+idx, 1, outsideBelief(0,1));
-                setLocalBelief(1+idx, 0, beliefRep.add( beliefRep.multiply( beliefRep.complement( beliefRep.divide(beliefAllFalse,outsideBelief(1+idx,0)) ), outsideBelief(0,1) ), outsideBelief(0,0) ) );
-	        }
-	    }
+        for (int i = nUnBounds.value() - 1; i >= 0; i--) {
+            int idx = unBounds[i];
+            if (!x[idx].isBound()) { // in case of BP mode
+                assert (!beliefRep.isZero(outsideBelief(1 + idx, 0)));
+                // will be normalized
+                setLocalBelief(1 + idx, 1, outsideBelief(0, 1));
+                setLocalBelief(1 + idx, 0, beliefRep.add(beliefRep.multiply(beliefRep.complement(beliefRep.divide(beliefAllFalse, outsideBelief(1 + idx, 0))), outsideBelief(0, 1)), outsideBelief(0, 0)));
+            }
+        }
         // Treatment of b
-	    setLocalBelief(0, 1, beliefRep.complement(beliefAllFalse));
-	    setLocalBelief(0, 0, beliefAllFalse);
+        setLocalBelief(0, 1, beliefRep.complement(beliefAllFalse));
+        setLocalBelief(0, 0, beliefAllFalse);
     }
 
 }

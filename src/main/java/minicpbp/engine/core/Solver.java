@@ -12,7 +12,7 @@
  *
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  *
- * mini-cpbp, replacing classic propagation by belief propagation 
+ * mini-cpbp, replacing classic propagation by belief propagation
  * Copyright (c)  2019. by Gilles Pesant
  */
 
@@ -21,22 +21,27 @@ package minicpbp.engine.core;
 import minicpbp.search.Objective;
 import minicpbp.state.StateManager;
 import minicpbp.state.StateStack;
-import minicpbp.util.Procedure;
 import minicpbp.util.Belief;
+import minicpbp.util.Procedure;
 
 import java.util.Random;
 
 public interface Solver {
 
     public enum PropaMode {
-	SP /* support propagation (aka standard constraint propagation) */, 
-	BP /* belief propagation */, 
+        SP /* support propagation (aka standard constraint propagation) */,
+        BP /* belief propagation */,
         SBP /* first apply support propagation, then belief propagation, and finally support propagation again if belief propagation may have assigned or removed domain values */
-    } 
+    }
+
+    public enum BPAlgorithm {
+        SUM_PRODUCT,
+        MAX_PRODUCT
+    }
 
     public enum ConstraintWeighingScheme {
-	SAME   /* constraints all have the same weight; = 1.0 (default) */,
-	ARITY  /* a constraint's weight is related to its arity; = 1 + arity/total_nb_of_vars */
+        SAME   /* constraints all have the same weight; = 1.0 (default) */,
+        ARITY  /* a constraint's weight is related to its arity; = 1 + arity/total_nb_of_vars */
     }
 
     /**
@@ -61,12 +66,14 @@ public interface Solver {
      * and optionally computes the propagation fix-point.
      * A {@link minicpbp.util.exception.InconsistencyException} is thrown
      * if by posting the constraint it is proven that there is no solution.
-     * @param c the constraint to be posted
+     *
+     * @param c               the constraint to be posted
      * @param enforceFixpoint if one wants to compute the propagation fix-point after
      */
     void post(Constraint c, boolean enforceFixpoint);
 
     long trigger();
+
     long potentialTrigger();
 
     /**
@@ -75,7 +82,13 @@ public interface Solver {
     PropaMode getMode();
 
     /**
+     * @return the BP algorithm
+     */
+    BPAlgorithm getBPAlgorithm();
+
+    /**
      * Set the propagation mode
+     *
      * @param mode
      */
     void setMode(PropaMode mode);
@@ -89,7 +102,7 @@ public interface Solver {
      * Activate trace of BP if @param traceBP is true
      */
     void setTraceBPFlag(boolean traceBP);
-    
+
     /**
      * Activate trace of search if @param traceSearch is true
      */
@@ -102,6 +115,7 @@ public interface Solver {
 
     /**
      * Set the maximal number of BP iterations before each branching
+     *
      * @param maxIter the maximal number of BP iterations
      */
     void setMaxIter(int maxIter);
@@ -120,9 +134,10 @@ public interface Solver {
      * @return damping factor
      */
     double dampingFactor();
-    
+
     /**
      * Set damping factor
+     *
      * @param dampingFactor the damping factor
      */
     void setDampingFactor(double dampingFactor);
@@ -210,13 +225,12 @@ public interface Solver {
      *
      * @param x the variable
      */
-   void registerVar(IntVar x);
-   
-   /**
-    * 
-    * @return the number of branching variables in the model
-    */
-   int nbBranchingVariables();
+    void registerVar(IntVar x);
+
+    /**
+     * @return the number of branching variables in the model
+     */
+    int nbBranchingVariables();
 
     /**
      * Adds a listener called whenever we start beliefPropa.
@@ -249,13 +263,13 @@ public interface Solver {
      *
      * @param b the variable that must be set to true
      */
-     void post(BoolVar b);
+    void post(BoolVar b);
 
     /**
      * Forces the boolean variable to be true
      * and optionally computes the propagation fix-point.
      *
-     * @param b the variable that must be set to true
+     * @param b               the variable that must be set to true
      * @param enforceFixpoint if one wants to compute the propagation fix-point after
      */
     void post(BoolVar b, boolean enforceFixpoint);
@@ -264,7 +278,7 @@ public interface Solver {
      * Samples solutions by restricting the search space using randomly-generated linear modular constraints
      *
      * @param fraction the fraction of the number of solutions we wish to retain (0<fraction<1)
-     * @param vars the original branching variables of the model
+     * @param vars     the original branching variables of the model
      * @return an array of branching variables
      */
     IntVar[] sample(double fraction, IntVar[] vars);
@@ -284,5 +298,5 @@ public interface Solver {
      */
     double globalLossFct();
 
- }
+}
 

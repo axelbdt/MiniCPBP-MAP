@@ -187,7 +187,7 @@ public class SumModP extends AbstractConstraint {
 
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()
         if (nUnBounds.value() == 0)
             return;

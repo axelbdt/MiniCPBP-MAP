@@ -93,9 +93,9 @@ public class TableCT extends AbstractConstraint {
     /**
      * Special case using only the first "tableLength" tuples
      *
-     * @param x     the non empty set of variables to constrain
-     * @param table the possible set of solutions for x.
-     *              The second dimension must be of the same size as the array x.
+     * @param x           the non empty set of variables to constrain
+     * @param table       the possible set of solutions for x.
+     *                    The second dimension must be of the same size as the array x.
      * @param tableLength the number of tuples i.e. the actual size of the first dimension of table
      */
     public TableCT(IntVar[] x, int[][] table, int tableLength) {
@@ -175,7 +175,7 @@ public class TableCT extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
 
         // Compute supportedTuples as
         // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &
@@ -264,7 +264,7 @@ public class TableCT extends AbstractConstraint {
             }
             weightedCount = beliefRep.add(weightedCount, tupleWeight[k]);
         }
-        System.out.println("weighted count for "+this.getName()+" constraint: "+weightedCount);
+        System.out.println("weighted count for " + this.getName() + " constraint: " + weightedCount);
         return weightedCount;
     }
 }

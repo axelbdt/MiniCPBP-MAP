@@ -138,17 +138,17 @@ public class NegTableCT extends AbstractConstraint {
                 // The condition for removing value v from x[i] is to check if
                 // there are enough (distinct) forbidden tuples to cover all possible supports
                 int v = domainValues[j];
-		BitSet menacingIntersect = (BitSet) menacing.clone();
-		menacingIntersect.and(conflicts[i][v - ofs[i]]);
-		if (menacingIntersect.cardinality() >= prodDomainsi) {
-		    x[i].remove(v);
-		}
-	    }
-	}
+                BitSet menacingIntersect = (BitSet) menacing.clone();
+                menacingIntersect.and(conflicts[i][v - ofs[i]]);
+                if (menacingIntersect.cardinality() >= prodDomainsi) {
+                    x[i].remove(v);
+                }
+            }
+        }
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         menacing.set(0, tableLength); // set them all to true
 
         for (int i = 0; i < xLength; i++) {
@@ -196,10 +196,10 @@ public class NegTableCT extends AbstractConstraint {
                             belief = beliefRep.add(belief, weight);
                         }
                     }
-		}
+                }
                 setLocalBelief(i, v, beliefRep.complement(belief));
-	    }
-	}
+            }
+        }
     }
 
 }

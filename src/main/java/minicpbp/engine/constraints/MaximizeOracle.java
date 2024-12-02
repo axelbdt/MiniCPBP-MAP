@@ -59,7 +59,7 @@ public class MaximizeOracle extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         if (x.isBound()) {
             setLocalBelief(0, x.min(), 1.0);
             return;

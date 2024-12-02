@@ -54,7 +54,7 @@ public class ShortTableCT extends AbstractConstraint {
         this.xLength = x.length;
         this.table = table;
         this.tableLength = table.length;
-	    this.star = star;
+        this.star = star;
         ofs = new int[xLength];
         supportedTuples = new BitSet(tableLength);
         supporti = new BitSet(tableLength);
@@ -125,7 +125,7 @@ public class ShortTableCT extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
 
         // Compute supportedTuples as
         // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &
@@ -146,8 +146,8 @@ public class ShortTableCT extends AbstractConstraint {
         for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
-		if (table[k][i] != star) // otherwise it is the "any" value and we would multiply by one
-		    tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
+                if (table[k][i] != star) // otherwise it is the "any" value and we would multiply by one
+                    tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
             }
         }
 
@@ -170,12 +170,12 @@ public class ShortTableCT extends AbstractConstraint {
                         if (supportedTuples.get(k)) {
                             double weight = beliefRep.one();
                             for (int i2 = 0; i2 < i; i2++) {
-				if (table[k][i2] != star) // otherwise it is the "any" value and we would multiply by one
-				    weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                                if (table[k][i2] != star) // otherwise it is the "any" value and we would multiply by one
+                                    weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
                             }
                             for (int i2 = i + 1; i2 < xLength; i2++) {
-				if (table[k][i2] != star) // otherwise it is the "any" value and we would multiply by one
-				    weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                                if (table[k][i2] != star) // otherwise it is the "any" value and we would multiply by one
+                                    weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
                             }
                             belief = beliefRep.add(belief, weight);
                         }

@@ -27,7 +27,7 @@ public class Minimize implements Objective {
 
     public Minimize(IntVar x) {
         this.x = x;
-        if(x.getSolver().getMode() == Solver.PropaMode.BP)
+        if (x.getSolver().getMode() == Solver.PropaMode.BP)
             x.getSolver().onBeliefPropa(() -> x.removeAbove(bound));
         else
             x.getSolver().onFixPoint(() -> x.removeAbove(bound));
@@ -37,5 +37,9 @@ public class Minimize implements Objective {
         if (!x.isBound()) throw new RuntimeException("objective not bound");
         this.bound = x.max() - 1;
         throw InconsistencyException.INCONSISTENCY;
+    }
+
+    public int getMin() {
+        return x.min();
     }
 }

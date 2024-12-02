@@ -236,7 +236,7 @@ public class AllDifferentDCMAP extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);

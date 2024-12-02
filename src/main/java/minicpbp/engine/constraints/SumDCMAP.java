@@ -310,7 +310,7 @@ public class SumDCMAP extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         int idx, s, v;
         if (incrementalUpdateBelief) { // incremental version using unBounds[]
             // NOTE: we do not explicitly set the local belief of bound variables: handled by normalizeMarginals()

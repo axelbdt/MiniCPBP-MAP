@@ -49,11 +49,13 @@ public class Circuit extends AbstractConstraint {
     private int[] path;
     private int pathLength;
     private boolean[] onPath;
+
     // ***** data structures about the available successors on path
     private class Entry {
         double weight;
         int node;
     }
+
     private Entry[] available;
     private int availableNb;
     private double availableMaxWeight;
@@ -88,8 +90,8 @@ public class Circuit extends AbstractConstraint {
         density = new double[x.length][x.length];
         path = new int[x.length];
         onPath = new boolean[x.length];
-        available = new Entry[x.length-1]; // potentially every city except itself
-        for (int i = 0; i < x.length-1; i++) {
+        available = new Entry[x.length - 1]; // potentially every city except itself
+        for (int i = 0; i < x.length - 1; i++) {
             available[i] = new Entry();
         }
         rand = x[0].getSolver().getRandomNbGenerator();
@@ -108,7 +110,7 @@ public class Circuit extends AbstractConstraint {
         for (int i = 0; i < x.length; i++) {
             x[i].remove(i);
             x[i].removeBelow(0);
-            x[i].removeAbove(x.length-1);
+            x[i].removeAbove(x.length - 1);
         }
         if (getSolver().getMode() == Solver.PropaMode.SP)
             getSolver().post(allDifferentBinary(x)); // the original filtering level
@@ -116,29 +118,29 @@ public class Circuit extends AbstractConstraint {
             getSolver().post(allDifferent(x));
         switch (getSolver().getMode()) {
             case SBP:
-	        case BP: // same as SBP since updateBelief() uses orig/dest
+            case BP: // same as SBP since updateBelief() uses orig/dest
                 // Collect bound vars
-		        int nU = x.length;
-		        for (int i = nU - 1; i >= 0; i--) {
-		            int idx = unBounds[i];
-		            if (x[idx].isBound()) {
-			            unBounds[i] = unBounds[nU - 1]; // Swap the variables
-			            unBounds[nU - 1] = idx;
-			            nU--;
-		            }
-		        }
-		        nUnBounds = getSolver().getStateManager().makeStateInt(nU);
-		        for (int i = 0; i < nU; i++) {
-		            x[unBounds[i]].propagateOnBind(this);
-		        }
+                int nU = x.length;
+                for (int i = nU - 1; i >= 0; i--) {
+                    int idx = unBounds[i];
+                    if (x[idx].isBound()) {
+                        unBounds[i] = unBounds[nU - 1]; // Swap the variables
+                        unBounds[nU - 1] = idx;
+                        nU--;
+                    }
+                }
+                nUnBounds = getSolver().getStateManager().makeStateInt(nU);
+                for (int i = 0; i < nU; i++) {
+                    x[unBounds[i]].propagateOnBind(this);
+                }
             case SP:
-		        for (int i = 0; i < x.length; i++) {
-		            if (x[i].isBound()) bind(i);
-		            else {
-			            final int fi = i;
-			            x[i].whenBind(() -> bind(fi));
-		            }
-		        }
+                for (int i = 0; i < x.length; i++) {
+                    if (x[i].isBound()) bind(i);
+                    else {
+                        final int fi = i;
+                        x[i].whenBind(() -> bind(fi));
+                    }
+                }
         }
     }
 
@@ -177,7 +179,7 @@ public class Circuit extends AbstractConstraint {
     }
 
     private void addEntry(int node, double weight) {
-        availableAccumulatedWeight = beliefRep.add(availableAccumulatedWeight,weight);
+        availableAccumulatedWeight = beliefRep.add(availableAccumulatedWeight, weight);
         if (weight > availableMaxWeight) {
             availableMaxWeight = weight;
         }
@@ -214,7 +216,7 @@ public class Circuit extends AbstractConstraint {
 //        }
 //        System.out.println();
         double W = subpathsWeight;
-	    int totalLength = nUnBounds.value();
+        int totalLength = nUnBounds.value();
 //        System.out.println("totalLength="+totalLength);
         pathLength = 0;
         for (int i = 0; i < x.length; i++) {
@@ -233,9 +235,9 @@ public class Circuit extends AbstractConstraint {
             int s = x[node].fillArray(domainValues);
             for (int j = 0; j < s; j++) { // consider possible successors on path
                 int v = domainValues[j];
-                 if (!onPath[v]) { // not already on path; add it
-                     addEntry( v, outsideBelief(node, v));
-                 }
+                if (!onPath[v]) { // not already on path; add it
+                    addEntry(v, outsideBelief(node, v));
+                }
             }
             if (availableAccumulatedWeight == beliefRep.zero()) {
                 return 0; // either there are no entries or they all have zero weight
@@ -250,7 +252,7 @@ public class Circuit extends AbstractConstraint {
 
         if (x[node].contains(start)) {
             W *= beliefRep.rep2std(outsideBelief(node, start));
-            if (W==0)
+            if (W == 0)
                 return 0;
             //Browse path
 //            System.out.print("path: ");
@@ -261,37 +263,37 @@ public class Circuit extends AbstractConstraint {
             for (int i = 0; i < pathLength - 1; i++) {
 //                System.out.println(i);
                 density[path[i]][orig[path[i + 1]].value()] = beliefRep.add(density[path[i]][orig[path[i + 1]].value()],
-                        beliefRep.divide(beliefRep.std2rep(W),outsideBelief(path[i],orig[path[i + 1]].value())));
+                        beliefRep.divide(beliefRep.std2rep(W), outsideBelief(path[i], orig[path[i + 1]].value())));
             }
             density[path[pathLength - 1]][path[0]] = beliefRep.add(density[path[pathLength - 1]][path[0]],
-                    beliefRep.divide(beliefRep.std2rep(W),outsideBelief(path[pathLength - 1],path[0])));
+                    beliefRep.divide(beliefRep.std2rep(W), outsideBelief(path[pathLength - 1], path[0])));
             return W;
         }
         return 0;
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
 
-	    int nU = nUnBounds.value();
+        int nU = nUnBounds.value();
 
         if (nU == 0) return; // all variables in its scope are bound
 
-	    //Collect outside beliefs of existing partial paths (orig[i] *-> i, x[i] unbound)
-	    double initialWeight = 1.0;
+        //Collect outside beliefs of existing partial paths (orig[i] *-> i, x[i] unbound)
+        double initialWeight = 1.0;
         for (int i = 0; i < nU; i++) {
-	        int k = unBounds[i];
-	        int j = orig[k].value();
-	        while (j != k) {
-		        int succj = x[j].min();
-		        initialWeight *= beliefRep.rep2std(outsideBelief(j,succj));
-		        j = succj;
-	        }
-	    }
+            int k = unBounds[i];
+            int j = orig[k].value();
+            while (j != k) {
+                int succj = x[j].min();
+                initialWeight *= beliefRep.rep2std(outsideBelief(j, succj));
+                j = succj;
+            }
+        }
 
         //Clear densities (not necessary for bound vars)
         for (int i = 0; i < nU; i++) {
-	        int k = unBounds[i];
+            int k = unBounds[i];
             int s = x[k].fillArray(domainValues);
             for (int j = 0; j < s; j++) {
                 density[k][domainValues[j]] = beliefRep.zero();
@@ -301,8 +303,8 @@ public class Circuit extends AbstractConstraint {
         // TODO: if nU <= some threshold, then compute them exactly
 
         //Compute densities
-	    int success = 0;
-        target_nb_samples = nU*nU; // square of path length
+        int success = 0;
+        target_nb_samples = nU * nU; // square of path length
         for (int i = 0; i < max_nb_samples; i++) {
             if (find_cycle(initialWeight) > 0) success++;
             if (success == target_nb_samples)
@@ -313,7 +315,7 @@ public class Circuit extends AbstractConstraint {
         //Set beliefs
         if (success >= 1) {
             for (int i = 0; i < nU; i++) {
-		        int k = unBounds[i];
+                int k = unBounds[i];
                 int s = x[k].fillArray(domainValues);
                 for (int j = 0; j < s; j++) {
                     int v = domainValues[j];
@@ -323,7 +325,7 @@ public class Circuit extends AbstractConstraint {
             }
         } else { // no sample obtained; give up and set default uniform beliefs
             for (int i = 0; i < nU; i++) {
-		        int k = unBounds[i];
+                int k = unBounds[i];
                 int s = x[k].fillArray(domainValues);
                 for (int j = 0; j < s; j++) {
                     setLocalBelief(k, domainValues[j], beliefRep.one()); // will be normalized

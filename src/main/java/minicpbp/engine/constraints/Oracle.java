@@ -63,7 +63,7 @@ public class Oracle extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         for (int val = x.min(); val <= x.max(); val++) {
             if (x.contains(val)) {
                 setLocalBelief(0, val, marginal[val - ofs]);

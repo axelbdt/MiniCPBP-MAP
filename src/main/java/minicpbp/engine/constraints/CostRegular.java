@@ -68,12 +68,12 @@ public class CostRegular extends AbstractConstraint {
         initialState = s;
         totalCost = tc;
         assert ((initialState >= 0) && (initialState < nbStates));
-	finalStates = new ArrayList<Integer>();
+        finalStates = new ArrayList<Integer>();
         Iterator<Integer> itr = finalStates.iterator();
         while (itr.hasNext()) {
             int state = itr.next().intValue();
             assert ((state >= 0) && (state < nbStates));
-	    finalStates.add(state);
+            finalStates.add(state);
         }
         int maxVal = Integer.MIN_VALUE;
         for (int i = 0; i < n; i++) {
@@ -85,7 +85,7 @@ public class CostRegular extends AbstractConstraint {
             assert (A[i].length == maxVal + 1);
             for (int j = 0; j < maxVal + 1; j++) {
                 assert (A[i][j] < nbStates);
-		transitionFct[i][j] = A[i][j];
+                transitionFct[i][j] = A[i][j];
             }
         }
         cost = new int[n][nbStates][maxVal + 1];
@@ -303,7 +303,7 @@ public class CostRegular extends AbstractConstraint {
     }
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
 
         for (int i = 0; i < n; i++) {
             Arrays.fill(ip[i], beliefRep.zero());
@@ -380,7 +380,7 @@ public class CostRegular extends AbstractConstraint {
                     if ((newState >= 0) && (!beliefRep.isZero(op[i][newState]))) {
                         // add the combination of op[i][newState] and outsideBelief(i,v) to op[i-1][k]
                         op[i - 1][k] = beliefRep.add(op[i - 1][k], beliefRep.multiply(op[i][newState], outsideBelief(i, v)));
-                        System.out.println((i-1)+" "+k+" op "+op[i - 1][k]);
+                        System.out.println((i - 1) + " " + k + " op " + op[i - 1][k]);
                     }
                 }
             }
@@ -392,10 +392,10 @@ public class CostRegular extends AbstractConstraint {
             int newState = transitionFct[initialState][v];
             if (newState >= 0) {
                 weightedCount = beliefRep.add(weightedCount, beliefRep.multiply(op[0][newState], outsideBelief(0, v)));
-                System.out.println("0 "+newState+" x "+outsideBelief(0, v));
+                System.out.println("0 " + newState + " x " + outsideBelief(0, v));
             }
         }
-        System.out.println("weighted count for "+this.getName()+" constraint: "+weightedCount);
+        System.out.println("weighted count for " + this.getName() + " constraint: " + weightedCount);
         return weightedCount;
     }
 

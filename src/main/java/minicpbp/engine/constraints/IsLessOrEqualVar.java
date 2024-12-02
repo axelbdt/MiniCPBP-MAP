@@ -66,7 +66,7 @@ public class IsLessOrEqualVar extends AbstractConstraint {
             case SBP:
                 x.propagateOnBoundChange(this);
                 y.propagateOnBoundChange(this);
-		b.propagateOnBind(this);
+                b.propagateOnBind(this);
         }
         propagate();
     }
@@ -92,7 +92,7 @@ public class IsLessOrEqualVar extends AbstractConstraint {
 
 
     @Override
-    public void updateBelief() {
+    public void updateBeliefSumProduct() {
         double belief, beliefSAT;
         int vx, vy;
         // Treatment of x
@@ -105,9 +105,9 @@ public class IsLessOrEqualVar extends AbstractConstraint {
                     belief = beliefRep.add(belief, outsideBelief(2, vy));
                     do vy--; while (!y.contains(vy) && (vy >= y.min()));
                 }
-		        beliefSAT = beliefRep.add(beliefSAT,beliefRep.multiply(belief,outsideBelief(1,vx)));
-                setLocalBelief(1, vx, beliefRep.add( beliefRep.multiply(belief, outsideBelief(0,1)),
-						     beliefRep.multiply(beliefRep.complement(belief), outsideBelief(0,0)) ));
+                beliefSAT = beliefRep.add(beliefSAT, beliefRep.multiply(belief, outsideBelief(1, vx)));
+                setLocalBelief(1, vx, beliefRep.add(beliefRep.multiply(belief, outsideBelief(0, 1)),
+                        beliefRep.multiply(beliefRep.complement(belief), outsideBelief(0, 0))));
             }
         }
         // Treatment of y
@@ -119,12 +119,12 @@ public class IsLessOrEqualVar extends AbstractConstraint {
                     belief = beliefRep.add(belief, outsideBelief(1, vx));
                     do vx++; while (!x.contains(vx) && (vx <= x.max()));
                 }
-                setLocalBelief(2, vy, beliefRep.add( beliefRep.multiply(belief, outsideBelief(0,1)),
-						     beliefRep.multiply(beliefRep.complement(belief), outsideBelief(0,0)) ));
+                setLocalBelief(2, vy, beliefRep.add(beliefRep.multiply(belief, outsideBelief(0, 1)),
+                        beliefRep.multiply(beliefRep.complement(belief), outsideBelief(0, 0))));
             }
         }
         // Treatment of b
-	    setLocalBelief(0, 1, beliefSAT);
-	    setLocalBelief(0, 0, beliefRep.complement(beliefSAT));
+        setLocalBelief(0, 1, beliefSAT);
+        setLocalBelief(0, 0, beliefRep.complement(beliefSAT));
     }
 }
