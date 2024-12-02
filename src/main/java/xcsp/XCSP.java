@@ -2163,6 +2163,18 @@ public class XCSP implements XCallbacks2 {
         XCSP.competitionOutput = competitionOutput;
     }
 
+    private static Solver.BPAlgorithm bpAlgorithm = Solver.BPAlgorithm.SUM_PRODUCT;
+
+    public void BPAlgorithm(Solver.BPAlgorithm bpAlgorithm) {
+        XCSP.bpAlgorithm = bpAlgorithm;
+    }
+
+    private static boolean oracleOnObjective = false;
+
+    public void oracleOnObjective(boolean oracleOnObjective) {
+        XCSP.oracleOnObjective = oracleOnObjective;
+    }
+
     private Search makeSearch(Supplier<Procedure[]> branching) {
         Search search = null;
         switch (searchType) {
@@ -2193,6 +2205,8 @@ public class XCSP implements XCallbacks2 {
 //		minicp.setDamp(damp);
 //		minicp.setDampingFactor(dampingFactor);
 //		minicp.setVariationThreshold(variationThreshold);
+        minicp.setBPAlgorithm(bpAlgorithm);
+        minicp.setOracleOnObjective(oracleOnObjective);
 
         if (hasFailed) {
             if (!competitionOutput) {
@@ -2315,7 +2329,7 @@ public class XCSP implements XCallbacks2 {
             Objective objective = minicp.minimize(objectiveMinimize.get());
 
             stats = search.optimize(objective, ss -> {
-                return (System.currentTimeMillis() - t0 >= timeout * 1000);
+                return ss.isCompleted();
             });
         } else {
             if (!restart) {
@@ -2413,6 +2427,7 @@ public class XCSP implements XCallbacks2 {
         out.println("failures: " + stats.numberOfFailures());
         out.println("nodes: " + stats.numberOfNodes());
         out.println("runtime (ms): " + runtime);
+        out.println("complete:" + stats.isCompleted());
 
         out.close();
 

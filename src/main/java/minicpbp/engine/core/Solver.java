@@ -81,10 +81,6 @@ public interface Solver {
      */
     PropaMode getMode();
 
-    /**
-     * @return the BP algorithm
-     */
-    BPAlgorithm getBPAlgorithm();
 
     /**
      * Set the propagation mode
@@ -92,6 +88,21 @@ public interface Solver {
      * @param mode
      */
     void setMode(PropaMode mode);
+
+    /**
+     * @return the BP algorithm
+     */
+    BPAlgorithm getBPAlgorithm();
+
+    void setBPAlgorithm(BPAlgorithm bpAlgorithm);
+
+    /**
+     * @return whether to put oracle on the objective
+     */
+    boolean getOracleOnObjective();
+
+    void setOracleOnObjective(boolean oracleOnObjective);
+
 
     /**
      * @return the constraint weighing scheme

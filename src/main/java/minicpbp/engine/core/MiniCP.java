@@ -20,6 +20,7 @@ package minicpbp.engine.core;
 
 import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.LinEqSystemModP;
+import minicpbp.engine.constraints.MaximizeOracle;
 import minicpbp.search.Objective;
 import minicpbp.state.StateInt;
 import minicpbp.state.StateManager;
@@ -49,7 +50,8 @@ public class MiniCP implements Solver {
     // BP /* belief propagation */
     // SBP /* first apply support propagation, then belief propagation */
     private static PropaMode mode = PropaMode.SBP;
-    private static BPAlgorithm bpAlgorithm = BPAlgorithm.MAX_PRODUCT;
+    private static BPAlgorithm bpAlgorithm = BPAlgorithm.SUM_PRODUCT;
+    private static boolean oracleOnObjective = true;
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
@@ -159,9 +161,22 @@ public class MiniCP implements Solver {
         return mode;
     }
 
+    public boolean getOracleOnObjective() {
+        return oracleOnObjective;
+    }
+
+    public void setOracleOnObjective(boolean oracleOnObjective) {
+        MiniCP.oracleOnObjective = oracleOnObjective;
+    }
+
     public BPAlgorithm getBPAlgorithm() {
         return bpAlgorithm;
     }
+
+    public void setBPAlgorithm(BPAlgorithm bpAlgorithm) {
+        MiniCP.bpAlgorithm = bpAlgorithm;
+    }
+
 
     public ConstraintWeighingScheme getWeighingScheme() {
         return Wscheme;
@@ -631,11 +646,18 @@ public class MiniCP implements Solver {
 
     @Override
     public Objective minimize(IntVar x) {
+        if (MiniCP.oracleOnObjective) {
+            IntVar minusX = Factory.minus(x);
+            post(new MaximizeOracle(minusX, minusX.min() - 1));
+        }
         return new Minimize(x);
     }
 
     @Override
     public Objective maximize(IntVar x) {
+        if (MiniCP.oracleOnObjective) {
+            post(new MaximizeOracle(x, x.min() - 1));
+        }
         return minimize(Factory.minus(x));
     }
 

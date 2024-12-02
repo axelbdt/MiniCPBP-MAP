@@ -1,6 +1,7 @@
 package launch;
 
 import fzn.FZN;
+import minicpbp.engine.core.Solver;
 import org.apache.commons.cli.*;
 import xcsp.XCSP;
 
@@ -10,6 +11,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SolveXCSPFZN {
+    public static Map<String, Solver.BPAlgorithm> BPAlgorithmMap = new HashMap<String, Solver.BPAlgorithm>() {
+        private static final long serialVersionUID = 4936849715939593675L;
+
+        {
+            put("sum-product", Solver.BPAlgorithm.SUM_PRODUCT);
+            put("max-product", Solver.BPAlgorithm.MAX_PRODUCT);
+        }
+    };
+
     public enum BranchingHeuristic {
         FFRV, // first-fail, random value
         MXMS, // maximum marginal strength
@@ -58,6 +68,8 @@ public class SolveXCSPFZN {
     };
 
     public static void main(String[] args) {
+        String quotedValidBPAlgorithms = BPAlgorithmMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
 
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
@@ -67,6 +79,9 @@ public class SolveXCSPFZN {
 
         Option xcspFileOpt = Option.builder().longOpt("input").argName("FILE").required().hasArg()
                 .desc("input FZN or XCSP file").build();
+
+        Option bpAlgorithmOpt = Option.builder().longOpt("bp-algorithm").argName("ALGORITHM").required().hasArg()
+                .desc("BP algorithm.\nValid BP algorithms are:\n" + quotedValidBPAlgorithms).build();
 
         Option branchingOpt = Option.builder().longOpt("branching").argName("STRATEGY").required().hasArg()
                 .desc("branching strategy.\nValid branching strategies are:\n" + quotedValidBranchings).build();
@@ -123,8 +138,11 @@ public class SolveXCSPFZN {
         Option traceEntropyOpt = Option.builder().longOpt("trace-entropy").hasArg(false).desc("trace the evolution of model's entropy after each BP iteration")
                 .build();
 
+        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").hasArg(false).desc("put oracle on objective").build();
+
         Options options = new Options();
         options.addOption(xcspFileOpt);
+        options.addOption(bpAlgorithmOpt);
         options.addOption(branchingOpt);
         options.addOption(searchOpt);
         options.addOption(timeoutOpt);
@@ -144,6 +162,7 @@ public class SolveXCSPFZN {
         options.addOption(dynamicStopBPOpt);
         options.addOption(traceNbIterOpt);
         options.addOption(traceEntropyOpt);
+        options.addOption(oracleOnObjectiveOpt);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -154,6 +173,10 @@ public class SolveXCSPFZN {
             new HelpFormatter().printHelp("solve-XCSP", options);
             System.exit(1);
         }
+
+        String bpAlgorithmStr = cmd.getOptionValue("bp-algorithm");
+        checkBPAlgorithmOption(bpAlgorithmStr);
+        Solver.BPAlgorithm bpAlgorithm = BPAlgorithmMap.get(bpAlgorithmStr);
 
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
@@ -211,6 +234,7 @@ public class SolveXCSPFZN {
         boolean dynamicStopBP = (cmd.hasOption("dynamic-stop"));
         boolean traceNbIter = (cmd.hasOption("trace-iter"));
         boolean traceEntropy = (cmd.hasOption("trace-entropy"));
+        boolean oracleOnObjective = (cmd.hasOption("oracle-on-objective"));
 
 
         try {
@@ -232,6 +256,7 @@ public class SolveXCSPFZN {
                 fzn.dynamicStopBP(dynamicStopBP);
                 fzn.traceNbIter(traceNbIter);
                 fzn.printStats(true);
+                // TODO set BP algorithm
                 fzn.solve(heuristic, timeout, statsFileStr, solFileStr);
             } else {
                 System.out.println("XCSP");
@@ -251,12 +276,24 @@ public class SolveXCSPFZN {
                 xcsp.dynamicStopBP(dynamicStopBP);
                 xcsp.traceNbIter(traceNbIter);
                 xcsp.traceEntropy(traceEntropy);
+                xcsp.BPAlgorithm(bpAlgorithm);
+                xcsp.oracleOnObjective(oracleOnObjective);
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+    }
+
+    private static void checkBPAlgorithmOption(String bpAlgorithmStr) {
+        if (!BPAlgorithmMap.containsKey(bpAlgorithmStr)) {
+            System.out.println("invalid BP algorithm " + bpAlgorithmStr);
+            System.out.println("BP algorithm should be one of the following: ");
+            for (String bpAlgorithm : BPAlgorithmMap.keySet())
+                System.out.println(bpAlgorithm);
+            System.exit(1);
+        }
     }
 
     private static void checkBranchingOption(String branchingStr) {

@@ -21,8 +21,6 @@ import minicpbp.engine.core.IntVar;
 import java.util.ArrayList;
 import java.util.BitSet;
 
-import static minicpbp.cp.Factory.minus;
-
 /**
  * Negative table constraint
  */
@@ -202,4 +200,58 @@ public class NegTableCT extends AbstractConstraint {
         }
     }
 
+    @Override
+    public void updateBeliefMaxProduct() {
+        menacing.set(0, tableLength); // set them all to true
+
+        for (int i = 0; i < xLength; i++) {
+            conflictsi.clear(); // set them all to false
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                conflictsi.or(conflicts[i][domainValues[j] - ofs[i]]);
+            }
+            menacing.and(conflictsi);
+        }
+
+        // Each tuple has its own weight given by the product of the outside_belief of its elements.
+        // Compute these products, but only for menacing tuples.
+        for (int k = menacing.nextSetBit(0); k >= 0; k = menacing.nextSetBit(k + 1)) {
+            tupleWeight[k] = beliefRep.one();
+            for (int i = 0; i < xLength; i++) {
+                tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
+            }
+        }
+
+        for (int i = 0; i < xLength; i++) {
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                int v = domainValues[j];
+                double belief = beliefRep.zero();
+                double outsideBelief_i_v = outsideBelief(i, v);
+                BitSet conflicts_i_v = conflicts[i][v - ofs[i]];
+                // Iterate over conflicts[i][v] /\ menacing, accumulating the weight of tuples.
+                if (!beliefRep.isZero(outsideBelief_i_v)) {
+                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                        if (menacing.get(k)) {
+                            belief = Math.max(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
+                        }
+                    }
+                } else { // special case of null outside belief (avoid division by zero)
+                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                        if (menacing.get(k)) {
+                            double weight = beliefRep.one();
+                            for (int i2 = 0; i2 < i; i2++) {
+                                weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                            }
+                            for (int i2 = i + 1; i2 < xLength; i2++) {
+                                weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
+                            }
+                            belief = Math.max(belief, weight);
+                        }
+                    }
+                }
+                setLocalBelief(i, v, beliefRep.complement(belief));
+            }
+        }
+    }
 }

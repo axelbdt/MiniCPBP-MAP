@@ -1,8 +1,8 @@
 package minicpbp.examples.basic;
 
-import minicpbp.engine.constraints.MaximizeOracle;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
+import minicpbp.search.Objective;
 import minicpbp.search.Search;
 import minicpbp.util.Procedure;
 
@@ -26,19 +26,13 @@ public class Example {
         d.setName("d");
 
         System.out.println("Sum product");
-        boolean oracle = true;
-        // oracle = false;
-        System.out.println("oracle: " + oracle);
-        IntVar objective = a;
-        System.out.println("objective: " + objective.getName());
+        IntVar objective_var = a;
+        Objective objective = cp.maximize(objective_var);
+        System.out.println("objective: " + objective_var.getName());
 
         cp.post(allDifferent(new IntVar[]{a, b, c}));
         cp.post(sum(allVars, 7));
         cp.post(lessOrEqual(c, d));
-
-        if (oracle) {
-            cp.post(new MaximizeOracle(objective));
-        }
 
         cp.setTraceBPFlag(true);
         cp.setTraceSearchFlag(true);
@@ -48,6 +42,6 @@ public class Example {
             System.out.println("solution: " + a.min() + " " + b.min() + " " + c.min() + " " + d.min());
         });
 
-        search.solve(stat -> stat.isCompleted());
+        search.optimize(objective, stat -> stat.isCompleted());
     }
 }

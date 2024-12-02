@@ -321,6 +321,7 @@ public abstract class AbstractConstraint implements Constraint {
      * CAVEAT: may set zero/one beliefs but should not directly remove domain values (only done in sendMessages() if actOnZeroOneBelief flag is set)
      */
     protected void updateBelief() {
+        // System.out.println(getSolver().getBPAlgorithm());
         switch (getSolver().getBPAlgorithm()) {
             case SUM_PRODUCT:
                 updateBeliefSumProduct();

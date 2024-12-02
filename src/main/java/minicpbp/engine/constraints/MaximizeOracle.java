@@ -73,7 +73,7 @@ public class MaximizeOracle extends AbstractConstraint {
         }
         for (int val = x.min(); val <= x.max(); val++) {
             if (x.contains(val)) {
-                setLocalBelief(0, val, val / sum);
+                setLocalBelief(0, val, (val - reference) / sum);
             }
         }
     }
