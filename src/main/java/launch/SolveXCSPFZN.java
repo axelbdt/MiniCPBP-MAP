@@ -20,6 +20,15 @@ public class SolveXCSPFZN {
         }
     };
 
+    public static Map<String, Boolean> OracleOnObjectiveMap = new HashMap<String, Boolean>() {
+        private static final long serialVersionUID = 4936849715939593675L;
+
+        {
+            put("True", true);
+            put("False", false);
+        }
+    };
+
     public enum BranchingHeuristic {
         FFRV, // first-fail, random value
         MXMS, // maximum marginal strength
@@ -32,6 +41,7 @@ public class SolveXCSPFZN {
         MIE, //min-entropy followed by impact entropy after first restart,
         MNEBW, //min-entropy with biased wheel value selection
         WDEG, //dom-wdeg
+        WDEGMXMR,
         IBS, //impact-based search
     }
 
@@ -50,6 +60,7 @@ public class SolveXCSPFZN {
             put("impact-min-entropy", BranchingHeuristic.MIE);
             put("min-entropy-biased", BranchingHeuristic.MNEBW);
             put("dom-wdeg", BranchingHeuristic.WDEG);
+            put("dom-wdeg-max-marginal", BranchingHeuristic.WDEGMXMR);
             put("impact-based-search", BranchingHeuristic.IBS);
         }
     };
@@ -71,6 +82,9 @@ public class SolveXCSPFZN {
         String quotedValidBPAlgorithms = BPAlgorithmMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
+        String quotedValidOracleOnObjective = OracleOnObjectiveMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
@@ -82,6 +96,9 @@ public class SolveXCSPFZN {
 
         Option bpAlgorithmOpt = Option.builder().longOpt("bp-algorithm").argName("ALGORITHM").required().hasArg()
                 .desc("BP algorithm.\nValid BP algorithms are:\n" + quotedValidBPAlgorithms).build();
+
+        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("BOOL").required().hasArg()
+                .desc("oracle on objective.\nValid oracle on objective are:\n" + quotedValidOracleOnObjective).build();
 
         Option branchingOpt = Option.builder().longOpt("branching").argName("STRATEGY").required().hasArg()
                 .desc("branching strategy.\nValid branching strategies are:\n" + quotedValidBranchings).build();
@@ -138,11 +155,11 @@ public class SolveXCSPFZN {
         Option traceEntropyOpt = Option.builder().longOpt("trace-entropy").hasArg(false).desc("trace the evolution of model's entropy after each BP iteration")
                 .build();
 
-        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").hasArg(false).desc("put oracle on objective").build();
 
         Options options = new Options();
         options.addOption(xcspFileOpt);
         options.addOption(bpAlgorithmOpt);
+        options.addOption(oracleOnObjectiveOpt);
         options.addOption(branchingOpt);
         options.addOption(searchOpt);
         options.addOption(timeoutOpt);
@@ -177,6 +194,10 @@ public class SolveXCSPFZN {
         String bpAlgorithmStr = cmd.getOptionValue("bp-algorithm");
         checkBPAlgorithmOption(bpAlgorithmStr);
         Solver.BPAlgorithm bpAlgorithm = BPAlgorithmMap.get(bpAlgorithmStr);
+
+        String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective");
+        checkOracleOnObjectiveOption(oracleOnObjectiveStr);
+        boolean oracleOnObjective = OracleOnObjectiveMap.get(oracleOnObjectiveStr);
 
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
@@ -234,7 +255,6 @@ public class SolveXCSPFZN {
         boolean dynamicStopBP = (cmd.hasOption("dynamic-stop"));
         boolean traceNbIter = (cmd.hasOption("trace-iter"));
         boolean traceEntropy = (cmd.hasOption("trace-entropy"));
-        boolean oracleOnObjective = (cmd.hasOption("oracle-on-objective"));
 
 
         try {
@@ -259,7 +279,12 @@ public class SolveXCSPFZN {
                 // TODO set BP algorithm
                 fzn.solve(heuristic, timeout, statsFileStr, solFileStr);
             } else {
-                System.out.println("XCSP");
+                System.out.println("input file: " + inputStr);
+                System.out.println("BP algorithm: " + bpAlgorithmStr);
+                System.out.println("oracle on objective: " + oracleOnObjective);
+                System.out.println("branching strategy: " + branchingStr);
+                System.out.println("search type: " + searchTypeStr);
+
                 XCSP xcsp = new XCSP(inputStr);
                 xcsp.searchType(searchType);
                 xcsp.checkSolution(checkSolution);
@@ -292,6 +317,16 @@ public class SolveXCSPFZN {
             System.out.println("BP algorithm should be one of the following: ");
             for (String bpAlgorithm : BPAlgorithmMap.keySet())
                 System.out.println(bpAlgorithm);
+            System.exit(1);
+        }
+    }
+
+    private static void checkOracleOnObjectiveOption(String oracleOnObjectiveStr) {
+        if (!OracleOnObjectiveMap.containsKey(oracleOnObjectiveStr)) {
+            System.out.println("invalid oracle on objective " + oracleOnObjectiveStr);
+            System.out.println("oracle on objective should be one of the following: ");
+            for (String oracleOnObjective : OracleOnObjectiveMap.keySet())
+                System.out.println(oracleOnObjective);
             System.exit(1);
         }
     }

@@ -2287,6 +2287,9 @@ public class XCSP implements XCallbacks2 {
                 search = makeSearch(domWdeg(vars));
                 nbFailCutof = nbFailCutof * vars.length;
                 break;
+            case WDEGMXMR:
+                search = makeSearch(domWdegMaxMarginal(vars));
+                break;
             default:
                 System.out.println("unknown search strategy");
                 System.exit(1);
