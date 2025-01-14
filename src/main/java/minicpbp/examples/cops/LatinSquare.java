@@ -8,18 +8,13 @@ import minicpbp.search.Objective;
 import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
 import minicpbp.util.Procedure;
-import minicpbp.util.io.TeeOutputStream;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 import static minicpbp.cp.BranchingScheme.*;
 import static minicpbp.cp.Factory.*;
@@ -95,7 +90,7 @@ public class LatinSquare {
         }
     }
 
-    public record ExperimentSpec(BPAlgorithm bp, Branching branching, boolean oracle) {
+    public record SearchSpec(BPAlgorithm bp, Branching branching, boolean oracle) {
         public String toString() {
             String oracleStr = oracle ? "-oracle" : "";
             return String.format("%s-%s%s", bp, branching, oracleStr);
@@ -424,40 +419,29 @@ public class LatinSquare {
         return arguments;
     }
 
-    public static int[] parseIntDefaultToArray(String arg, int[] array) {
-        if (arg == null) {
-            return array;
-        }
-        return new int[]{Integer.parseInt(arg)};
-    }
-
     public static void main(String[] args) {
-        ExperimentSpec[] searchSpecArray = {
-                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.DOM_WDEG_BEST_VALUE, false),
-                new ExperimentSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
-                new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, false),
-                new ExperimentSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
-                new ExperimentSpec(BPAlgorithm.MAX_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
+        SearchSpec[] searchSpecArray = {
+                new SearchSpec(BPAlgorithm.NO_BP, Branching.DOM_WDEG_BEST_VALUE, false),
+                new SearchSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
+                new SearchSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, false),
+                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
+                new SearchSpec(BPAlgorithm.MAX_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
         };
-        var objectivePatternArray = new ObjectivePattern[]{
-                new ObjectivePattern(20),
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 0),
-                new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 5),
-                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 10),
-                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 30, 15, 15),
-                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 10),
-                // new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 90, 15, 15)
-        };
-        var nbHolesArray = new int[]{200, 250, 300};
-        var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
-        var nbFileArray = IntStream.rangeClosed(1, 10).toArray();
-        var truncateRateArray = new int[]{0};
+        // var objectivePatternArray = new ObjectivePattern[]{
+        //         new ObjectivePattern(20),
+        //         new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 0),
+        //         new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 5),
+        // };
+        // var nbHolesArray = new int[]{200, 250, 300};
+        // var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
+        // var nbFileArray = IntStream.rangeClosed(1, 10).toArray();
+        // var truncateRateArray = new int[]{0};
 
         HashMap<String, String> arguments = parseArgs(args);
         String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
@@ -469,34 +453,28 @@ public class LatinSquare {
         String modelNumberArg = arguments.get("modelNumber");
         String truncateRateArg = arguments.get("truncateRate");
 
-        nbHolesArray = parseIntDefaultToArray(nbHolesArg, nbHolesArray);
-        searchTypeArray = searchTypeArg != null ? new SearchType[]{SearchType.valueOf(searchTypeArg.toUpperCase())} : searchTypeArray;
-        nbFileArray = parseIntDefaultToArray(nbFileArg, nbFileArray);
-        truncateRateArray = parseIntDefaultToArray(truncateRateArg, truncateRateArray);
-        if (modelNumberArg != null) {
-            int modelNumber = Integer.parseInt(modelNumberArg);
-            searchSpecArray = new ExperimentSpec[]{searchSpecArray[modelNumber]};
-        }
+        int nbHoles = Integer.parseInt(nbHolesArg);
+        SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
+        int nbFile = Integer.parseInt(nbFileArg);
+        int truncateRate = Integer.parseInt(truncateRateArg);
+        int modelNumber = Integer.parseInt(modelNumberArg);
+        var spec = searchSpecArray[modelNumber];
 
-
-        if (objectiveString != null) {
-            ObjectivePattern singleObjective;
-            String[] parts = objectiveString.toUpperCase().split("_");
-            if (parts[0].equals("DIAGONAL")) {
-                singleObjective = new ObjectivePattern(n);
-            } else if (parts[0].equals("PSEUDODIAGONAL") && parts.length == 4) {
-                try {
-                    int numVars = Integer.parseInt(parts[1]);
-                    int numPerRow = Integer.parseInt(parts[2]);
-                    int overlap = Integer.parseInt(parts[3]);
-                    singleObjective = new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, numVars, numPerRow, overlap);
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid pseudodiagonal parameters: " + objectiveString);
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
+        ObjectivePattern objective;
+        String[] parts = objectiveString.toUpperCase().split("_");
+        if (parts[0].equals("DIAGONAL")) {
+            objective = new ObjectivePattern(n);
+        } else if (parts[0].equals("PSEUDODIAGONAL") && parts.length == 4) {
+            try {
+                int numVars = Integer.parseInt(parts[1]);
+                int numPerRow = Integer.parseInt(parts[2]);
+                int overlap = Integer.parseInt(parts[3]);
+                objective = new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, numVars, numPerRow, overlap);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid pseudodiagonal parameters: " + objectiveString);
             }
-            objectivePatternArray = new ObjectivePattern[]{singleObjective};
+        } else {
+            throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
         }
 
         // Manually define an instance
@@ -509,96 +487,40 @@ public class LatinSquare {
         // nbFileArray = new int[]{1};
 
 
-        PrintStream originalOut = System.out;
+        // Create the model
+        LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, spec.bp, spec.branching, objective, spec.oracle, truncateRate);
 
-        for (var searchType : searchTypeArray) {
-            for (var truncateRate : truncateRateArray) {
-                for (var spec : searchSpecArray) {
-                    for (var nbHoles : nbHolesArray) {
-                        for (var objective : objectivePatternArray) {
-                            for (var nbFile : nbFileArray) {
-                                // var spec = searchSpecs[modelNumber];
+        System.out.println("INFO");
+        System.out.println("n : " + n);
+        System.out.println("nbHoles : " + nbHoles);
+        System.out.println("nbFile : " + nbFile);
+        // Run the model
+        if (mode.equals("SOLVE")) {
+            // get all solutions
+            System.out.println("START SEARCH");
+            SearchStatistics stats = ls.solve();
+            System.out.println("END OF SEARCH");
+            System.out.println(stats);
+        } else if (mode.equals("PROPAGATE")) {
+            System.out.println("INFO");
+            System.out.println("n : " + n);
+            System.out.println("nbHoles : " + nbHoles);
+            System.out.println("nbFile : " + nbFile);
+            System.out.println("bp : " + spec.bp);
 
-                                // Create the model
-                                LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, spec.bp, spec.branching, objective, spec.oracle, truncateRate);
+            ls.propagate();
+        } else {
+            System.out.println("objective : " + objective);
+            System.out.println("search: " + searchType);
+            System.out.println("bp : " + spec.bp);
+            System.out.println("branchingScheme : " + spec.branching);
+            System.out.println("oracle : " + spec.oracle);
+            System.out.println("truncateRate : " + truncateRate);
 
-                                // Run the model
-                                if (mode.equals("SOLVE")) {
-                                    try {
-                                        // System.out to both the console and the log file
-                                        FileOutputStream fos = new FileOutputStream(
-                                                String.format("solutions/latin-square/latin-square%d-holes%d-%d.sol", n, nbHoles, nbFile));
-                                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
-                                        System.setOut(out);
-
-                                        System.out.println("INFO");
-                                        System.out.println("n : " + n);
-                                        System.out.println("nbHoles : " + nbHoles);
-                                        System.out.println("nbFile : " + nbFile);
-
-
-                                        System.out.println("START SEARCH");
-                                        SearchStatistics stats = ls.solve();
-                                        System.out.println("END OF SEARCH");
-                                        System.out.println(stats);
-                                    } catch (FileNotFoundException e) {
-                                        throw new RuntimeException("Error while creating file", e);
-                                    }
-                                } else if (mode.equals("PROPAGATE")) {
-                                    try {
-                                        String oracleStr = spec.oracle ? "-oracle" : "";
-                                        String truncateRateStr = truncateRate == 0 ? "" : "-truncate" + truncateRate;
-                                        String filename = String.format("logs/bp-latin-square/latin-square%d-holes%d-%d-%s-%s%s%s.out", n, nbHoles, nbFile, objective, spec.bp, oracleStr, truncateRateStr);
-                                        // System.out to both the console and the log file
-                                        FileOutputStream fos = new FileOutputStream(filename);
-                                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
-                                        System.setOut(out);
-
-                                        System.out.println("INFO");
-                                        System.out.println("n : " + n);
-                                        System.out.println("nbHoles : " + nbHoles);
-                                        System.out.println("nbFile : " + nbFile);
-                                        System.out.println("bp : " + spec.bp);
-
-                                        ls.propagate();
-                                    } catch (FileNotFoundException e) {
-                                        throw new RuntimeException("Error while creating file", e);
-                                    }
-                                } else {
-                                    try {
-                                        String truncateRateStr = truncateRate == 0 ? "" : "-truncate" + truncateRate;
-                                        String filename = String.format("logs/latin-square/latin-square%d-holes%d-%d-%s-%s-%s%s.out", n, nbHoles, nbFile, objective, searchType, spec, truncateRateStr);
-                                        // System.out to both the console and the log file
-                                        FileOutputStream fos = new FileOutputStream(filename);
-                                        PrintStream out = new PrintStream(new TeeOutputStream(fos, originalOut), true);
-                                        System.setOut(out);
-
-                                        System.out.println("INFO");
-                                        System.out.println("n : " + n);
-                                        System.out.println("nbHoles : " + nbHoles);
-                                        System.out.println("nbFile : " + nbFile);
-
-
-                                        System.out.println("objective : " + objective);
-                                        System.out.println("search: " + searchType);
-                                        System.out.println("bp : " + spec.bp);
-                                        System.out.println("branchingScheme : " + spec.branching);
-                                        System.out.println("oracle : " + spec.oracle);
-                                        System.out.println("truncateRate : " + truncateRate);
-
-                                        System.out.println("START SEARCH");
-                                        SearchStatistics stats = ls.optimize();
-                                        System.out.println("END OF SEARCH");
-                                        System.out.println(stats);
-                                    } catch (FileNotFoundException e) {
-                                        throw new RuntimeException("Error while creating file", e);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            System.out.println("START SEARCH");
+            SearchStatistics stats = ls.optimize();
+            System.out.println("END OF SEARCH");
+            System.out.println(stats);
         }
     }
 }

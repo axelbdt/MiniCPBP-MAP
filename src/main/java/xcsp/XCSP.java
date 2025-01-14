@@ -2175,6 +2175,12 @@ public class XCSP implements XCallbacks2 {
         XCSP.oracleOnObjective = oracleOnObjective;
     }
 
+    private static boolean switchToSumProductAfterSolution = false;
+
+    public void switchToSumProductAfterSolution(boolean switchToSumProductAfterSolution) {
+        XCSP.switchToSumProductAfterSolution = switchToSumProductAfterSolution;
+    }
+
     private Search makeSearch(Supplier<Procedure[]> branching) {
         Search search = null;
         switch (searchType) {
@@ -2207,6 +2213,7 @@ public class XCSP implements XCallbacks2 {
 //		minicp.setVariationThreshold(variationThreshold);
         minicp.setBPAlgorithm(bpAlgorithm);
         minicp.setOracleOnObjective(oracleOnObjective);
+        minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
 
         if (hasFailed) {
             if (!competitionOutput) {

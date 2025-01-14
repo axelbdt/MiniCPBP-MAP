@@ -16,6 +16,8 @@
 
 package minicpbp.search;
 
+import minicpbp.engine.core.Solver;
+
 /**
  * Objective object to be used
  * in the {@link DFSearch#optimize(Objective)}
@@ -32,4 +34,6 @@ public interface Objective {
     void tighten();
 
     int getMin();
+
+    Solver getSolver();
 }

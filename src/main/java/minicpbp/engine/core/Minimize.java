@@ -42,4 +42,8 @@ public class Minimize implements Objective {
     public int getMin() {
         return x.min();
     }
+
+    public Solver getSolver() {
+        return x.getSolver();
+    }
 }

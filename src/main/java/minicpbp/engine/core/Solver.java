@@ -96,6 +96,12 @@ public interface Solver {
 
     void setBPAlgorithm(BPAlgorithm bpAlgorithm);
 
+    boolean shouldSwitchToSumProductAfterSolution();
+
+    void switchToSumProductNoOracle();
+
+    void setSwitchToSumProductAfterSolution(boolean switchToSumProductAfterSolution);
+
     /**
      * @return whether to put oracle on the objective
      */

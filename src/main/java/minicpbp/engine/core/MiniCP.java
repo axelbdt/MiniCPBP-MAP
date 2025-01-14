@@ -42,6 +42,7 @@ public class MiniCP implements Solver {
 
     private StateStack<IntVar> variables;
     private StateStack<Constraint> constraints;
+    private MaximizeOracle maximizeOracle;
 
     private Random rand;
 
@@ -51,6 +52,7 @@ public class MiniCP implements Solver {
     // SBP /* first apply support propagation, then belief propagation */
     private static PropaMode mode = PropaMode.SBP;
     private static BPAlgorithm bpAlgorithm = BPAlgorithm.SUM_PRODUCT;
+    private static boolean switchToSumProductAfterSolution = false;
     private static boolean oracleOnObjective = true;
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
@@ -65,12 +67,12 @@ public class MiniCP implements Solver {
     private final double ENTROPY_TOLERANCE = 0.01;
     // reset marginals, local beliefs, and previous outside belief before applying
     // BP at each search-tree node
-    private static final boolean resetMarginalsBeforeBP = false;
+    private static final boolean resetMarginalsBeforeBP = true;
     // take action upon zero/one beliefs: remove/assign the corresponding value
     private static final boolean actOnZeroOneBelief = false;
     // relative decrease of metric to trigger BP; in interval [0,1] where 0 means
     // always trigger
-    private static double beliefUpdateThreshold = 0.05;
+    private static double beliefUpdateThreshold = 0.0; // 0.05
     // representation of beliefs: either standard (StdBelief: [0..1]) or log
     // (LogBelief: [-infinity..0])
     private final Belief beliefRep = new StdBelief();
@@ -175,6 +177,22 @@ public class MiniCP implements Solver {
 
     public void setBPAlgorithm(BPAlgorithm bpAlgorithm) {
         MiniCP.bpAlgorithm = bpAlgorithm;
+    }
+
+    public void switchToSumProductNoOracle() {
+        if (maximizeOracle != null) {
+            maximizeOracle.mute();
+        }
+        setBPAlgorithm(Solver.BPAlgorithm.SUM_PRODUCT);
+        MiniCP.oracleOnObjective = false;
+    }
+
+    public boolean shouldSwitchToSumProductAfterSolution() {
+        return switchToSumProductAfterSolution;
+    }
+
+    public void setSwitchToSumProductAfterSolution(boolean switchToSumProductAfterSolution) {
+        MiniCP.switchToSumProductAfterSolution = switchToSumProductAfterSolution;
     }
 
 
@@ -648,7 +666,10 @@ public class MiniCP implements Solver {
     public Objective minimize(IntVar x) {
         if (MiniCP.oracleOnObjective) {
             IntVar minusX = Factory.minus(x);
-            post(new MaximizeOracle(minusX, minusX.min() - 1));
+            var oracle = new MaximizeOracle(minusX, minusX.min() - 1);
+            oracle.setName("objective oracle");
+            post(oracle);
+            maximizeOracle = oracle;
         }
         return new Minimize(x);
     }
@@ -656,7 +677,10 @@ public class MiniCP implements Solver {
     @Override
     public Objective maximize(IntVar x) {
         if (MiniCP.oracleOnObjective) {
-            post(new MaximizeOracle(x, x.min() - 1));
+            var oracle = new MaximizeOracle(x, x.min() - 1);
+            oracle.setName("objective oracle");
+            post(oracle);
+            maximizeOracle = oracle;
         }
         return minimize(Factory.minus(x));
     }

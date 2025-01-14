@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SolveXCSPFZN {
-    public static Map<String, Solver.BPAlgorithm> BPAlgorithmMap = new HashMap<String, Solver.BPAlgorithm>() {
+    public static Map<String, Solver.BPAlgorithm> algorithmMap = new HashMap<String, Solver.BPAlgorithm>() {
         private static final long serialVersionUID = 4936849715939593675L;
 
         {
@@ -20,12 +20,15 @@ public class SolveXCSPFZN {
         }
     };
 
-    public static Map<String, Boolean> OracleOnObjectiveMap = new HashMap<String, Boolean>() {
+    public static Map<String, Boolean> BoolMap = new HashMap<String, Boolean>() {
         private static final long serialVersionUID = 4936849715939593675L;
 
         {
             put("True", true);
+            put("true", true);
+
             put("False", false);
+            put("false", false);
         }
     };
 
@@ -79,10 +82,13 @@ public class SolveXCSPFZN {
     };
 
     public static void main(String[] args) {
-        String quotedValidBPAlgorithms = BPAlgorithmMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+        String quotedValidBPAlgorithms = algorithmMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
-        String quotedValidOracleOnObjective = OracleOnObjectiveMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+        String quotedValidOracleOnObjective = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
+        String quotedValidSwitchToSumProductAfterSolution = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
@@ -99,6 +105,9 @@ public class SolveXCSPFZN {
 
         Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("BOOL").required().hasArg()
                 .desc("oracle on objective.\nValid oracle on objective are:\n" + quotedValidOracleOnObjective).build();
+
+        Option switchToSumProductAfterSolutionOpt = Option.builder().longOpt("switch-to-sum-product-after-solution").argName("BOOL").required().hasArg()
+                .desc("switch to sum product after solution.\nValid switch to sum product after solution are:\n" + quotedValidSwitchToSumProductAfterSolution).build();
 
         Option branchingOpt = Option.builder().longOpt("branching").argName("STRATEGY").required().hasArg()
                 .desc("branching strategy.\nValid branching strategies are:\n" + quotedValidBranchings).build();
@@ -180,6 +189,7 @@ public class SolveXCSPFZN {
         options.addOption(traceNbIterOpt);
         options.addOption(traceEntropyOpt);
         options.addOption(oracleOnObjectiveOpt);
+        options.addOption(switchToSumProductAfterSolutionOpt);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -193,11 +203,15 @@ public class SolveXCSPFZN {
 
         String bpAlgorithmStr = cmd.getOptionValue("bp-algorithm");
         checkBPAlgorithmOption(bpAlgorithmStr);
-        Solver.BPAlgorithm bpAlgorithm = BPAlgorithmMap.get(bpAlgorithmStr);
+        Solver.BPAlgorithm bpAlgorithm = algorithmMap.get(bpAlgorithmStr);
 
         String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective");
         checkOracleOnObjectiveOption(oracleOnObjectiveStr);
-        boolean oracleOnObjective = OracleOnObjectiveMap.get(oracleOnObjectiveStr);
+        boolean oracleOnObjective = BoolMap.get(oracleOnObjectiveStr);
+
+        String switchToSumProductAfterSolutionStr = cmd.getOptionValue("switch-to-sum-product-after-solution");
+        checkSwitchToSumProductAfterSolutionOption(switchToSumProductAfterSolutionStr);
+        boolean switchToSumProductAfterSolution = BoolMap.get(switchToSumProductAfterSolutionStr);
 
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
@@ -258,7 +272,7 @@ public class SolveXCSPFZN {
 
 
         try {
-            System.out.println(inputStr.substring(inputStr.lastIndexOf('.') + 1));
+            // System.out.println(inputStr.substring(inputStr.lastIndexOf('.') + 1));
             if (inputStr.substring(inputStr.lastIndexOf('.') + 1).equals("fzn")) {
                 FZN fzn = new FZN(inputStr);
                 fzn.searchType(searchType);
@@ -284,6 +298,7 @@ public class SolveXCSPFZN {
                 System.out.println("oracle on objective: " + oracleOnObjective);
                 System.out.println("branching strategy: " + branchingStr);
                 System.out.println("search type: " + searchTypeStr);
+                System.out.println("switch to sum product after solution: " + switchToSumProductAfterSolution);
 
                 XCSP xcsp = new XCSP(inputStr);
                 xcsp.searchType(searchType);
@@ -303,6 +318,8 @@ public class SolveXCSPFZN {
                 xcsp.traceEntropy(traceEntropy);
                 xcsp.BPAlgorithm(bpAlgorithm);
                 xcsp.oracleOnObjective(oracleOnObjective);
+                xcsp.switchToSumProductAfterSolution(switchToSumProductAfterSolution);
+
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
             }
         } catch (Exception e) {
@@ -312,21 +329,31 @@ public class SolveXCSPFZN {
     }
 
     private static void checkBPAlgorithmOption(String bpAlgorithmStr) {
-        if (!BPAlgorithmMap.containsKey(bpAlgorithmStr)) {
+        if (!algorithmMap.containsKey(bpAlgorithmStr)) {
             System.out.println("invalid BP algorithm " + bpAlgorithmStr);
             System.out.println("BP algorithm should be one of the following: ");
-            for (String bpAlgorithm : BPAlgorithmMap.keySet())
+            for (String bpAlgorithm : algorithmMap.keySet())
                 System.out.println(bpAlgorithm);
             System.exit(1);
         }
     }
 
     private static void checkOracleOnObjectiveOption(String oracleOnObjectiveStr) {
-        if (!OracleOnObjectiveMap.containsKey(oracleOnObjectiveStr)) {
+        if (!BoolMap.containsKey(oracleOnObjectiveStr)) {
             System.out.println("invalid oracle on objective " + oracleOnObjectiveStr);
             System.out.println("oracle on objective should be one of the following: ");
-            for (String oracleOnObjective : OracleOnObjectiveMap.keySet())
+            for (String oracleOnObjective : BoolMap.keySet())
                 System.out.println(oracleOnObjective);
+            System.exit(1);
+        }
+    }
+
+    private static void checkSwitchToSumProductAfterSolutionOption(String switchToSumProductAfterSolutionStr) {
+        if (!BoolMap.containsKey(switchToSumProductAfterSolutionStr)) {
+            System.out.println("invalid switch to sum product after solution " + switchToSumProductAfterSolutionStr);
+            System.out.println("switch to sum product after solution should be one of the following: ");
+            for (String switchToSumProductAfterSolution : BoolMap.keySet())
+                System.out.println(switchToSumProductAfterSolution);
             System.exit(1);
         }
     }

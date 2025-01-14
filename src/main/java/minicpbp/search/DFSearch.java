@@ -298,6 +298,13 @@ public class DFSearch extends Search {
         SearchStatistics statistics = new SearchStatistics();
 //         onSolution(() -> obj.tighten());
         onSolution(() -> {
+            var cp = obj.getSolver();
+            if (cp.shouldSwitchToSumProductAfterSolution()) {
+                cp.switchToSumProductNoOracle();
+            }
+            //System.out.println("c (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
+            System.out.println("Solution found");
+            System.out.println("score: " + obj.getMin());
             System.out.println(statistics);
             obj.tighten();
         });

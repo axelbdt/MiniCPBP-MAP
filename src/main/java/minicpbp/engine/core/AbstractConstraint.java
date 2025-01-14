@@ -324,15 +324,16 @@ public abstract class AbstractConstraint implements Constraint {
         // System.out.println(getSolver().getBPAlgorithm());
         switch (getSolver().getBPAlgorithm()) {
             case SUM_PRODUCT:
+                // System.out.println(getName() + " - SumProduct");
                 updateBeliefSumProduct();
                 break;
             case MAX_PRODUCT:
+                // System.out.println(getName() + " - MaxProduct");
                 updateBeliefMaxProduct();
                 break;
             default:
                 if (!updateBeliefWarningPrinted) {
-                    if (getName() != null) // do not print warning for unnamed constraint
-                        System.out.println("c Warning: BP algorithm not known. Using uniform belief instead.");
+                    System.out.println("c Warning: BP algorithm not known. Using uniform belief instead.");
                     updateBeliefWarningPrinted = true;
                 }
                 for (int i = 0; i < vars.length; i++) {
