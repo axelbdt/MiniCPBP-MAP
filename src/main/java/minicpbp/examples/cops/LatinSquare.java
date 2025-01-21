@@ -313,7 +313,8 @@ public class LatinSquare {
 
     /**
      * Max value selection.
-     * It selects the largest value in all the variables.
+     * It selects the largest value in all the objective variables.
+     * If all objective variables, we do the rest in lexicographic order.
      * Then it creates two branches:
      * the left branch assigning the variable to its maximum value;
      * the right branch removing this maximum value from the domain.

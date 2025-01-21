@@ -21,6 +21,7 @@ package minicpbp.engine.core;
 import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.LinEqSystemModP;
 import minicpbp.engine.constraints.MaximizeOracle;
+import minicpbp.engine.constraints.MinimizeOracle;
 import minicpbp.search.Objective;
 import minicpbp.state.StateInt;
 import minicpbp.state.StateManager;
@@ -42,7 +43,7 @@ public class MiniCP implements Solver {
 
     private StateStack<IntVar> variables;
     private StateStack<Constraint> constraints;
-    private MaximizeOracle maximizeOracle;
+    private Constraint objectiveOracle;
 
     private Random rand;
 
@@ -55,7 +56,7 @@ public class MiniCP implements Solver {
     private static boolean switchToSumProductAfterSolution = false;
     private static boolean oracleOnObjective = true;
     // nb of BP iterations performed
-    private static int beliefPropaMaxIter = 10;
+    private static int beliefPropaMaxIter = 50;
     // apply damping to variable-to-constraint messages
     private static boolean damping = true;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
@@ -180,8 +181,8 @@ public class MiniCP implements Solver {
     }
 
     public void switchToSumProductNoOracle() {
-        if (maximizeOracle != null) {
-            maximizeOracle.mute();
+        if (objectiveOracle != null) {
+            objectiveOracle.setActive(false);
         }
         setBPAlgorithm(Solver.BPAlgorithm.SUM_PRODUCT);
         MiniCP.oracleOnObjective = false;
@@ -665,11 +666,10 @@ public class MiniCP implements Solver {
     @Override
     public Objective minimize(IntVar x) {
         if (MiniCP.oracleOnObjective) {
-            IntVar minusX = Factory.minus(x);
-            var oracle = new MaximizeOracle(minusX, minusX.min() - 1);
-            oracle.setName("objective oracle");
+            var oracle = new MinimizeOracle(x);
+            oracle.setName("objective oracle (min)");
             post(oracle);
-            maximizeOracle = oracle;
+            objectiveOracle = oracle;
         }
         return new Minimize(x);
     }
@@ -678,9 +678,9 @@ public class MiniCP implements Solver {
     public Objective maximize(IntVar x) {
         if (MiniCP.oracleOnObjective) {
             var oracle = new MaximizeOracle(x, x.min() - 1);
-            oracle.setName("objective oracle");
+            oracle.setName("objective oracle (max)");
             post(oracle);
-            maximizeOracle = oracle;
+            objectiveOracle = oracle;
         }
         return minimize(Factory.minus(x));
     }
