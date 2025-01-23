@@ -379,8 +379,58 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
         }
+        if (compareLocalBeliefs) {
+            otherUpdateBeliefMaxProduct();
+            compareLocalBeliefs();
+        }
+    }
 
-        // may need to add dummy rows in order to make the beliefs matrix square
+    public void otherUpdateBeliefMaxProduct() {
+        // System.out.println("AllDifferentDC - MaxProduct");
+        int nbVar, nbVal;
+        // update freeVars/Vals according to bound variables
+        nbVar = freeVars.fillArray(varIndices);
+        for (int j = 0; j < nbVar; j++) {
+            int i = varIndices[j];
+            if (x[i].isBound()) {
+                freeVars.remove(i);
+                int val = x[i].min();
+                freeVals.remove(val);
+                // set trivial local belief for bound var...
+                setOtherLocalBelief(i, val, beliefRep.one());
+                // ...and for other vars on that value
+                for (int k = 0; k < j; k++) {
+                    int l = varIndices[k];
+                    if (x[l].contains(val))
+                        setOtherLocalBelief(l, val, beliefRep.zero());
+                }
+                for (int k = j + 1; k < nbVar; k++) {
+                    int l = varIndices[k];
+                    if (x[l].contains(val))
+                        setOtherLocalBelief(l, val, beliefRep.zero());
+                }
+            }
+        }
+        nbVar = freeVars.fillArray(varIndices);
+        nbVal = freeVals.fillArray(vals);
+        // Initialize cost matrix for Hungarian Algorithm and max matching
+        // fill array
+        if (nbVar > 1) {
+            for (int j = 0; j < nbVar; j++) {
+                int i = varIndices[j];
+                for (int k = 0; k < nbVal; k++) {
+                    int val = vals[k];
+                    if (x[i].contains(val)) {
+                        double[][] costs = createCostMatrix(j, k, nbVar, nbVal);
+                        double matchingCost = HungarianAlgorithm.hgAlgorithm(costs, "min");
+                        double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
+                                : beliefRep.log2rep(-matchingCost);
+                        assert !Double.isNaN(newBelief);
+                        setOtherLocalBelief(i, val, newBelief);
+                    }
+                }
+            }
+        }
     }
 
     public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {

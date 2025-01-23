@@ -1,7 +1,9 @@
 package minicpbp.examples.cops;
 
 import minicpbp.cp.Factory;
-import minicpbp.engine.constraints.*;
+import minicpbp.engine.constraints.AllDifferentDC;
+import minicpbp.engine.constraints.MaximizeOracle;
+import minicpbp.engine.constraints.SumDC;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
 import minicpbp.search.Objective;
@@ -108,9 +110,22 @@ public class LatinSquare {
     public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, boolean oracle, int truncateRate) {
         // Create solver and square variables
         cp = makeSolver();
-        if (BPAlgorithm.NO_BP == bp) {
-            cp.setMode(Solver.PropaMode.SP);
+        switch (bp) {
+            case NO_BP:
+                cp.setMode(Solver.PropaMode.SP);
+                break;
+            case SUM_PRODUCT:
+                cp.setMode(Solver.PropaMode.SBP);
+                cp.setBPAlgorithm(Solver.BPAlgorithm.SUM_PRODUCT);
+                break;
+            case MAX_PRODUCT:
+                cp.setMode(Solver.PropaMode.SBP);
+                cp.setBPAlgorithm(Solver.BPAlgorithm.MAX_PRODUCT);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown BP algorithm: " + bp);
         }
+
         x = new IntVar[n][n];
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
@@ -127,18 +142,15 @@ public class LatinSquare {
                 col[j] = x[j][i];
             }
 
-            switch (bp) {
-                case NO_BP:
-                case SUM_PRODUCT:
-                    cp.post(new AllDifferentDC(row));
-                    cp.post(new AllDifferentDC(col));
-                    break;
-                case MAX_PRODUCT:
-                    cp.post(new AllDifferentDCMAP(row));
-                    cp.post(new AllDifferentDCMAP(col));
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown BP algorithm: " + bp);
+            var rowConstraint = new AllDifferentDC(row);
+            var colConstraint = new AllDifferentDC(col);
+
+            cp.post(rowConstraint);
+            cp.post(colConstraint);
+
+            if (i == 0) {
+                System.out.println("Setting compareLocalBeliefs to true");
+                rowConstraint.compareLocalBeliefs = true;
             }
         }
 
@@ -182,15 +194,7 @@ public class LatinSquare {
         int minObj = Math.max(n, truncateRate * maxObj / 100);
         IntVar z = makeIntVar(cp, minObj, maxObj);
         z.setName("score");
-        switch (bp) {
-            case NO_BP:
-            case SUM_PRODUCT:
-                cp.post(new SumDC(objectiveVars, z));
-                break;
-            case MAX_PRODUCT:
-                cp.post(new SumDCMAP(objectiveVars, z));
-                break;
-        }
+        cp.post(new SumDC(objectiveVars, z));
 
         // add preference for larger values
         if (oracle) {

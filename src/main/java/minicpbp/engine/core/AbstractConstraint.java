@@ -37,6 +37,9 @@ public abstract class AbstractConstraint implements Constraint {
     private final StateBool active;
 
     private StateDouble[][] localBelief;
+    private StateDouble[][] otherLocalBelief;
+    public boolean compareLocalBeliefs = false;
+    public double maxBeliefDiff = 0.0;
     private double[][] outsideBelief;
     private StateDouble[][] prevOutsideBelief; // needed for message damping
     private double weight; // an optional nonnegative weight applied to the constraint's local belief
@@ -46,6 +49,7 @@ public abstract class AbstractConstraint implements Constraint {
     private int maxDomainSize;
     protected int[] domainValues; // an array large enough to hold any domain of vars
     protected double[] beliefValues; // an auxiliary array as large as domainValues
+    protected boolean chekCompareBeliefValues = false;
     private boolean exactWCounting = false;
     private boolean updateBeliefWarningPrinted = false;
     private boolean weightedCountingWarningPrinted = false;
@@ -67,6 +71,7 @@ public abstract class AbstractConstraint implements Constraint {
                 break;
         }
         localBelief = new StateDouble[vars.length][];
+        otherLocalBelief = new StateDouble[vars.length][];
         ofs = new int[vars.length];
         outsideBelief = new double[vars.length][];
         prevOutsideBelief = new StateDouble[vars.length][];
@@ -76,10 +81,12 @@ public abstract class AbstractConstraint implements Constraint {
             vars[i].registerConstraint(this);
             ofs[i] = vars[i].min();
             localBelief[i] = new StateDouble[vars[i].max() - vars[i].min() + 1];
+            otherLocalBelief[i] = new StateDouble[vars[i].max() - vars[i].min() + 1];
             outsideBelief[i] = new double[vars[i].max() - vars[i].min() + 1];
             prevOutsideBelief[i] = new StateDouble[outsideBelief[i].length];
             for (int j = 0; j < localBelief[i].length; j++) {
                 localBelief[i][j] = cp.getStateManager().makeStateDouble(beliefRep.one()); // no belief yet; initialized to ONE (certainly true) in order to retrieve the first var-to-constraint msg correctly
+                otherLocalBelief[i][j] = cp.getStateManager().makeStateDouble(beliefRep.one()); // no belief yet; initialized to ONE (certainly true) in order to retrieve the first var-to-constraint msg correctly
                 prevOutsideBelief[i][j] = cp.getStateManager().makeStateDouble(beliefRep.one()); // arbitrary
             }
             maxDomainSize = Math.max(maxDomainSize, vars[i].max() - vars[i].min() + 1);
@@ -171,11 +178,31 @@ public abstract class AbstractConstraint implements Constraint {
         return localBelief[i][val - ofs[i]].value();
     }
 
+    protected double otherLocalBelief(int i, int val) {
+        return otherLocalBelief[i][val - ofs[i]].value();
+    }
+
     protected double setLocalBelief(int i, int val, double b) {
         if (Double.isNaN(b)) {
             assert false;
         }
         return localBelief[i][val - ofs[i]].setValue(b);
+    }
+
+    protected double setOtherLocalBelief(int i, int val, double b) {
+        if (Double.isNaN(b)) {
+            assert false;
+        }
+        return otherLocalBelief[i][val - ofs[i]].setValue(b);
+    }
+
+    protected void compareLocalBeliefs() {
+        for (int i = 0; i < vars.length; i++) {
+            for (int j = 0; j < localBelief[i].length; j++) {
+                maxBeliefDiff = Math.max(maxBeliefDiff, Math.abs(localBelief[i][j].value() - otherLocalBelief[i][j].value()));
+            }
+        }
+        System.out.println("maxBeliefDiff = " + maxBeliefDiff);
     }
 
     protected double outsideBelief(int i, int val) {
@@ -339,6 +366,7 @@ public abstract class AbstractConstraint implements Constraint {
                 for (int i = 0; i < vars.length; i++) {
                     for (int j = 0; j < localBelief[i].length; j++) {
                         localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+                        otherLocalBelief[i][j].setValue(beliefRep.one()); // will be normalized
                     }
                 }
 
@@ -354,6 +382,7 @@ public abstract class AbstractConstraint implements Constraint {
         for (int i = 0; i < vars.length; i++) {
             for (int j = 0; j < localBelief[i].length; j++) {
                 localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+                otherLocalBelief[i][j].setValue(beliefRep.one()); // will be normalized
             }
         }
     }
@@ -367,6 +396,7 @@ public abstract class AbstractConstraint implements Constraint {
         for (int i = 0; i < vars.length; i++) {
             for (int j = 0; j < localBelief[i].length; j++) {
                 localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+                otherLocalBelief[i][j].setValue(beliefRep.one()); // will be normalized
             }
         }
     }
