@@ -120,7 +120,7 @@ public class HungarianAlgorithm {
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public static HungarianResult hgAlgorithmAssignments(double[][] array, String sumType) {
+    public static HungarianResult hgAlgorithmAssignments(double[][] array) {
         // This variable is used to pad a rectangular array (so it will be picked all
         // last [cost] or first [profit])
         // and will not interfere with final assignments. Also, it is used to flip the
@@ -130,18 +130,6 @@ public class HungarianAlgorithm {
         double maxWeightPlusOne = findLargest(array) + 1;
 
         double[][] costs = copyToSquare(array, maxWeightPlusOne); // Create the cost matrix
-
-        if (sumType.equalsIgnoreCase("max")) // Then array is a profit array. Must flip the values because the algorithm
-        // finds lowest.
-        {
-            for (int i = 0; i < costs.length; i++) // Generate profit by subtracting from some value larger than
-            // everything.
-            {
-                for (int j = 0; j < costs[i].length; j++) {
-                    costs[i][j] = (maxWeightPlusOne - costs[i][j]);
-                }
-            }
-        }
 
         int[][] mask = new int[costs.length][costs[0].length]; // The mask array.
         int[] rowCover = new int[costs.length]; // The row covering vector.
@@ -196,8 +184,8 @@ public class HungarianAlgorithm {
 
     // Calls hgAlgorithmAssignments and getAssignmentSum to compute the
     // minimum cost or maximum profit possible.
-    public static double hgAlgorithm(double[][] array, String sumType) {
-        var result = hgAlgorithmAssignments(array, sumType);
+    public static double hgAlgorithm(double[][] array) {
+        var result = hgAlgorithmAssignments(array);
         return getAssignmentSum(array, result.assignments);
     }
 
@@ -521,13 +509,10 @@ public class HungarianAlgorithm {
 
         double[][] test4 = {{0, 19, m, m}, {10, 0, m, m}, {13, 16, m, m}, {14, 17, 10, 19}};
 
-        System.out.println(hgAlgorithm(test1, "min"));
-        System.out.println(hgAlgorithm(test1, "max"));
-        System.out.println(hgAlgorithm(test2, "min"));
-        System.out.println(hgAlgorithm(test2, "max"));
-        System.out.println(hgAlgorithm(test3, "min"));
-        System.out.println(hgAlgorithm(test3, "max"));
-        System.out.println(hgAlgorithm(test4, "min"));
+        System.out.println(hgAlgorithm(test1));
+        System.out.println(hgAlgorithm(test2));
+        System.out.println(hgAlgorithm(test3));
+        System.out.println(hgAlgorithm(test4));
     }
 
 }
