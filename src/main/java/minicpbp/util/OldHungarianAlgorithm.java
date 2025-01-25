@@ -42,10 +42,7 @@
 
 package minicpbp.util;
 
-public class HungarianAlgorithm {
-
-    public record HungarianResult(int[][] assignments, double[][] costs, int[][] mask, double assignmentSum) {
-    }
+public class OldHungarianAlgorithm {
 
     // *******************************************//
     // METHODS THAT PERFORM ARRAY-PROCESSING TASKS//
@@ -120,7 +117,7 @@ public class HungarianAlgorithm {
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public static HungarianResult hgAlgorithmAssignments(double[][] array, String sumType) {
+    public static int[][] hgAlgorithmAssignments(double[][] array, String sumType) {
         // This variable is used to pad a rectangular array (so it will be picked all
         // last [cost] or first [profit])
         // and will not interfere with final assignments. Also, it is used to flip the
@@ -129,47 +126,47 @@ public class HungarianAlgorithm {
         // needs to be performed and overflow may occur.
         double maxWeightPlusOne = findLargest(array) + 1;
 
-        double[][] costs = copyToSquare(array, maxWeightPlusOne); // Create the cost matrix
+        double[][] cost = copyToSquare(array, maxWeightPlusOne); // Create the cost matrix
 
         if (sumType.equalsIgnoreCase("max")) // Then array is a profit array. Must flip the values because the algorithm
         // finds lowest.
         {
-            for (int i = 0; i < costs.length; i++) // Generate profit by subtracting from some value larger than
+            for (int i = 0; i < cost.length; i++) // Generate profit by subtracting from some value larger than
             // everything.
             {
-                for (int j = 0; j < costs[i].length; j++) {
-                    costs[i][j] = (maxWeightPlusOne - costs[i][j]);
+                for (int j = 0; j < cost[i].length; j++) {
+                    cost[i][j] = (maxWeightPlusOne - cost[i][j]);
                 }
             }
         }
 
-        int[][] mask = new int[costs.length][costs[0].length]; // The mask array.
-        int[] rowCover = new int[costs.length]; // The row covering vector.
-        int[] colCover = new int[costs[0].length]; // The column covering vector.
+        int[][] mask = new int[cost.length][cost[0].length]; // The mask array.
+        int[] rowCover = new int[cost.length]; // The row covering vector.
+        int[] colCover = new int[cost[0].length]; // The column covering vector.
         int[] zero_RC = new int[2]; // Position of last zero from Step 4.
-        int[][] path = new int[costs.length * costs[0].length + 2][2];
+        int[][] path = new int[cost.length * cost[0].length + 2][2];
         int step = 1;
         boolean done = false;
         while (done == false) // main execution loop
         {
             switch (step) {
                 case 1:
-                    step = hg_step1(step, costs);
+                    step = hg_step1(step, cost);
                     break;
                 case 2:
-                    step = hg_step2(step, costs, mask, rowCover, colCover);
+                    step = hg_step2(step, cost, mask, rowCover, colCover);
                     break;
                 case 3:
                     step = hg_step3(step, mask, colCover);
                     break;
                 case 4:
-                    step = hg_step4(step, costs, mask, rowCover, colCover, zero_RC);
+                    step = hg_step4(step, cost, mask, rowCover, colCover, zero_RC);
                     break;
                 case 5:
                     step = hg_step5(step, mask, rowCover, colCover, zero_RC, path);
                     break;
                 case 6:
-                    step = hg_step6(step, costs, rowCover, colCover);
+                    step = hg_step6(step, cost, rowCover, colCover);
                     break;
                 case 7:
                     done = true;
@@ -190,15 +187,14 @@ public class HungarianAlgorithm {
                 }
             }
         }
-        double assignmentCost = getAssignmentSum(array, assignments);
-        return new HungarianResult(assignments, costs, mask, assignmentCost);
+
+        return assignments;
     }
 
     // Calls hgAlgorithmAssignments and getAssignmentSum to compute the
     // minimum cost or maximum profit possible.
     public static double hgAlgorithm(double[][] array, String sumType) {
-        var result = hgAlgorithmAssignments(array, sumType);
-        return getAssignmentSum(array, result.assignments);
+        return getAssignmentSum(array, hgAlgorithmAssignments(array, sumType));
     }
 
     public static double getAssignmentSum(double[][] array, int[][] assignments) {

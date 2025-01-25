@@ -23,7 +23,7 @@ import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
-import minicpbp.util.HungarianAlgorithm;
+import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
 import java.util.ArrayList;
@@ -272,7 +272,7 @@ public class AllDifferentDCMAP extends AbstractConstraint {
                     int val = vals[k];
                     if (x[i].contains(val)) {
                         double[][] costs = createCostMatrix(j, k, nbVar, nbVal);
-                        double matchingCost = HungarianAlgorithm.hgAlgorithm(costs, "min");
+                        double matchingCost = OldHungarianAlgorithm.hgAlgorithm(costs, "min");
                         double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                                 : beliefRep.log2rep(-matchingCost);
                         assert !Double.isNaN(newBelief);

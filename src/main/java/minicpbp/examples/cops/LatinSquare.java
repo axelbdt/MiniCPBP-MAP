@@ -147,11 +147,6 @@ public class LatinSquare {
 
             cp.post(rowConstraint);
             cp.post(colConstraint);
-
-            if (i == 0) {
-                System.out.println("Setting compareLocalBeliefs to true");
-                rowConstraint.compareLocalBeliefs = true;
-            }
         }
 
         // create objective and bind it to the variables
