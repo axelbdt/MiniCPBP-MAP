@@ -76,7 +76,7 @@ public class HungarianAlgorithm {
         return copy;
     }
 
-    public static double[][] copyToSquare(double[][] original, double padValue) {
+    public static double[][] copyToSquare(double[][] original) {
         // Creates a copy of an array, made square by padding the right or bottom.
         int rows = original.length;
         int cols = original[0].length; // Assume we're given a rectangular array.
@@ -92,7 +92,7 @@ public class HungarianAlgorithm {
                 for (int j = 0; j < rows; j++) {
                     if (j >= cols) // Use the padValue to fill the right columns.
                     {
-                        result[i][j] = padValue;
+                        result[i][j] = Double.MAX_VALUE;
                     } else {
                         result[i][j] = original[i][j];
                     }
@@ -104,7 +104,7 @@ public class HungarianAlgorithm {
                 for (int j = 0; j < cols; j++) {
                     if (i >= rows) // Use the padValue to fill the bottom rows.
                     {
-                        result[i][j] = padValue;
+                        result[i][j] = Double.MAX_VALUE;
                     } else {
                         result[i][j] = original[i][j];
                     }
@@ -120,16 +120,19 @@ public class HungarianAlgorithm {
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public static HungarianResult hgAlgorithmAssignments(double[][] array) {
+    public static HungarianResult hgAlgorithmAssignments(double[][] array, boolean copy) {
         // This variable is used to pad a rectangular array (so it will be picked all
         // last [cost] or first [profit])
         // and will not interfere with final assignments. Also, it is used to flip the
         // relationship between weight when "max" defines it as a profit matrix instead of a cost matrix.
         // Double.MAX_VALUE is not ideal, since arithmetic
         // needs to be performed and overflow may occur.
-        double maxWeightPlusOne = findLargest(array) + 1;
+        double maxWeightPlusOne = Double.MAX_VALUE;
 
-        double[][] costs = copyToSquare(array, maxWeightPlusOne); // Create the cost matrix
+        double[][] costs = array;
+        if (copy) {
+            costs = copyToSquare(array);
+        }
 
         int[][] mask = new int[costs.length][costs[0].length]; // The mask array.
         int[] rowCover = new int[costs.length]; // The row covering vector.
@@ -185,7 +188,7 @@ public class HungarianAlgorithm {
     // Calls hgAlgorithmAssignments and getAssignmentSum to compute the
     // minimum cost or maximum profit possible.
     public static double hgAlgorithm(double[][] array) {
-        var result = hgAlgorithmAssignments(array);
+        var result = hgAlgorithmAssignments(array, true);
         return getAssignmentSum(array, result.assignments);
     }
 
@@ -197,6 +200,16 @@ public class HungarianAlgorithm {
             sum = sum + array[assignments[i][0]][assignments[i][1]];
         }
         return sum;
+    }
+
+    public static double getAssignmentProduct(double[][] array, int[][] assignments) {
+        // Returns the min/max sum (cost/profit of the assignment) given the
+        // original input matrix and an assignment array (from hgAlgorithmAssignments)
+        double product = 1;
+        for (int i = 0; i < assignments.length; i++) {
+            product = product * array[assignments[i][0]][assignments[i][1]];
+        }
+        return product;
     }
 
     public static int hg_step1(int step, double[][] cost) {
