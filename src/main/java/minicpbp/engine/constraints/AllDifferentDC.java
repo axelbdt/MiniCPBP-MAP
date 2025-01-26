@@ -86,6 +86,9 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] rowMax;
     private double[] rowMaxSecondBest;
 
+    private HungarianAlgorithm hungarian;
+    private boolean[][] beliefComputed;
+
     private double maxBeliefDiff = 0.0;
     private int maxNbVar = 0;
     private int maxNbVal = 0;
@@ -148,6 +151,9 @@ public class AllDifferentDC extends AbstractConstraint {
             setExactWCounting(false); // actually, it will be exact below the threshold, which may happen lower in the search tree
         }
         precompute_gamma(freeVals.size());
+
+        hungarian = new HungarianAlgorithm(freeVals.size());
+        beliefComputed = new boolean[freeVals.size()][freeVals.size()];
     }
 
     @Override
@@ -349,9 +355,14 @@ public class AllDifferentDC extends AbstractConstraint {
         nbVal = freeVals.fillArray(vals);
 
         if (nbVar > 1) {
-            boolean[][] beliefComputed = new boolean[nbVar][nbVal];
+            // reset computed beliefs
+            for (int i = 0; i < nbVar; i++) {
+                for (int j = 0; j < nbVar; j++) {
+                    beliefComputed[i][j] = false;
+                }
+            }
             var allCosts = createFullCostMatrix(nbVar, nbVal);
-            var fullRes = HungarianAlgorithm.hgAlgorithmAssignments(allCosts, false);
+            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, false);
             var reducedCosts = fullRes.costs();
             int[][] fullAssignment = fullRes.assignments();
 
@@ -391,7 +402,7 @@ public class AllDifferentDC extends AbstractConstraint {
                     int val = vals[valIterator];
                     if (x[var].contains(val)) {
                         double[][] costs = createCostMatrixWithReuse(reducedCosts, varIterator, valIterator, nbVar, nbVal);
-                        var hungarianResult = HungarianAlgorithm.hgAlgorithmAssignments(costs, false);
+                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, false);
                         var assignments = hungarianResult.assignments();
                         double product = beliefRep.one();
                         for (int i = 0; i < assignments.length; i++) {
