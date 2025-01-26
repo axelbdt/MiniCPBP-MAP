@@ -32,7 +32,7 @@ public abstract class AbstractConstraint implements Constraint {
     /**
      * The solver in which the constraint is created
      */
-    private final Solver cp;
+    protected final Solver cp;
     private boolean scheduled = false;
     private final StateBool active;
 

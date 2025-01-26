@@ -86,6 +86,10 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] rowMax;
     private double[] rowMaxSecondBest;
 
+    private double maxBeliefDiff = 0.0;
+    private int maxNbVar = 0;
+    private int maxNbVal = 0;
+
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
         setName("AllDifferentDC");
@@ -349,29 +353,28 @@ public class AllDifferentDC extends AbstractConstraint {
             var allCosts = createFullCostMatrix(nbVar, nbVal);
             var fullRes = HungarianAlgorithm.hgAlgorithmAssignments(allCosts, false);
             var reducedCosts = fullRes.costs();
-            int[][] assignments = fullRes.assignments();
+            int[][] fullAssignment = fullRes.assignments();
 
             // compute product of beliefs for assignment with all vars
-            double product = 1;
-            for (int i = 0; i < assignments.length; i++) {
+            double fullProduct = beliefRep.one();
+            for (int i = 0; i < fullAssignment.length; i++) {
                 int var = varIndices[i];
-                int j = assignments[i][1];
+                int j = fullAssignment[i][1];
                 int val = vals[j];
                 if (x[var].contains(val)) {
-                    product = product * beliefRep.rep2std(outsideBelief(var, val));
+                    fullProduct = beliefRep.multiply(fullProduct, outsideBelief(var, val));
                 } else {
-                    product = 0;
+                    fullProduct = beliefRep.zero();
                     break;
                 }
             }
-            double matchingCost = HungarianAlgorithm.getAssignmentSum(allCosts, fullRes.assignments());
             for (int i = 0; i < fullRes.assignments().length; i++) {
                 int var = varIndices[i];
                 int j = fullRes.assignments()[i][1];
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     beliefComputed[i][j] = true;
-                    double newBelief = product / outsideBelief(var, val);
+                    double newBelief = beliefRep.divide(fullProduct, outsideBelief(var, val));
                     setLocalBelief(var, val, newBelief);
 
                     compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
@@ -380,23 +383,33 @@ public class AllDifferentDC extends AbstractConstraint {
 
             // Initialize cost matrix for Hungarian Algorithm and max matching
             // fill array
-            for (int i = 0; i < nbVar; i++) {
-                int var = varIndices[i];
-                for (int j = 0; j < nbVal; j++) {
-                    if (beliefComputed[i][j])
+            for (int varIterator = 0; varIterator < nbVar; varIterator++) {
+                int var = varIndices[varIterator];
+                for (int valIterator = 0; valIterator < nbVal; valIterator++) {
+                    if (beliefComputed[varIterator][valIterator])
                         continue;
-                    int val = vals[j];
+                    int val = vals[valIterator];
                     if (x[var].contains(val)) {
-                        double[][] costs = createCostMatrixWithReuse(reducedCosts, i, j, nbVar, nbVal);
-                        HungarianAlgorithm.HungarianResult hungarianResult = HungarianAlgorithm.hgAlgorithmAssignments(costs, true);
-                        matchingCost = HungarianAlgorithm.getAssignmentSum(costs, hungarianResult.assignments());
-                        double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
-                                : beliefRep.log2rep(-matchingCost);
+                        double[][] costs = createCostMatrixWithReuse(reducedCosts, varIterator, valIterator, nbVar, nbVal);
+                        var hungarianResult = HungarianAlgorithm.hgAlgorithmAssignments(costs, false);
+                        var assignments = hungarianResult.assignments();
+                        double product = beliefRep.one();
+                        for (int i = 0; i < assignments.length; i++) {
+                            int assVar = varIndices[i >= varIterator ? i + 1 : i];
+                            int j = assignments[i][1];
+                            int assVal = vals[j >= valIterator ? j + 1 : j];
+                            if (x[assVar].contains(assVal)) {
+                                product = beliefRep.multiply(product, outsideBelief(assVar, assVal));
+                            } else {
+                                product = beliefRep.zero();
+                                break;
+                            }
+                        }
+                        double newBelief = product;
                         assert !Double.isNaN(newBelief);
                         setLocalBelief(var, val, newBelief);
 
-                        // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
-
+                        compareHungarianAlgorithms(varIterator, valIterator, nbVar, nbVal, newBelief);
                     }
                 }
             }
@@ -410,8 +423,9 @@ public class AllDifferentDC extends AbstractConstraint {
         double oldNewBelief = oldMatchingCost == Double.MAX_VALUE ? beliefRep.zero()
                 : beliefRep.log2rep(-oldMatchingCost);
         double beliefDiff = Math.abs(newBelief - oldNewBelief);
+        cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
         // TODO: print max belief diff instead
-        System.out.println("beliefDiff: " + beliefDiff);
+        // System.out.println("nbVar: " + nbVar + " nbVal: " + nbVal + " beliefDiff: " + beliefDiff);
         return beliefDiff;
     }
 
@@ -448,9 +462,7 @@ public class AllDifferentDC extends AbstractConstraint {
                         int kk = k > val ? k - 1 : k; // adjust index relative to val
                         int v = vals[k];
                         if (x[i].contains(v)) {
-                            double b = reducedCosts[j][k];
-
-                            costs[jj][kk] = !beliefRep.isZero(b) ? -beliefRep.rep2log(b) : Double.MAX_VALUE;
+                            costs[jj][kk] = reducedCosts[j][k];
                         } else {
                             costs[jj][kk] = Double.MAX_VALUE;
                         }

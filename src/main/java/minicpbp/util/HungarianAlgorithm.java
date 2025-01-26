@@ -51,20 +51,6 @@ public class HungarianAlgorithm {
     // METHODS THAT PERFORM ARRAY-PROCESSING TASKS//
     // *******************************************//
 
-    public static double findLargest // Finds the largest element in a 2D array.
-    (double[][] array) {
-        double largest = Double.NEGATIVE_INFINITY;
-        for (int i = 0; i < array.length; i++) {
-            for (int j = 0; j < array[i].length; j++) {
-                if (array[i][j] > largest) {
-                    largest = array[i][j];
-                }
-            }
-        }
-
-        return largest;
-    }
-
     public static double[][] copyOf // Copies all elements of an array to a new array.
     (double[][] original) {
         double[][] copy = new double[original.length][original[0].length];

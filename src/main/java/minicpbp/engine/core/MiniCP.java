@@ -102,6 +102,23 @@ public class MiniCP implements Solver {
     private long trigger = 0;
     private long potentialTrigger = 0;
 
+    // max belief diff
+    private double maxBeliefDiff = 0.0;
+    private int maxNbVar = 0;
+    private int maxNbVal = 0;
+
+    public void setMaxBeliefDiff(double beliefDiff, int nbVar, int nbVal) {
+        if (beliefDiff > this.maxBeliefDiff) {
+            this.maxBeliefDiff = beliefDiff;
+            this.maxNbVar = nbVar;
+            this.maxNbVal = nbVal;
+        }
+    }
+
+    public void printMaxBeliefDiff() {
+        System.out.println("max belief diff: " + maxBeliefDiff + " nbVar: " + maxNbVar + " nbVal: " + maxNbVal);
+    }
+
     public MiniCP(StateManager sm) {
         this.sm = sm;
         variables = new StateStack<>(sm);
@@ -437,6 +454,7 @@ public class MiniCP implements Solver {
                 propagationQueue.remove().setScheduled(false);
             throw e;
         }
+        printMaxBeliefDiff();
     }
 
     /**
