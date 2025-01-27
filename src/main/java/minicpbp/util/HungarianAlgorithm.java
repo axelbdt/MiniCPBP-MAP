@@ -57,6 +57,7 @@ public class HungarianAlgorithm {
     boolean[] colCover;
     int[] zero_RC;
     int[][] path;
+    int[] row_col;
     int dim;
 
     public HungarianAlgorithm(int n) {
@@ -68,6 +69,7 @@ public class HungarianAlgorithm {
         colCover = new boolean[n]; // The column covering vector.
         zero_RC = new int[2]; // Position of last zero from Step 4.
         path = new int[n * n + 2][2];
+        row_col = new int[2];
     }
 
     public void resetMask() {
@@ -84,22 +86,6 @@ public class HungarianAlgorithm {
 
     public record HungarianResult(int[][] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
     }
-
-    // *******************************************//
-    // METHODS THAT PERFORM ARRAY-PROCESSING TASKS//
-    // *******************************************//
-
-    public double[][] copyOf // Copies all elements of an array to a new array.
-    (double[][] original) {
-        double[][] copy = new double[original.length][original[0].length];
-        for (int i = 0; i < original.length; i++) {
-            // Need to do it this way, otherwise it copies only memory location
-            System.arraycopy(original[i], 0, copy[i], 0, original[i].length);
-        }
-
-        return copy;
-    }
-
 
     // **********************************//
     // METHODS OF THE HUNGARIAN ALGORITHM//
@@ -272,10 +258,9 @@ public class HungarianAlgorithm {
         // and go to step 6. If not, save location of primed zero and go to step 5.
         int step = -1;
 
-        int[] row_col = new int[2]; // Holds row and col of uncovered zero.
         boolean done = false;
         while (done == false) {
-            row_col = findUncoveredZero(row_col, costs, rowCover, colCover);
+            findUncoveredZero(costs, rowCover, colCover);
             if (row_col[0] == -1) {
                 done = true;
                 step = 6;
@@ -307,7 +292,7 @@ public class HungarianAlgorithm {
     }
 
     public int[] findUncoveredZero // Aux 1 for hg_step4.
-    (int[] row_col, double[][] cost, boolean[] rowCover, boolean[] colCover) {
+    (double[][] cost, boolean[] rowCover, boolean[] colCover) {
         row_col[0] = -1; // Just a check value. Not a real index.
         row_col[1] = 0;
 
@@ -343,8 +328,6 @@ public class HungarianAlgorithm {
         // series. Erasy any other primes. Reset covers. Go to step 3.
 
         int count = 0; // Counts rows of the path matrix.
-        // int[][] path = new int[(mask[0].length + 2)][2]; //Path matrix (stores row
-        // and col).
         path[count][0] = zero_RC[0]; // Row of last prime.
         path[count][1] = zero_RC[1]; // Column of last prime.
 
