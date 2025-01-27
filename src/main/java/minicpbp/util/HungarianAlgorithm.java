@@ -76,6 +76,12 @@ public class HungarianAlgorithm {
         }
     }
 
+    public void resetPath() {
+        for (var row : path) {
+            Arrays.fill(row, 0);
+        }
+    }
+
     public record HungarianResult(int[][] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
     }
 
@@ -133,16 +139,6 @@ public class HungarianAlgorithm {
         return result;
     }
 
-    public void resetToZeroes(int[][] array) {
-        for (var row : array) {
-            Arrays.fill(row, 0);
-        }
-    }
-
-    public void resetToZeroes(int[] array) {
-        Arrays.fill(array, 0);
-    }
-
     // **********************************//
     // METHODS OF THE HUNGARIAN ALGORITHM//
     // **********************************//
@@ -167,8 +163,10 @@ public class HungarianAlgorithm {
         resetMask();
         Arrays.fill(rowCover, false);
         Arrays.fill(colCover, false);
-        zero_RC = new int[2]; // Position of last zero from Step 4.
-        path = new int[dim * dim + 2][2];
+        zero_RC[0] = 0;
+        zero_RC[1] = 0;
+        resetPath();
+
         int step = 1;
         boolean done = false;
         while (done == false) // main execution loop
