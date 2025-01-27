@@ -87,6 +87,7 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] rowMaxSecondBest;
 
     private HungarianAlgorithm hungarian;
+    private double[][] reducedCosts;
     private boolean[][] beliefComputed;
 
     private double maxBeliefDiff = 0.0;
@@ -154,6 +155,7 @@ public class AllDifferentDC extends AbstractConstraint {
 
         hungarian = new HungarianAlgorithm(freeVals.size());
         beliefComputed = new boolean[freeVals.size()][freeVals.size()];
+        reducedCosts = new double[freeVals.size()][freeVals.size()];
     }
 
     @Override
@@ -360,7 +362,7 @@ public class AllDifferentDC extends AbstractConstraint {
                 Arrays.fill(row, false);
             }
             var allCosts = createFullCostMatrix(nbVar, nbVal);
-            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, nbVal, false);
+            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, nbVal);
             var reducedCosts = fullRes.costs();
             int[][] fullAssignment = fullRes.assignments();
 
@@ -400,7 +402,7 @@ public class AllDifferentDC extends AbstractConstraint {
                     int val = vals[valIterator];
                     if (x[var].contains(val)) {
                         double[][] costs = createCostMatrixWithReuse(reducedCosts, varIterator, valIterator, nbVar, nbVal);
-                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, nbVal - 1, false);
+                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, nbVal - 1);
                         var assignments = hungarianResult.assignments();
                         double product = beliefRep.one();
                         for (int i = 0; i < assignments.length; i++) {
@@ -439,7 +441,7 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     public double[][] createFullCostMatrix(int nbVar, int nbVal) {
-        double[][] costs = new double[nbVal][nbVal];
+        double[][] costs = beliefs;
         for (int i = 0; i < nbVal; i++) {
             int var = varIndices[i];
             for (int j = 0; j < nbVal; j++) {
@@ -460,7 +462,7 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     public double[][] createCostMatrixWithReuse(double[][] reducedCosts, int var, int val, int nbVar, int nbVal) {
-        double[][] costs = new double[nbVar - 1][nbVal - 1];
+        double[][] costs = this.reducedCosts;
         for (int j = 0; j < nbVar; j++) {
             if (j != var) {
                 int jj = j > var ? j - 1 : j; // adjust index relative to var

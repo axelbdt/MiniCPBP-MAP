@@ -100,51 +100,13 @@ public class HungarianAlgorithm {
         return copy;
     }
 
-    public double[][] copyToSquare(double[][] original) {
-        // Creates a copy of an array, made square by padding the right or bottom.
-        int rows = original.length;
-        int cols = original[0].length; // Assume we're given a rectangular array.
-        double[][] result = null;
-
-        if (rows == cols) // The matrix is already square.
-        {
-            result = copyOf(original);
-        } else if (rows > cols) // Pad on some extra columns on the right.
-        {
-            result = new double[rows][rows];
-            for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < rows; j++) {
-                    if (j >= cols) // Use the padValue to fill the right columns.
-                    {
-                        result[i][j] = Double.MAX_VALUE;
-                    } else {
-                        result[i][j] = original[i][j];
-                    }
-                }
-            }
-        } else { // rows < cols; Pad on some extra rows at the bottom.
-            result = new double[cols][cols];
-            for (int i = 0; i < cols; i++) {
-                for (int j = 0; j < cols; j++) {
-                    if (i >= rows) // Use the padValue to fill the bottom rows.
-                    {
-                        result[i][j] = Double.MAX_VALUE;
-                    } else {
-                        result[i][j] = original[i][j];
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
 
     // **********************************//
     // METHODS OF THE HUNGARIAN ALGORITHM//
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public HungarianResult hgAlgorithmAssignments(double[][] array, int dim, boolean copy) {
+    public HungarianResult hgAlgorithmAssignments(double[][] array, int dim) {
         // This variable is used to pad a rectangular array (so it will be picked all
         // last [cost] or first [profit])
         // and will not interfere with final assignments. Also, it is used to flip the
@@ -156,10 +118,6 @@ public class HungarianAlgorithm {
         this.dim = dim;
 
         costs = array;
-        if (copy) {
-            costs = copyToSquare(array);
-        }
-
         resetMask();
         Arrays.fill(rowCover, false);
         Arrays.fill(colCover, false);
@@ -217,7 +175,7 @@ public class HungarianAlgorithm {
         // Returns the min/max sum (cost/profit of the assignment) given the
         // original input matrix and an assignment array (from hgAlgorithmAssignments)
         double sum = 0;
-        for (int i = 0; i < assignments.length; i++) {
+        for (int i = 0; i < dim; i++) {
             sum = sum + array[assignments[i][0]][assignments[i][1]];
         }
         return sum;
@@ -227,7 +185,7 @@ public class HungarianAlgorithm {
         // Returns the min/max sum (cost/profit of the assignment) given the
         // original input matrix and an assignment array (from hgAlgorithmAssignments)
         double product = 1;
-        for (int i = 0; i < assignments.length; i++) {
+        for (int i = 0; i < dim; i++) {
             product = product * array[assignments[i][0]][assignments[i][1]];
         }
         return product;
