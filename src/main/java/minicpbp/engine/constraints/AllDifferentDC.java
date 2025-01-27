@@ -368,7 +368,7 @@ public class AllDifferentDC extends AbstractConstraint {
 
             // compute product of beliefs for assignment with all vars
             double fullProduct = beliefRep.one();
-            for (int i = 0; i < fullAssignment.length; i++) {
+            for (int i = 0; i < nbVar; i++) {
                 int var = varIndices[i];
                 int j = fullAssignment[i];
                 int val = vals[j];
@@ -405,7 +405,7 @@ public class AllDifferentDC extends AbstractConstraint {
                         var hungarianResult = hungarian.hgAlgorithmAssignments(costs, nbVal - 1);
                         var assignments = hungarianResult.assignments();
                         double product = beliefRep.one();
-                        for (int i = 0; i < assignments.length; i++) {
+                        for (int i = 0; i < nbVar - 1; i++) {
                             int assVar = varIndices[i >= varIterator ? i + 1 : i];
                             int j = assignments[i];
                             int assVal = vals[j >= valIterator ? j + 1 : j];

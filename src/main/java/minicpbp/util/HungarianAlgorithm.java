@@ -57,6 +57,7 @@ public class HungarianAlgorithm {
     int[] zero_RC;
     int[][] path;
     int[] row_col;
+    int[] assignments;
     int dim;
 
     public HungarianAlgorithm(int n) {
@@ -68,7 +69,8 @@ public class HungarianAlgorithm {
         colCover = new boolean[n]; // The column covering vector.
         zero_RC = new int[2]; // Position of last zero from Step 4.
         path = new int[n * n + 2][2];
-        row_col = new int[2];
+        row_col = new int[2]; // TODO: not require an array (idea: inline function?)
+        assignments = new int[n];
     }
 
     public void resetMask() {
@@ -139,8 +141,8 @@ public class HungarianAlgorithm {
             }
         } // end while
 
-        int[] assignments = new int[dim]; // Create the returned array.
-        int assignmentCount = 0; // In a input matrix taller than it is wide, the first
+        // int[] assignments = new int[dim]; // Create the returned array.
+        Arrays.fill(assignments, -1);
         // assignments column will have to skip some numbers, so
         // the index will not always match the first column ([0])
         for (int i = 0; i < dim; i++) {
