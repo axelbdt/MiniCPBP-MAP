@@ -145,7 +145,7 @@ public class HungarianAlgorithm {
         // the index will not always match the first column ([0])
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
-                if (i < dim && j < dim && mask[i][j] == Mask.STAR) {
+                if (mask[i][j] == Mask.STAR) {
                     assignments[assignmentCount][0] = i;
                     assignments[assignmentCount][1] = j;
                     assignmentCount++;
@@ -214,7 +214,7 @@ public class HungarianAlgorithm {
             }
         }
 
-        clearCovers(rowCover, colCover); // Reset cover vectors.
+        clearCovers(); // Reset cover vectors.
 
         return 3; // next step is 3
     }
@@ -259,7 +259,7 @@ public class HungarianAlgorithm {
 
         boolean done = false;
         while (done == false) {
-            findUncoveredZero(costs, rowCover, colCover);
+            findUncoveredZero();
             if (row_col[0] == -1) {
                 done = true;
                 step = 6;
@@ -290,8 +290,7 @@ public class HungarianAlgorithm {
         return step;
     }
 
-    public int[] findUncoveredZero // Aux 1 for hg_step4.
-    (double[][] cost, boolean[] rowCover, boolean[] colCover) {
+    public int[] findUncoveredZero() { // Aux 1 for hg_step4.
         row_col[0] = -1; // Just a check value. Not a real index.
         row_col[1] = 0;
 
@@ -300,7 +299,7 @@ public class HungarianAlgorithm {
         while (done == false) {
             int j = 0;
             while (j < dim) {
-                if (cost[i][j] == 0 && !rowCover[i] && !colCover[j]) {
+                if (costs[i][j] == 0 && !rowCover[i] && !colCover[j]) {
                     row_col[0] = i;
                     row_col[1] = j;
                     done = true;
@@ -350,7 +349,7 @@ public class HungarianAlgorithm {
         } // end while
 
         convertPath(mask, path, count);
-        clearCovers(rowCover, colCover);
+        clearCovers();
         erasePrimes(mask);
 
         return 3; // next step is 3
@@ -403,14 +402,9 @@ public class HungarianAlgorithm {
         }
     }
 
-    public void clearCovers // Aux 5 for hg_step5 (and not only).
-    (boolean[] rowCover, boolean[] colCover) {
-        for (int i = 0; i < dim; i++) {
-            rowCover[i] = false;
-        }
-        for (int j = 0; j < dim; j++) {
-            colCover[j] = false;
-        }
+    public void clearCovers() { // Aux 5 for hg_step5 (and not only).
+        Arrays.fill(rowCover, false);
+        Arrays.fill(colCover, false);
     }
 
     public int hg_step6() {
@@ -420,7 +414,7 @@ public class HungarianAlgorithm {
         // b. Subtract it from every element of uncovered columns. Go to step 4.
         int step;
 
-        double minval = findSmallest(costs, rowCover, colCover);
+        double minval = findSmallest();
 
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
@@ -436,14 +430,13 @@ public class HungarianAlgorithm {
         return 4; // next step is 4
     }
 
-    public double findSmallest // Aux 1 for hg_step6.
-    (double[][] cost, boolean[] rowCover, boolean[] colCover) {
+    public double findSmallest() { // Aux 1 for hg_step6.
         double minval = Double.POSITIVE_INFINITY; // There cannot be a larger cost than this.
         for (int i = 0; i < dim; i++) // Now find the smallest uncovered value.
         {
             for (int j = 0; j < dim; j++) {
-                if (!rowCover[i] && !colCover[j] && (minval > cost[i][j])) {
-                    minval = cost[i][j];
+                if (!rowCover[i] && !colCover[j] && (minval > costs[i][j])) {
+                    minval = costs[i][j];
                 }
             }
         }
