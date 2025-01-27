@@ -165,8 +165,8 @@ public class HungarianAlgorithm {
         }
 
         resetMask();
-        rowCover = new boolean[dim]; // The row covering vector.
-        colCover = new boolean[dim]; // The column covering vector.
+        Arrays.fill(rowCover, false);
+        Arrays.fill(colCover, false);
         zero_RC = new int[2]; // Position of last zero from Step 4.
         path = new int[dim * dim + 2][2];
         int step = 1;
@@ -484,8 +484,8 @@ public class HungarianAlgorithm {
 
         double minval = findSmallest(costs, rowCover, colCover);
 
-        for (int i = 0; i < rowCover.length; i++) {
-            for (int j = 0; j < colCover.length; j++) {
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
                 if (rowCover[i]) {
                     costs[i][j] = costs[i][j] + minval;
                 }
