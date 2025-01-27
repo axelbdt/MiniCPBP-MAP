@@ -83,7 +83,7 @@ public class HungarianAlgorithm {
         }
     }
 
-    public record HungarianResult(int[][] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
+    public record HungarianResult(int[] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
     }
 
     // **********************************//
@@ -139,16 +139,15 @@ public class HungarianAlgorithm {
             }
         } // end while
 
-        int[][] assignments = new int[dim][2]; // Create the returned array.
+        int[] assignments = new int[dim]; // Create the returned array.
         int assignmentCount = 0; // In a input matrix taller than it is wide, the first
         // assignments column will have to skip some numbers, so
         // the index will not always match the first column ([0])
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
                 if (mask[i][j] == Mask.STAR) {
-                    assignments[assignmentCount][0] = i;
-                    assignments[assignmentCount][1] = j;
-                    assignmentCount++;
+                    assignments[i] = j;
+                    break;
                 }
             }
         }
@@ -156,24 +155,14 @@ public class HungarianAlgorithm {
         return new HungarianResult(assignments, costs, mask, assignmentCost);
     }
 
-    public double getAssignmentSum(double[][] array, int[][] assignments) {
+    public double getAssignmentSum(double[][] array, int[] assignments) {
         // Returns the min/max sum (cost/profit of the assignment) given the
         // original input matrix and an assignment array (from hgAlgorithmAssignments)
         double sum = 0;
         for (int i = 0; i < dim; i++) {
-            sum = sum + array[assignments[i][0]][assignments[i][1]];
+            sum = sum + array[i][assignments[i]];
         }
         return sum;
-    }
-
-    public double getAssignmentProduct(double[][] array, int[][] assignments) {
-        // Returns the min/max sum (cost/profit of the assignment) given the
-        // original input matrix and an assignment array (from hgAlgorithmAssignments)
-        double product = 1;
-        for (int i = 0; i < dim; i++) {
-            product = product * array[assignments[i][0]][assignments[i][1]];
-        }
-        return product;
     }
 
     public int hg_step1() {

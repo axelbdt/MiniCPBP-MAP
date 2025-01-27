@@ -364,13 +364,13 @@ public class AllDifferentDC extends AbstractConstraint {
             var allCosts = createFullCostMatrix(nbVar, nbVal);
             var fullRes = hungarian.hgAlgorithmAssignments(allCosts, nbVal);
             var reducedCosts = fullRes.costs();
-            int[][] fullAssignment = fullRes.assignments();
+            int[] fullAssignment = fullRes.assignments();
 
             // compute product of beliefs for assignment with all vars
             double fullProduct = beliefRep.one();
             for (int i = 0; i < fullAssignment.length; i++) {
                 int var = varIndices[i];
-                int j = fullAssignment[i][1];
+                int j = fullAssignment[i];
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     fullProduct = beliefRep.multiply(fullProduct, outsideBelief(var, val));
@@ -379,9 +379,9 @@ public class AllDifferentDC extends AbstractConstraint {
                     break;
                 }
             }
-            for (int i = 0; i < fullRes.assignments().length; i++) {
+            for (int i = 0; i < nbVar; i++) {
                 int var = varIndices[i];
-                int j = fullRes.assignments()[i][1];
+                int j = fullRes.assignments()[i];
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     beliefComputed[i][j] = true;
@@ -407,7 +407,7 @@ public class AllDifferentDC extends AbstractConstraint {
                         double product = beliefRep.one();
                         for (int i = 0; i < assignments.length; i++) {
                             int assVar = varIndices[i >= varIterator ? i + 1 : i];
-                            int j = assignments[i][1];
+                            int j = assignments[i];
                             int assVal = vals[j >= valIterator ? j + 1 : j];
                             if (x[assVar].contains(assVal)) {
                                 product = beliefRep.multiply(product, outsideBelief(assVar, assVal));
