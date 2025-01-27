@@ -356,13 +356,11 @@ public class AllDifferentDC extends AbstractConstraint {
 
         if (nbVar > 1) {
             // reset computed beliefs
-            for (int i = 0; i < nbVar; i++) {
-                for (int j = 0; j < nbVar; j++) {
-                    beliefComputed[i][j] = false;
-                }
+            for (var row : beliefComputed) {
+                Arrays.fill(row, false);
             }
             var allCosts = createFullCostMatrix(nbVar, nbVal);
-            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, false);
+            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, nbVal, false);
             var reducedCosts = fullRes.costs();
             int[][] fullAssignment = fullRes.assignments();
 
@@ -402,7 +400,7 @@ public class AllDifferentDC extends AbstractConstraint {
                     int val = vals[valIterator];
                     if (x[var].contains(val)) {
                         double[][] costs = createCostMatrixWithReuse(reducedCosts, varIterator, valIterator, nbVar, nbVal);
-                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, false);
+                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, nbVal - 1, false);
                         var assignments = hungarianResult.assignments();
                         double product = beliefRep.one();
                         for (int i = 0; i < assignments.length; i++) {
@@ -441,11 +439,10 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     public double[][] createFullCostMatrix(int nbVar, int nbVal) {
-        int n = Math.max(nbVar, nbVal);
-        double[][] costs = new double[n][n];
-        for (int i = 0; i < n; i++) {
+        double[][] costs = new double[nbVal][nbVal];
+        for (int i = 0; i < nbVal; i++) {
             int var = varIndices[i];
-            for (int j = 0; j < n; j++) {
+            for (int j = 0; j < nbVal; j++) {
                 if (i < nbVar && j < nbVal) {
                     int val = vals[j];
                     if (x[var].contains(val)) {

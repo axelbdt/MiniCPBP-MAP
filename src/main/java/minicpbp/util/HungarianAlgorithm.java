@@ -42,15 +42,41 @@
 
 package minicpbp.util;
 
+import java.util.Arrays;
+
 public class HungarianAlgorithm {
 
+    public enum Mask {
+        NONE, STAR, PRIME
+    }
+
     int n;
+    double[][] costs;
+    Mask[][] mask;
+    boolean[] rowCover;
+    boolean[] colCover;
+    int[] zero_RC;
+    int[][] path;
+    int dim;
 
     public HungarianAlgorithm(int n) {
         this.n = n;
+        dim = n;
+        costs = new double[n][n];
+        mask = new Mask[n][n]; // The mask array.
+        rowCover = new boolean[n]; // The row covering vector.
+        colCover = new boolean[n]; // The column covering vector.
+        zero_RC = new int[2]; // Position of last zero from Step 4.
+        path = new int[n * n + 2][2];
     }
 
-    public record HungarianResult(int[][] assignments, double[][] costs, int[][] mask, double assignmentSum) {
+    public void resetMask() {
+        for (var row : mask) {
+            Arrays.fill(row, Mask.NONE);
+        }
+    }
+
+    public record HungarianResult(int[][] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
     }
 
     // *******************************************//
@@ -107,12 +133,22 @@ public class HungarianAlgorithm {
         return result;
     }
 
+    public void resetToZeroes(int[][] array) {
+        for (var row : array) {
+            Arrays.fill(row, 0);
+        }
+    }
+
+    public void resetToZeroes(int[] array) {
+        Arrays.fill(array, 0);
+    }
+
     // **********************************//
     // METHODS OF THE HUNGARIAN ALGORITHM//
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public HungarianResult hgAlgorithmAssignments(double[][] array, boolean copy) {
+    public HungarianResult hgAlgorithmAssignments(double[][] array, int dim, boolean copy) {
         // This variable is used to pad a rectangular array (so it will be picked all
         // last [cost] or first [profit])
         // and will not interfere with final assignments. Also, it is used to flip the
@@ -121,38 +157,40 @@ public class HungarianAlgorithm {
         // needs to be performed and overflow may occur.
         double maxWeightPlusOne = Double.MAX_VALUE;
 
-        double[][] costs = array;
+        this.dim = dim;
+
+        costs = array;
         if (copy) {
             costs = copyToSquare(array);
         }
 
-        int[][] mask = new int[costs.length][costs[0].length]; // The mask array.
-        int[] rowCover = new int[costs.length]; // The row covering vector.
-        int[] colCover = new int[costs[0].length]; // The column covering vector.
-        int[] zero_RC = new int[2]; // Position of last zero from Step 4.
-        int[][] path = new int[costs.length * costs[0].length + 2][2];
+        resetMask();
+        rowCover = new boolean[dim]; // The row covering vector.
+        colCover = new boolean[dim]; // The column covering vector.
+        zero_RC = new int[2]; // Position of last zero from Step 4.
+        path = new int[dim * dim + 2][2];
         int step = 1;
         boolean done = false;
         while (done == false) // main execution loop
         {
             switch (step) {
                 case 1:
-                    step = hg_step1(step, costs);
+                    step = hg_step1();
                     break;
                 case 2:
-                    step = hg_step2(step, costs, mask, rowCover, colCover);
+                    step = hg_step2();
                     break;
                 case 3:
-                    step = hg_step3(step, mask, colCover);
+                    step = hg_step3();
                     break;
                 case 4:
-                    step = hg_step4(step, costs, mask, rowCover, colCover, zero_RC);
+                    step = hg_step4();
                     break;
                 case 5:
-                    step = hg_step5(step, mask, rowCover, colCover, zero_RC, path);
+                    step = hg_step5();
                     break;
                 case 6:
-                    step = hg_step6(step, costs, rowCover, colCover);
+                    step = hg_step6();
                     break;
                 case 7:
                     done = true;
@@ -160,13 +198,13 @@ public class HungarianAlgorithm {
             }
         } // end while
 
-        int[][] assignments = new int[array.length][2]; // Create the returned array.
+        int[][] assignments = new int[dim][2]; // Create the returned array.
         int assignmentCount = 0; // In a input matrix taller than it is wide, the first
         // assignments column will have to skip some numbers, so
         // the index will not always match the first column ([0])
-        for (int i = 0; i < mask.length; i++) {
-            for (int j = 0; j < mask[i].length; j++) {
-                if (i < array.length && j < array[0].length && mask[i][j] == 1) {
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
+                if (i < dim && j < dim && mask[i][j] == Mask.STAR) {
                     assignments[assignmentCount][0] = i;
                     assignments[assignmentCount][1] = j;
                     assignmentCount++;
@@ -175,13 +213,6 @@ public class HungarianAlgorithm {
         }
         double assignmentCost = getAssignmentSum(array, assignments);
         return new HungarianResult(assignments, costs, mask, assignmentCost);
-    }
-
-    // Calls hgAlgorithmAssignments and getAssignmentSum to compute the
-    // minimum cost or maximum profit possible.
-    public double hgAlgorithm(double[][] array) {
-        var result = hgAlgorithmAssignments(array, true);
-        return getAssignmentSum(array, result.assignments);
     }
 
     public double getAssignmentSum(double[][] array, int[][] assignments) {
@@ -204,60 +235,59 @@ public class HungarianAlgorithm {
         return product;
     }
 
-    public int hg_step1(int step, double[][] cost) {
+    public int hg_step1() {
         // What STEP 1 does:
         // For each row of the cost matrix, find the smallest element
         // and subtract it from from every other element in its row.
 
         double minval;
 
-        for (int i = 0; i < cost.length; i++) {
-            minval = cost[i][0];
-            for (int j = 0; j < cost[i].length; j++) // 1st inner loop finds min val in row.
+        for (int i = 0; i < dim; i++) {
+            minval = costs[i][0];
+            for (int j = 0; j < dim; j++) // 1st inner loop finds min val in row.
             {
-                if (minval > cost[i][j]) {
-                    minval = cost[i][j];
+                if (minval > costs[i][j]) {
+                    minval = costs[i][j];
                 }
             }
-            for (int j = 0; j < cost[i].length; j++) // 2nd inner loop subtracts it.
+            for (int j = 0; j < dim; j++) // 2nd inner loop subtracts it.
             {
-                cost[i][j] = cost[i][j] - minval;
+                costs[i][j] = costs[i][j] - minval;
             }
         }
 
-        step = 2;
-        return step;
+        return 2; // next step is 2
     }
 
-    public int hg_step2(int step, double[][] cost, int[][] mask, int[] rowCover, int[] colCover) {
+    public int hg_step2() {
         // What STEP 2 does:
         // Marks uncovered zeros as starred and covers their row and column.
 
-        for (int i = 0; i < cost.length; i++) {
-            for (int j = 0; j < cost[i].length; j++) {
-                if ((cost[i][j] == 0) && (colCover[j] == 0) && (rowCover[i] == 0)) {
-                    mask[i][j] = 1;
-                    colCover[j] = 1;
-                    rowCover[i] = 1;
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
+                if ((costs[i][j] == 0) && (!colCover[j]) && (!rowCover[i])) {
+                    mask[i][j] = Mask.STAR;
+                    colCover[j] = true;
+                    rowCover[i] = true;
                 }
             }
         }
 
         clearCovers(rowCover, colCover); // Reset cover vectors.
 
-        step = 3;
-        return step;
+        return 3; // next step is 3
     }
 
-    public int hg_step3(int step, int[][] mask, int[] colCover) {
+    public int hg_step3() {
         // What STEP 3 does:
         // Cover columns of starred zeros. Check if all columns are covered.
+        int step = -1;
 
-        for (int i = 0; i < mask.length; i++) // Cover columns of starred zeros.
+        for (int i = 0; i < dim; i++) // Cover columns of starred zeros.
         {
-            for (int j = 0; j < mask[i].length; j++) {
-                if (mask[i][j] == 1) {
-                    colCover[j] = 1;
+            for (int j = 0; j < dim; j++) {
+                if (mask[i][j] == Mask.STAR) {
+                    colCover[j] = true;
                 }
             }
         }
@@ -265,11 +295,10 @@ public class HungarianAlgorithm {
         int count = 0;
         for (int j = 0; j < colCover.length; j++) // Check if all columns are covered.
         {
-            count = count + colCover[j];
+            count += colCover[j] ? 1 : 0;
         }
 
-        if (count >= mask.length) // Should be cost.length but ok, because mask has same dimensions.
-        {
+        if (count >= dim) {
             step = 7;
         } else {
             step = 4;
@@ -278,27 +307,28 @@ public class HungarianAlgorithm {
         return step;
     }
 
-    public int hg_step4(int step, double[][] cost, int[][] mask, int[] rowCover, int[] colCover, int[] zero_RC) {
+    public int hg_step4() {
         // What STEP 4 does:
         // Find an uncovered zero in cost and prime it (if none go to step 6). Check for
         // star in same row:
         // if yes, cover the row and uncover the star's column. Repeat until no
         // uncovered zeros are left
         // and go to step 6. If not, save location of primed zero and go to step 5.
+        int step = -1;
 
         int[] row_col = new int[2]; // Holds row and col of uncovered zero.
         boolean done = false;
         while (done == false) {
-            row_col = findUncoveredZero(row_col, cost, rowCover, colCover);
+            row_col = findUncoveredZero(row_col, costs, rowCover, colCover);
             if (row_col[0] == -1) {
                 done = true;
                 step = 6;
             } else {
-                mask[row_col[0]][row_col[1]] = 2; // Prime the found uncovered zero.
+                mask[row_col[0]][row_col[1]] = Mask.PRIME; // Prime the found uncovered zero.
 
                 boolean starInRow = false;
-                for (int j = 0; j < mask[row_col[0]].length; j++) {
-                    if (mask[row_col[0]][j] == 1) // If there is a star in the same row...
+                for (int j = 0; j < dim; j++) {
+                    if (mask[row_col[0]][j] == Mask.STAR) // If there is a star in the same row...
                     {
                         starInRow = true;
                         row_col[1] = j; // remember its column.
@@ -306,8 +336,8 @@ public class HungarianAlgorithm {
                 }
 
                 if (starInRow == true) {
-                    rowCover[row_col[0]] = 1; // Cover the star's row.
-                    colCover[row_col[1]] = 0; // Uncover its column.
+                    rowCover[row_col[0]] = true; // Cover the star's row.
+                    colCover[row_col[1]] = false; // Uncover its column.
                 } else {
                     zero_RC[0] = row_col[0]; // Save row of primed zero.
                     zero_RC[1] = row_col[1]; // Save column of primed zero.
@@ -321,7 +351,7 @@ public class HungarianAlgorithm {
     }
 
     public int[] findUncoveredZero // Aux 1 for hg_step4.
-    (int[] row_col, double[][] cost, int[] rowCover, int[] colCover) {
+    (int[] row_col, double[][] cost, boolean[] rowCover, boolean[] colCover) {
         row_col[0] = -1; // Just a check value. Not a real index.
         row_col[1] = 0;
 
@@ -329,8 +359,8 @@ public class HungarianAlgorithm {
         boolean done = false;
         while (done == false) {
             int j = 0;
-            while (j < cost[i].length) {
-                if (cost[i][j] == 0 && rowCover[i] == 0 && colCover[j] == 0) {
+            while (j < dim) {
+                if (cost[i][j] == 0 && !rowCover[i] && !colCover[j]) {
                     row_col[0] = i;
                     row_col[1] = j;
                     done = true;
@@ -338,7 +368,7 @@ public class HungarianAlgorithm {
                 j = j + 1;
             } // end inner while
             i = i + 1;
-            if (i >= cost.length) {
+            if (i >= dim) {
                 done = true;
             }
         } // end outer while
@@ -346,7 +376,7 @@ public class HungarianAlgorithm {
         return row_col;
     }
 
-    public int hg_step5(int step, int[][] mask, int[] rowCover, int[] colCover, int[] zero_RC, int[][] path) {
+    public int hg_step5() {
         // What STEP 5 does:
         // Construct series of alternating primes and stars. Start with prime from step
         // 4.
@@ -385,16 +415,15 @@ public class HungarianAlgorithm {
         clearCovers(rowCover, colCover);
         erasePrimes(mask);
 
-        step = 3;
-        return step;
+        return 3; // next step is 3
 
     }
 
     public int findStarInCol // Aux 1 for hg_step5.
-    (int[][] mask, int col) {
+    (Mask[][] mask, int col) {
         int r = -1; // Again this is a check value.
-        for (int i = 0; i < mask.length; i++) {
-            if (mask[i][col] == 1) {
+        for (int i = 0; i < dim; i++) {
+            if (mask[i][col] == Mask.STAR) {
                 r = i;
             }
         }
@@ -403,10 +432,10 @@ public class HungarianAlgorithm {
     }
 
     public int findPrimeInRow // Aux 2 for hg_step5.
-    (int[][] mask, int row) {
+    (Mask[][] mask, int row) {
         int c = -1;
-        for (int j = 0; j < mask[row].length; j++) {
-            if (mask[row][j] == 2) {
+        for (int j = 0; j < dim; j++) {
+            if (mask[row][j] == Mask.PRIME) {
                 c = j;
             }
         }
@@ -415,67 +444,67 @@ public class HungarianAlgorithm {
     }
 
     public void convertPath // Aux 3 for hg_step5.
-    (int[][] mask, int[][] path, int count) {
+    (Mask[][] mask, int[][] path, int count) {
         for (int i = 0; i <= count; i++) {
-            if (mask[path[i][0]][path[i][1]] == 1) {
-                mask[path[i][0]][path[i][1]] = 0;
+            if (mask[path[i][0]][path[i][1]] == Mask.STAR) {
+                mask[path[i][0]][path[i][1]] = Mask.NONE;
             } else {
-                mask[path[i][0]][path[i][1]] = 1;
+                mask[path[i][0]][path[i][1]] = Mask.STAR;
             }
         }
     }
 
     public void erasePrimes // Aux 4 for hg_step5.
-    (int[][] mask) {
-        for (int i = 0; i < mask.length; i++) {
-            for (int j = 0; j < mask[i].length; j++) {
-                if (mask[i][j] == 2) {
-                    mask[i][j] = 0;
+    (Mask[][] mask) {
+        for (int i = 0; i < dim; i++) {
+            for (int j = 0; j < dim; j++) {
+                if (mask[i][j] == Mask.PRIME) {
+                    mask[i][j] = Mask.NONE;
                 }
             }
         }
     }
 
     public void clearCovers // Aux 5 for hg_step5 (and not only).
-    (int[] rowCover, int[] colCover) {
-        for (int i = 0; i < rowCover.length; i++) {
-            rowCover[i] = 0;
+    (boolean[] rowCover, boolean[] colCover) {
+        for (int i = 0; i < dim; i++) {
+            rowCover[i] = false;
         }
         for (int j = 0; j < colCover.length; j++) {
-            colCover[j] = 0;
+            colCover[j] = false;
         }
     }
 
-    public int hg_step6(int step, double[][] cost, int[] rowCover, int[] colCover) {
+    public int hg_step6() {
         // What STEP 6 does:
         // Find smallest uncovered value in cost: a. Add it to every element of covered
         // rows
         // b. Subtract it from every element of uncovered columns. Go to step 4.
+        int step;
 
-        double minval = findSmallest(cost, rowCover, colCover);
+        double minval = findSmallest(costs, rowCover, colCover);
 
         for (int i = 0; i < rowCover.length; i++) {
             for (int j = 0; j < colCover.length; j++) {
-                if (rowCover[i] == 1) {
-                    cost[i][j] = cost[i][j] + minval;
+                if (rowCover[i]) {
+                    costs[i][j] = costs[i][j] + minval;
                 }
-                if (colCover[j] == 0) {
-                    cost[i][j] = cost[i][j] - minval;
+                if (!colCover[j]) {
+                    costs[i][j] = costs[i][j] - minval;
                 }
             }
         }
 
-        step = 4;
-        return step;
+        return 4; // next step is 4
     }
 
     public double findSmallest // Aux 1 for hg_step6.
-    (double[][] cost, int[] rowCover, int[] colCover) {
+    (double[][] cost, boolean[] rowCover, boolean[] colCover) {
         double minval = Double.POSITIVE_INFINITY; // There cannot be a larger cost than this.
-        for (int i = 0; i < cost.length; i++) // Now find the smallest uncovered value.
+        for (int i = 0; i < dim; i++) // Now find the smallest uncovered value.
         {
-            for (int j = 0; j < cost[i].length; j++) {
-                if (rowCover[i] == 0 && colCover[j] == 0 && (minval > cost[i][j])) {
+            for (int j = 0; j < dim; j++) {
+                if (!rowCover[i] && !colCover[j] && (minval > cost[i][j])) {
                     minval = cost[i][j];
                 }
             }
@@ -487,39 +516,4 @@ public class HungarianAlgorithm {
     public void set(double[][] arr, int i, int j, double v) {
         arr[i][j] = v;
     }
-
-    // ***********//
-    // MAIN METHOD//
-    // ***********//
-
-    public static void main(String[] args) {
-        System.out.println("Running two tests on three arrays:\n");
-
-        // Square
-        double[][] test1 = {{10, 19, 8, 15}, {10, 18, 7, 17}, {13, 16, 9, 14}, {14, 17, 10, 19}};
-        // Tall
-        double[][] test2 = {{10, 19, 8, 15}, {10, 18, 7, 17}, {13, 16, 9, 14}, {12, 19, 8, 18},
-                {14, 17, 10, 19}};
-        // Wide
-        double[][] test3 = {{10, 19, 8, 15, 14}, {10, 18, 7, 17, 17}, {13, 16, 9, 14, 10},
-                {12, 19, 8, 18, 19}};
-
-        // Square
-        double inf = Double.POSITIVE_INFINITY;
-        double m = Double.MAX_VALUE;
-
-        // runs forever
-        // double[][] test4 = { { 10, 19, inf, inf }, { 10, 18, inf, inf }, { 13, 16,
-        // inf, inf }, { 14, 17, 10, 19 } };
-
-        double[][] test4 = {{0, 19, m, m}, {10, 0, m, m}, {13, 16, m, m}, {14, 17, 10, 19}};
-
-        var hg = new HungarianAlgorithm(50);
-
-        System.out.println(hg.hgAlgorithm(test1));
-        System.out.println(hg.hgAlgorithm(test2));
-        System.out.println(hg.hgAlgorithm(test3));
-        System.out.println(hg.hgAlgorithm(test4));
-    }
-
 }

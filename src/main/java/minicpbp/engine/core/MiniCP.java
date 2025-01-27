@@ -31,6 +31,7 @@ import minicpbp.util.Procedure;
 import minicpbp.util.StdBelief;
 import minicpbp.util.exception.InconsistencyException;
 
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class MiniCP implements Solver {
@@ -116,7 +117,8 @@ public class MiniCP implements Solver {
     }
 
     public void printMaxBeliefDiff() {
-        System.out.println("max belief diff: " + maxBeliefDiff + " nbVar: " + maxNbVar + " nbVal: " + maxNbVal);
+        DecimalFormat df = new DecimalFormat("0.###E0");
+        System.out.println("diff: " + df.format(maxBeliefDiff) + " var: " + maxNbVar + " val: " + maxNbVal);
     }
 
     public MiniCP(StateManager sm) {
