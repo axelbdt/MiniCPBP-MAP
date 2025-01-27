@@ -16,7 +16,6 @@
  * It takes two arguments:
  * a. A 2D array (could be rectangular or square) with all values >= 0.
  * b. A string ("min" or "max") specifying whether you want the min or max assignment.
- * [It returns an assignment matrix[min(array.length, array[0].length)][2] that contains
  * the row and col of the elements (in the original inputted array) that make up the
  * optimum assignment or the sum of the assignment weights, depending on which method
  * is used: hgAlgorithmAssignments or hgAlgorithm, respectively.]
@@ -235,7 +234,7 @@ public class HungarianAlgorithm {
         }
 
         int count = 0;
-        for (int j = 0; j < colCover.length; j++) // Check if all columns are covered.
+        for (int j = 0; j < dim; j++) // Check if all columns are covered.
         {
             count += colCover[j] ? 1 : 0;
         }
@@ -409,7 +408,7 @@ public class HungarianAlgorithm {
         for (int i = 0; i < dim; i++) {
             rowCover[i] = false;
         }
-        for (int j = 0; j < colCover.length; j++) {
+        for (int j = 0; j < dim; j++) {
             colCover[j] = false;
         }
     }
