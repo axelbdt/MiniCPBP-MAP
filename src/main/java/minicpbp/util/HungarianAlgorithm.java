@@ -1,6 +1,6 @@
 /*
  * Created on Apr 25, 2005
- * Updated on May 2, 2013 (support for rectangular matrices)
+ * Updated on May 2, 2013
  *
  * Konstantinos A. Nedas
  * Department of Spatial Information Science & Engineering
@@ -8,31 +8,33 @@
  * kostas@spatial.maine.edu
  * http://www.spatial.maine.edu/~kostas
  *
- * This Java class implements the Hungarian algorithm [a.k.a Munkres' algorithm,
- * a.k.a. Kuhn algorithm, a.k.a. Assignment problem, a.k.a. Marriage problem,
+ * This Java class implements the Hungarian algorithm
+ * [a.k.a Munkres' algorithm,
+ * a.k.a. Kuhn algorithm,
+ * a.k.a. Assignment problem,
+ * a.k.a. Marriage problem,
  * a.k.a. Maximum Weighted Maximum Cardinality Bipartite Matching].
  *
- * [It can be used as a method call from within any main (or other function).]
  * It takes two arguments:
- * a. A 2D array (could be rectangular or square) with all values >= 0.
- * b. A string ("min" or "max") specifying whether you want the min or max assignment.
- * the row and col of the elements (in the original inputted array) that make up the
- * optimum assignment or the sum of the assignment weights, depending on which method
- * is used: hgAlgorithmAssignments or hgAlgorithm, respectively.]
+ * a. A 2D array with all values >= 0.
+ * b. A dimension wich will limit the algo to a square subarray
  *
- * [This version contains only scarce comments. If you want to understand the
- * inner workings of the algorithm, get the tutorial version of the algorithm
- * from the same website you got this one (www.spatial.maine.edu/~kostas).]
+ * [This version contains only scarce comments.
+ * If you want to understand the inner workings of the algorithm,
+ * get the tutorial version of the algorithm
+ * from the same website you got this one
+ * (www.spatial.maine.edu/~kostas).]
  *
  * Any comments, corrections, or additions would be much appreciated.
  * Credit due to professor Bob Pilgrim for providing an online copy of the
- * pseudocode for this algorithm (http://216.249.163.93/bob.pilgrim/445/munkres.html)
+ * pseudocode for this algorithm
+ * (http://216.249.163.93/bob.pilgrim/445/munkres.html)
  *
  * Feel free to redistribute this source code, as long as this header--with
  * the exception of sections in brackets--remains as part of the file.
  *
- * Note: Some sections in brackets have been modified as not to provide misinformation
- *       about the current functionality of this code.
+ * Note: Some sections in brackets have been modified as not to provide
+ * misinformation about the current functionality of this code.
  *
  * Requirements: JDK 1.5.0_01 or better.
  * [Created in Eclipse 3.1M6 (www.eclipse.org).]
@@ -138,10 +140,7 @@ public class HungarianAlgorithm {
             }
         } // end while
 
-        // int[] assignments = new int[dim]; // Create the returned array.
         Arrays.fill(assignments, -1);
-        // assignments column will have to skip some numbers, so
-        // the index will not always match the first column ([0])
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
                 if (mask[i][j] == Mask.STAR) {
@@ -161,14 +160,14 @@ public class HungarianAlgorithm {
 
         for (int i = 0; i < dim; i++) {
             minval = costs[i][0];
-            for (int j = 0; j < dim; j++) // 1st inner loop finds min val in row.
-            {
+            // 1st inner loop finds min val in row.
+            for (int j = 0; j < dim; j++) {
                 if (minval > costs[i][j]) {
                     minval = costs[i][j];
                 }
             }
-            for (int j = 0; j < dim; j++) // 2nd inner loop subtracts it.
-            {
+            // 2nd inner loop subtracts it.
+            for (int j = 0; j < dim; j++) {
                 costs[i][j] = costs[i][j] - minval;
             }
         }
@@ -182,7 +181,7 @@ public class HungarianAlgorithm {
 
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
-                if ((costs[i][j] == 0) && (!colCover[j]) && (!rowCover[i])) {
+                if (costs[i][j] == 0 && !colCover[j] && !rowCover[i]) {
                     mask[i][j] = Mask.STAR;
                     colCover[j] = true;
                     rowCover[i] = true;
@@ -197,11 +196,12 @@ public class HungarianAlgorithm {
 
     public int hg_step3() {
         // What STEP 3 does:
-        // Cover columns of starred zeros. Check if all columns are covered.
+        // Cover columns of starred zeros.
+        // Check if all columns are covered.
         int step = -1;
 
-        for (int i = 0; i < dim; i++) // Cover columns of starred zeros.
-        {
+        // Cover columns of starred zeros.
+        for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
                 if (mask[i][j] == Mask.STAR) {
                     colCover[j] = true;
@@ -209,9 +209,9 @@ public class HungarianAlgorithm {
             }
         }
 
+        // Check if all columns are covered.
         int count = 0;
-        for (int j = 0; j < dim; j++) // Check if all columns are covered.
-        {
+        for (int j = 0; j < dim; j++) {
             count += colCover[j] ? 1 : 0;
         }
 
@@ -264,8 +264,8 @@ public class HungarianAlgorithm {
 
                 boolean starInRow = false;
                 for (int j = 0; j < dim; j++) {
-                    if (mask[row][j] == Mask.STAR) // If there is a star in the same row...
-                    {
+                    // If there is a star in the same row...
+                    if (mask[row][j] == Mask.STAR) {
                         starInRow = true;
                         col = j; // remember its column.
                     }
@@ -289,8 +289,10 @@ public class HungarianAlgorithm {
 
     public int hg_step5() {
         // What STEP 5 does:
-        // Construct series of alternating primes and stars. Start with prime from step 4.
-        // Take star in the same column. Next take prime in the same row as the star.
+        // Construct series of alternating primes and stars.
+        // Start with prime from step 4.
+        // Take star in the same column.
+        // Next take prime in the same row as the star.
         // Finish at a prime with no star in its column.
         // Unstar all stars and star the primes of the series.
         // Erase any other primes. Reset covers. Go to step 3.
@@ -305,7 +307,7 @@ public class HungarianAlgorithm {
             if (r >= 0) {
                 count = count + 1;
                 path[count][0] = r; // Row of starred zero.
-                path[count][1] = path[count - 1][1]; // Column of starred zero.
+                path[count][1] = path[count - 1][1]; // Col of starred zero.
             } else {
                 done = true;
             }
@@ -378,7 +380,7 @@ public class HungarianAlgorithm {
         // What STEP 6 does:
         // Find smallest uncovered value in cost:
         // a. Add it to every element of covered rows
-        // b. Subtract it from every element of uncovered columns. Go to step 4.
+        // b. Subtract it from every elem of uncovered col. Go to step 4.
         int step;
 
         double minval = findSmallest();
@@ -398,16 +400,15 @@ public class HungarianAlgorithm {
     }
 
     public double findSmallest() { // Aux 1 for hg_step6.
-        double minval = Double.POSITIVE_INFINITY; // There cannot be a larger cost than this.
-        for (int i = 0; i < dim; i++) // Now find the smallest uncovered value.
-        {
+        double minval = Double.POSITIVE_INFINITY;
+        // Now find the smallest uncovered value.
+        for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
-                if (!rowCover[i] && !colCover[j] && (minval > costs[i][j])) {
+                if (!rowCover[i] && !colCover[j] && minval > costs[i][j]) {
                     minval = costs[i][j];
                 }
             }
         }
-
         return minval;
     }
 
