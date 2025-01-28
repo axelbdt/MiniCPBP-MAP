@@ -130,7 +130,10 @@ public class AllDifferentDC extends AbstractConstraint {
             freeVals = new StateSparseSet(getSolver().getStateManager(), 0, 0); // make it empty as well
             return; // special case of all variables in its scope already being bound
         }
-        freeVals = new StateSparseSet(getSolver().getStateManager(), allVals.last().intValue() - allVals.first().intValue() + 1, allVals.first().intValue());
+        freeVals = new StateSparseSet(
+                getSolver().getStateManager(),
+                allVals.last().intValue() - allVals.first().intValue() + 1,
+                allVals.first().intValue());
         // remove missing intermediate values from interval domain
         for (int i = allVals.first().intValue() + 1; i < allVals.last().intValue(); i++) {
             if (!allVals.contains(i))
@@ -138,7 +141,8 @@ public class AllDifferentDC extends AbstractConstraint {
         } // from now on freeVals will be maintained as a superset of the available values,
         // only removing values as they are taken on by a variable
 
-        // allocate enough space for the data structures, even though we will need less and less as we go down the search tree
+        // allocate enough space for the data structures
+        // even though we will need less and less as we go down the search tree
         beliefs = new double[freeVals.size()][freeVals.size()];
         c = new int[freeVals.size()];
         permutation = new int[freeVals.size()];
@@ -149,7 +153,9 @@ public class AllDifferentDC extends AbstractConstraint {
         if (freeVals.size() - 1 <= exactPermanentThreshold) {
             setExactWCounting(true);
         } else {
-            setExactWCounting(false); // actually, it will be exact below the threshold, which may happen lower in the search tree
+            setExactWCounting(false);
+            // it will be exact below the threshold,
+            // which may happen lower in the search tree
         }
         precompute_gamma(freeVals.size());
 
@@ -281,13 +287,16 @@ public class AllDifferentDC extends AbstractConstraint {
             int i = varIndices[j];
             for (int k = 0; k < nbVal; k++) {
                 int val = vals[k];
-                beliefs[j][k] = (x[i].contains(val) ? beliefRep.rep2std(outsideBelief(i, val)) : 0);
+                beliefs[j][k] = x[i].contains(val) ?
+                        beliefRep.rep2std(outsideBelief(i, val))
+                        : 0;
             }
         }
         // may need to add dummy rows in order to make the beliefs matrix square
         for (int j = 0; j < nbVal - nbVar; j++) {
             for (int k = 0; k < nbVal; k++) {
-                // make row sum to 1 because we use this property in costBasedPermanent_UB3_faster()
+                // make row sum to 1
+                // because we use this property in costBasedPermanent_UB3_faster()
                 beliefs[nbVar + j][k] = 1.0 / nbVal; // (STANDARD REPRESENTATION)
             }
         }
@@ -302,7 +311,8 @@ public class AllDifferentDC extends AbstractConstraint {
                     if (x[i].contains(val)) {
                         // note: will be normalized later in AbstractConstraint.sendMessages()
                         // put beliefs back to their original representation
-                        setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_exact(j, k, nbVal)));
+                        double newBelief = costBasedPermanent_exact(j, k, nbVal);
+                        setLocalBelief(i, val, beliefRep.std2rep(newBelief));
                     }
                 }
             }
@@ -317,8 +327,9 @@ public class AllDifferentDC extends AbstractConstraint {
                     if (x[i].contains(val)) {
                         // note: will be normalized later in AbstractConstraint.sendMessages()
                         // put beliefs back to their original representation
-                        setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_UB3_faster(j, k, nbVal, nbVal - nbVar)));
-                        //                      setLocalBelief(i, val, beliefRep.std2rep(costBasedPermanent_UB3(j, k, beliefs, nbVal, nbVal - nbVar)));
+                        double newBelief = costBasedPermanent_UB3_faster(
+                                j, k, nbVal, nbVal - nbVar);
+                        setLocalBelief(i, val, beliefRep.std2rep(newBelief));
                     }
                 }
             }
@@ -362,9 +373,9 @@ public class AllDifferentDC extends AbstractConstraint {
                 Arrays.fill(row, false);
             }
             var allCosts = createFullCostMatrix(nbVar, nbVal);
-            var fullRes = hungarian.hgAlgorithmAssignments(allCosts, nbVal);
-            var reducedCosts = fullRes.costs();
-            int[] fullAssignment = fullRes.assignments();
+            hungarian.hgAlgorithmAssignments(allCosts, nbVal);
+            var reducedCosts = hungarian.getCosts();
+            int[] fullAssignment = hungarian.getAssignments();
 
             // compute product of beliefs for assignment with all vars
             double fullProduct = beliefRep.one();
@@ -381,14 +392,14 @@ public class AllDifferentDC extends AbstractConstraint {
             }
             for (int i = 0; i < nbVar; i++) {
                 int var = varIndices[i];
-                int j = fullRes.assignments()[i];
+                int j = fullAssignment[i];
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     beliefComputed[i][j] = true;
                     double newBelief = beliefRep.divide(fullProduct, outsideBelief(var, val));
                     setLocalBelief(var, val, newBelief);
 
-                    compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
+                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
 
@@ -401,9 +412,10 @@ public class AllDifferentDC extends AbstractConstraint {
                         continue;
                     int val = vals[valIterator];
                     if (x[var].contains(val)) {
-                        double[][] costs = createCostMatrixWithReuse(reducedCosts, varIterator, valIterator, nbVar, nbVal);
-                        var hungarianResult = hungarian.hgAlgorithmAssignments(costs, nbVal - 1);
-                        var assignments = hungarianResult.assignments();
+                        double[][] costs = createCostMatrixWithReuse(
+                                reducedCosts, varIterator, valIterator, nbVar, nbVal);
+                        hungarian.hgAlgorithmAssignments(costs, nbVal - 1);
+                        var assignments = hungarian.getAssignments();
                         double product = beliefRep.one();
                         for (int i = 0; i < nbVar - 1; i++) {
                             int assVar = varIndices[i >= varIterator ? i + 1 : i];
@@ -420,14 +432,15 @@ public class AllDifferentDC extends AbstractConstraint {
                         assert !Double.isNaN(newBelief);
                         setLocalBelief(var, val, newBelief);
 
-                        compareHungarianAlgorithms(varIterator, valIterator, nbVar, nbVal, newBelief);
+                        // compareHungarianAlgorithms(varIterator, valIterator, nbVar, nbVal, newBelief);
                     }
                 }
             }
         }
     }
 
-    public double compareHungarianAlgorithms(int i, int j, int nbVar, int nbVal, double newBelief) {
+    public double compareHungarianAlgorithms
+            (int i, int j, int nbVar, int nbVal, double newBelief) {
         // Compare with old hungarian algorithm
         double[][] oldCosts = createCostMatrix(i, j, nbVar, nbVal);
         double oldMatchingCost = OldHungarianAlgorithm.hgAlgorithm(oldCosts, "min");
@@ -442,26 +455,29 @@ public class AllDifferentDC extends AbstractConstraint {
 
     public double[][] createFullCostMatrix(int nbVar, int nbVal) {
         double[][] costs = beliefs;
-        for (int i = 0; i < nbVal; i++) {
+        for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
             for (int j = 0; j < nbVal; j++) {
-                if (i < nbVar && j < nbVal) {
-                    int val = vals[j];
-                    if (x[var].contains(val)) {
-                        double b = outsideBelief(var, val);
-                        costs[i][j] = !beliefRep.isZero(b) ? -beliefRep.rep2log(b) : Double.MAX_VALUE;
-                    } else {
-                        costs[i][j] = Double.MAX_VALUE;
-                    }
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    double b = outsideBelief(var, val);
+                    costs[i][j] = !beliefRep.isZero(b) ?
+                            -beliefRep.rep2log(b)
+                            : Double.MAX_VALUE;
                 } else {
                     costs[i][j] = Double.MAX_VALUE;
                 }
             }
         }
+        for (int i = nbVar; i < nbVal; i++) {
+            // reset costs for dummy rows
+            Arrays.fill(costs[nbVar], Double.MAX_VALUE);
+        }
         return costs;
     }
 
-    public double[][] createCostMatrixWithReuse(double[][] reducedCosts, int var, int val, int nbVar, int nbVal) {
+    public double[][] createCostMatrixWithReuse
+            (double[][] reducedCosts, int var, int val, int nbVar, int nbVal) {
         double[][] costs = this.reducedCosts;
         for (int j = 0; j < nbVar; j++) {
             if (j != var) {
@@ -544,7 +560,9 @@ public class AllDifferentDC extends AbstractConstraint {
                         if (x[i].contains(v)) {
                             double b = outsideBelief(i, v);
 
-                            costs[jj][kk] = !beliefRep.isZero(b) ? -beliefRep.rep2log(b) : Double.MAX_VALUE;
+                            costs[jj][kk] = !beliefRep.isZero(b) ?
+                                    -beliefRep.rep2log(b)
+                                    : Double.MAX_VALUE;
                         } else {
                             costs[jj][kk] = Double.MAX_VALUE;
                         }
@@ -603,7 +621,8 @@ public class AllDifferentDC extends AbstractConstraint {
             setExactWCounting(false);
             weightedCount *= costBasedPermanent_UB3(-1, -1, nbVal, nbVal - nbVar);
         }
-        System.out.println("weighted count for " + this.getName() + " constraint: " + beliefRep.std2rep(weightedCount));
+        System.out.println("weighted count for " + this.getName()
+                + " constraint: " + beliefRep.std2rep(weightedCount));
         return beliefRep.std2rep(weightedCount); // put beliefs back to their original representation
     }
 
@@ -618,7 +637,9 @@ public class AllDifferentDC extends AbstractConstraint {
             gamma[i] = Math.pow(factorial, 1.0 / ((double) i));
         }
         for (int i = gamma_threshold + 1; i <= n + 1; i++) {
-            // from n>gamma_threshold, Stirling's formula is a decent approximation of factorial which will avoid intermediate overflow
+            // from n>gamma_threshold,
+            // Stirling's formula is a decent approximation of factorial
+            // which will avoid intermediate overflow
             gamma[i] = (double) i / Math.E * Math.pow(2 * Math.PI * i, 1.0 / ((double) 2 * i));
         }
     }

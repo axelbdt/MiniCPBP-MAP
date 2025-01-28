@@ -56,7 +56,6 @@ public class HungarianAlgorithm {
     boolean[] colCover;
     int[] zero_RC;
     int[][] path;
-    int[] row_col;
     int[] assignments;
     int dim;
 
@@ -67,9 +66,9 @@ public class HungarianAlgorithm {
         mask = new Mask[n][n]; // The mask array.
         rowCover = new boolean[n]; // The row covering vector.
         colCover = new boolean[n]; // The column covering vector.
+        // TODO : remove zero_RC ?
         zero_RC = new int[2]; // Position of last zero from Step 4.
         path = new int[n * n + 2][2];
-        row_col = new int[2]; // TODO: not require an array (idea: inline function?)
         assignments = new int[n];
     }
 
@@ -85,26 +84,24 @@ public class HungarianAlgorithm {
         }
     }
 
-    public record HungarianResult(int[] assignments, double[][] costs, Mask[][] mask, double assignmentSum) {
+    public double[][] getCosts() {
+        return costs;
     }
+
+    public int[] getAssignments() {
+        return assignments;
+    }
+
 
     // **********************************//
     // METHODS OF THE HUNGARIAN ALGORITHM//
     // **********************************//
 
     // Core of the algorithm; takes required inputs and returns the assignments
-    public HungarianResult hgAlgorithmAssignments(double[][] array, int dim) {
-        // This variable is used to pad a rectangular array (so it will be picked all
-        // last [cost] or first [profit])
-        // and will not interfere with final assignments. Also, it is used to flip the
-        // relationship between weight when "max" defines it as a profit matrix instead of a cost matrix.
-        // Double.MAX_VALUE is not ideal, since arithmetic
-        // needs to be performed and overflow may occur.
-        double maxWeightPlusOne = Double.MAX_VALUE;
-
+    public void hgAlgorithmAssignments(double[][] array, int dim) {
         this.dim = dim;
-
         costs = array;
+
         resetMask();
         Arrays.fill(rowCover, false);
         Arrays.fill(colCover, false);
@@ -153,18 +150,6 @@ public class HungarianAlgorithm {
                 }
             }
         }
-        double assignmentCost = getAssignmentSum(array, assignments);
-        return new HungarianResult(assignments, costs, mask, assignmentCost);
-    }
-
-    public double getAssignmentSum(double[][] array, int[] assignments) {
-        // Returns the min/max sum (cost/profit of the assignment) given the
-        // original input matrix and an assignment array (from hgAlgorithmAssignments)
-        double sum = 0;
-        for (int i = 0; i < dim; i++) {
-            sum = sum + array[i][assignments[i]];
-        }
-        return sum;
     }
 
     public int hg_step1() {
@@ -241,37 +226,57 @@ public class HungarianAlgorithm {
 
     public int hg_step4() {
         // What STEP 4 does:
-        // Find an uncovered zero in cost and prime it (if none go to step 6). Check for
-        // star in same row:
-        // if yes, cover the row and uncover the star's column. Repeat until no
-        // uncovered zeros are left
-        // and go to step 6. If not, save location of primed zero and go to step 5.
+        // Find an uncovered zero in cost and prime it (if none go to step 6).
+        // Check for star in same row:
+        // if yes, cover the row and uncover the star's column.
+        // Repeat until no uncovered zeros are left and go to step 6.
+        // If not, save location of primed zero and go to step 5.
         int step = -1;
 
         boolean done = false;
         while (done == false) {
-            findUncoveredZero();
-            if (row_col[0] == -1) {
+            // find Uncovered Zeroes
+            int row = -1; // Just a check value. Not a real index.
+            int col = 0;
+
+            int i = 0;
+            boolean findDone = false;
+            while (findDone == false) {
+                int j = 0;
+                while (j < dim) {
+                    if (costs[i][j] == 0 && !rowCover[i] && !colCover[j]) {
+                        row = i;
+                        col = j;
+                        findDone = true;
+                    }
+                    j = j + 1;
+                } // end inner while
+                i = i + 1;
+                if (i >= dim) {
+                    findDone = true;
+                }
+            } // end outer while
+            if (row == -1) {
                 done = true;
                 step = 6;
             } else {
-                mask[row_col[0]][row_col[1]] = Mask.PRIME; // Prime the found uncovered zero.
+                mask[row][col] = Mask.PRIME; // Prime the found uncovered zero.
 
                 boolean starInRow = false;
                 for (int j = 0; j < dim; j++) {
-                    if (mask[row_col[0]][j] == Mask.STAR) // If there is a star in the same row...
+                    if (mask[row][j] == Mask.STAR) // If there is a star in the same row...
                     {
                         starInRow = true;
-                        row_col[1] = j; // remember its column.
+                        col = j; // remember its column.
                     }
                 }
 
                 if (starInRow == true) {
-                    rowCover[row_col[0]] = true; // Cover the star's row.
-                    colCover[row_col[1]] = false; // Uncover its column.
+                    rowCover[row] = true; // Cover the star's row.
+                    colCover[col] = false; // Uncover its column.
                 } else {
-                    zero_RC[0] = row_col[0]; // Save row of primed zero.
-                    zero_RC[1] = row_col[1]; // Save column of primed zero.
+                    zero_RC[0] = row; // Save row of primed zero.
+                    zero_RC[1] = col; // Save column of primed zero.
                     done = true;
                     step = 5;
                 }
@@ -281,40 +286,14 @@ public class HungarianAlgorithm {
         return step;
     }
 
-    public int[] findUncoveredZero() { // Aux 1 for hg_step4.
-        row_col[0] = -1; // Just a check value. Not a real index.
-        row_col[1] = 0;
-
-        int i = 0;
-        boolean done = false;
-        while (done == false) {
-            int j = 0;
-            while (j < dim) {
-                if (costs[i][j] == 0 && !rowCover[i] && !colCover[j]) {
-                    row_col[0] = i;
-                    row_col[1] = j;
-                    done = true;
-                }
-                j = j + 1;
-            } // end inner while
-            i = i + 1;
-            if (i >= dim) {
-                done = true;
-            }
-        } // end outer while
-
-        return row_col;
-    }
 
     public int hg_step5() {
         // What STEP 5 does:
-        // Construct series of alternating primes and stars. Start with prime from step
-        // 4.
+        // Construct series of alternating primes and stars. Start with prime from step 4.
         // Take star in the same column. Next take prime in the same row as the star.
-        // Finish
-        // at a prime with no star in its column. Unstar all stars and star the primes
-        // of the
-        // series. Erasy any other primes. Reset covers. Go to step 3.
+        // Finish at a prime with no star in its column.
+        // Unstar all stars and star the primes of the series.
+        // Erase any other primes. Reset covers. Go to step 3.
 
         int count = 0; // Counts rows of the path matrix.
         path[count][0] = zero_RC[0]; // Row of last prime.
@@ -322,7 +301,7 @@ public class HungarianAlgorithm {
 
         boolean done = false;
         while (done == false) {
-            int r = findStarInCol(mask, path[count][1]);
+            int r = findStarInCol(path[count][1]);
             if (r >= 0) {
                 count = count + 1;
                 path[count][0] = r; // Row of starred zero.
@@ -339,16 +318,15 @@ public class HungarianAlgorithm {
             }
         } // end while
 
-        convertPath(mask, path, count);
+        convertPath(count);
         clearCovers();
-        erasePrimes(mask);
+        erasePrimes();
 
         return 3; // next step is 3
 
     }
 
-    public int findStarInCol // Aux 1 for hg_step5.
-    (Mask[][] mask, int col) {
+    public int findStarInCol(int col) { // Aux 1 for hg_step5.
         int r = -1; // Again this is a check value.
         for (int i = 0; i < dim; i++) {
             if (mask[i][col] == Mask.STAR) {
@@ -371,8 +349,7 @@ public class HungarianAlgorithm {
         return c;
     }
 
-    public void convertPath // Aux 3 for hg_step5.
-    (Mask[][] mask, int[][] path, int count) {
+    public void convertPath(int count) { // Aux 3 for hg_step5.
         for (int i = 0; i <= count; i++) {
             if (mask[path[i][0]][path[i][1]] == Mask.STAR) {
                 mask[path[i][0]][path[i][1]] = Mask.NONE;
@@ -382,8 +359,7 @@ public class HungarianAlgorithm {
         }
     }
 
-    public void erasePrimes // Aux 4 for hg_step5.
-    (Mask[][] mask) {
+    public void erasePrimes() { // Aux 4 for hg_step5.
         for (int i = 0; i < dim; i++) {
             for (int j = 0; j < dim; j++) {
                 if (mask[i][j] == Mask.PRIME) {
@@ -400,8 +376,8 @@ public class HungarianAlgorithm {
 
     public int hg_step6() {
         // What STEP 6 does:
-        // Find smallest uncovered value in cost: a. Add it to every element of covered
-        // rows
+        // Find smallest uncovered value in cost:
+        // a. Add it to every element of covered rows
         // b. Subtract it from every element of uncovered columns. Go to step 4.
         int step;
 
