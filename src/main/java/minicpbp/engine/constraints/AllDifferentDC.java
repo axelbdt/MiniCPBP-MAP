@@ -339,8 +339,8 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
 
-    @Override
-    public void updateBeliefMaxProduct() {
+    // @Override
+    public void betterUpdateBeliefMaxProduct() {
         // System.out.println("AllDifferentDC - MaxProduct");
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
@@ -441,11 +441,62 @@ public class AllDifferentDC extends AbstractConstraint {
         }
     }
 
-    public int[] lsap(int nbVar, int nbVal) {
+    public int augmentingPath(int nbVal, double[][] costs, double[] u, double[] v, int[] path, int[] row4col, double[] shortestPathCosts, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
+        double minWeight = 0;
+
+        int numRemaining = nbVal;
+        for (int it = 0; it < nbVal; it++) {
+            remaining[it] = nbVal - it - 1;
+        }
+
+        Arrays.fill(SR, false);
+        Arrays.fill(SC, false);
+        Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
+
+        int sink = -1;
+        while (sink == -1) {
+            int index = -1;
+            double lowest = Double.POSITIVE_INFINITY;
+            SR[currentRow] = true;
+
+            for (int it = 0; it < numRemaining; it++) {
+                int j = remaining[it];
+
+                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
+                if (r < shortestPathCosts[j]) {
+                    path[j] = currentRow;
+                    shortestPathCosts[j] = r;
+                }
+
+                if (shortestPathCosts[j] < lowest ||
+                        (shortestPathCosts[j] == lowest && row4col[j] == -1)) {
+                    lowest = shortestPathCosts[j];
+                    index = it;
+                }
+            }
+
+            minWeight = lowest;
+
+            int j = remaining[index];
+            if (row4col[j] == -1) {
+                sink = j;
+            } else {
+                currentRow = row4col[j];
+            }
+
+            SC[j] = true;
+            numRemaining--;
+            remaining[index] = remaining[numRemaining];
+        }
+
+        this.minWeight = minWeight;
+        return sink;
+    }
+
+    public double lsap(int nbVar, int nbVal, double[][] costs) {
         // returns the assignment for minimal weight matching
         double[] u = new double[nbVar];
         double[] v = new double[nbVal];
-        double[][] costs = new double[nbVar][nbVal];
         double[] shortestPathCosts = new double[nbVal];
 
         int[] path = new int[nbVal];
@@ -495,54 +546,14 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
         }
-        return col4row;
+
+        double weight = 0;
+        for (int i = 0; i < nbVar; i++) {
+            weight += costs[i][col4row[i]];
+        }
+        return weight;
     }
 
-    public int augmentingPath(int nbVal, double[][] costs, double[] u, double[] v, int[] path, int[] row4col, double[] shortestPathCosts, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
-        double minWeight = 0;
-
-        int numRemaining = nbVal;
-        for (int it = 0; it < nbVal; it++) {
-            remaining[it] = nbVal - it - 1;
-        }
-
-        Arrays.fill(SR, false);
-        Arrays.fill(SC, false);
-        Arrays.fill(shortestPathCosts, 0);
-
-        int sink = -1;
-        while (sink == -1) {
-            int index = -1;
-            double lowest = Double.POSITIVE_INFINITY;
-            SR[currentRow] = true;
-
-            for (int it = 0; it < nbVal; it++) {
-                int j = remaining[it];
-
-                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
-                if (r < shortestPathCosts[j]) {
-                    path[j] = currentRow;
-                    shortestPathCosts[j] = r;
-                }
-            }
-
-            minWeight = lowest;
-
-            int j = remaining[index];
-            if (row4col[j] == -1) {
-                sink = j;
-            } else {
-                currentRow = row4col[j];
-            }
-
-            SC[j] = true;
-            numRemaining--;
-            remaining[index] = remaining[numRemaining];
-        }
-
-        this.minWeight = minWeight;
-        return sink;
-    }
 
     public double compareHungarianAlgorithms
             (int i, int j, int nbVar, int nbVal, double newBelief) {
@@ -553,12 +564,12 @@ public class AllDifferentDC extends AbstractConstraint {
                 : beliefRep.log2rep(-oldMatchingCost);
         double beliefDiff = Math.abs(newBelief - oldNewBelief);
         cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
-        // TODO: print max belief diff instead
-        // System.out.println("nbVar: " + nbVar + " nbVal: " + nbVal + " beliefDiff: " + beliefDiff);
         return beliefDiff;
     }
 
     public double[][] createFullCostMatrix(int nbVar, int nbVal) {
+        // will pad to make a square
+        // doesn't allocate but fills the array in the belief field
         double[][] costs = beliefs;
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
@@ -604,7 +615,8 @@ public class AllDifferentDC extends AbstractConstraint {
         return costs;
     }
 
-    public void otherUpdateBeliefMaxProduct() {
+    @Override
+    public void updateBeliefMaxProduct() {
         // System.out.println("AllDifferentDC - MaxProduct");
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
@@ -632,25 +644,72 @@ public class AllDifferentDC extends AbstractConstraint {
         }
         nbVar = freeVars.fillArray(varIndices);
         nbVal = freeVals.fillArray(vals);
-        // Initialize cost matrix for Hungarian Algorithm and max matching
+        // Initialize cost matrix for JVC algo and max matching
         // fill array
         if (nbVar > 1) {
+            setFullCostMatrix(nbVar, nbVal);
             for (int i = 0; i < nbVar; i++) {
                 int var = varIndices[i];
                 for (int j = 0; j < nbVal; j++) {
                     int val = vals[j];
                     if (x[var].contains(val)) {
-                        double[][] costs = createCostMatrix(i, j, nbVar, nbVal);
-                        double matchingCost = OldHungarianAlgorithm.hgAlgorithm(costs, "min");
+                        double tmp = swap(i, j, nbVal);
+                        double matchingCost = lsap(nbVar - 1, nbVal - 1, beliefs);
+                        swapBack(i, j, nbVal, tmp);
                         double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                                 : beliefRep.log2rep(-matchingCost);
                         assert !Double.isNaN(newBelief);
+
+                        compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                     }
                 }
             }
         }
     }
 
+    public void setFullCostMatrix(int nbVar, int nbVal) {
+        double[][] costs = beliefs;
+        for (int i = 0; i < nbVar; i++) {
+            int var = varIndices[i];
+            for (int j = 0; j < nbVal; j++) {
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    double b = outsideBelief(var, val);
+                    costs[i][j] = !beliefRep.isZero(b) ?
+                            -beliefRep.rep2log(b)
+                            : Double.MAX_VALUE;
+                } else {
+                    costs[i][j] = Double.MAX_VALUE;
+                }
+            }
+        }
+    }
+
+    public double[][] setCostMatrix(int var, int val, int nbVar, int nbVal) {
+        double[][] costs = beliefs;
+        for (int j = 0; j < nbVar; j++) {
+            if (j != var) {
+                int jj = j > var ? j - 1 : j; // adjust index relative to var
+                int i = varIndices[j];
+                for (int k = 0; k < nbVal; k++) {
+                    if (k != val) {
+                        int kk = k > val ? k - 1 : k; // adjust index relative to val
+                        int v = vals[k];
+                        if (x[i].contains(v)) {
+                            double b = outsideBelief(i, v);
+
+                            costs[jj][kk] = !beliefRep.isZero(b) ?
+                                    -beliefRep.rep2log(b)
+                                    : Double.MAX_VALUE;
+                        } else {
+                            costs[jj][kk] = Double.MAX_VALUE;
+                        }
+                    }
+                }
+            }
+        }
+        return costs;
+    }
 
     public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
         double[][] costs = new double[nbVar - 1][nbVal - 1];
@@ -675,7 +734,6 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
         }
-
         return costs;
     }
 
@@ -882,8 +940,19 @@ public class AllDifferentDC extends AbstractConstraint {
         // exact permanent for matrix m without row of var and column of val
         // to be used when m is not too large
 
-        double tmp;
+        double tmp = swap(var, val, dim);
 
+        // compute permanent of m without last row & column
+        double p = permanent(beliefs, dim - 1);
+
+        // swap back
+        swapBack(var, val, dim, tmp);
+
+        return p; // that value should actually be divided by (# dummy rows)!
+    }
+
+    public double swap(int var, int val, int dim) {
+        double tmp = beliefs[var][0];
         // swap row "var" and column "val" with last row & column
         for (int j = 0; j < dim; j++) { // swap rows
             tmp = beliefs[var][j];
@@ -895,10 +964,10 @@ public class AllDifferentDC extends AbstractConstraint {
             beliefs[i][val] = beliefs[i][dim - 1];
             beliefs[i][dim - 1] = tmp;
         }
+        return tmp;
+    }
 
-        // compute permanent of m without last row & column
-        double p = permanent(beliefs, dim - 1);
-
+    public void swapBack(int var, int val, int dim, double tmp) {
         // swap back
         for (int j = 0; j < dim; j++) { // swap rows
             tmp = beliefs[var][j];
@@ -910,8 +979,6 @@ public class AllDifferentDC extends AbstractConstraint {
             beliefs[i][val] = beliefs[i][dim - 1];
             beliefs[i][dim - 1] = tmp;
         }
-
-        return p; // that value should actually be divided by (# dummy rows)!
     }
 
     // compute the permanent of a real matrix through a simple adaptation of Heap's Algorithm that generates all permutations
