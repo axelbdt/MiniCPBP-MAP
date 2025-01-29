@@ -94,6 +94,8 @@ public class AllDifferentDC extends AbstractConstraint {
     private int maxNbVar = 0;
     private int maxNbVal = 0;
 
+    private double minWeight;
+
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
         setName("AllDifferentDC");
@@ -437,6 +439,109 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
         }
+    }
+
+    public int[] lsap(int nbVar, int nbVal) {
+        // returns the assignment for minimal weight matching
+        double[] u = new double[nbVar];
+        double[] v = new double[nbVal];
+        double[][] costs = new double[nbVar][nbVal];
+        double[] shortestPathCosts = new double[nbVal];
+
+        int[] path = new int[nbVal];
+        Arrays.fill(path, -1);
+
+        int[] col4row = new int[nbVal];
+        Arrays.fill(col4row, -1);
+
+        int[] row4col = new int[nbVar];
+        Arrays.fill(row4col, -1);
+
+        boolean[] SR = new boolean[nbVal];
+        boolean[] SC = new boolean[nbVar];
+
+        int[] remaining = new int[nbVal];
+
+        for (int currentRow = 0; currentRow < nbVar; currentRow++) {
+            minWeight = 0;
+            int sink = augmentingPath(nbVal, costs, u, v, path, row4col, shortestPathCosts, currentRow, SR, SC, remaining);
+
+            // update dual variables
+            u[currentRow] += minWeight;
+            for (int i = 0; i < nbVar; i++) {
+                if (SR[i] && i != currentRow) {
+                    u[i] += minWeight - shortestPathCosts[col4row[i]];
+                }
+            }
+            for (int j = 0; j < nbVal; j++) {
+                if (SC[j]) {
+                    v[j] -= minWeight - shortestPathCosts[j];
+                }
+            }
+
+            // augment previous solution
+            int j = sink;
+            while (true) {
+                int i = path[j];
+                row4col[j] = i;
+
+                // swap rows
+                int tmp = col4row[i];
+                col4row[i] = j;
+                j = tmp;
+
+                if (i == currentRow) {
+                    break;
+                }
+            }
+        }
+        return col4row;
+    }
+
+    public int augmentingPath(int nbVal, double[][] costs, double[] u, double[] v, int[] path, int[] row4col, double[] shortestPathCosts, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
+        double minWeight = 0;
+
+        int numRemaining = nbVal;
+        for (int it = 0; it < nbVal; it++) {
+            remaining[it] = nbVal - it - 1;
+        }
+
+        Arrays.fill(SR, false);
+        Arrays.fill(SC, false);
+        Arrays.fill(shortestPathCosts, 0);
+
+        int sink = -1;
+        while (sink == -1) {
+            int index = -1;
+            double lowest = Double.POSITIVE_INFINITY;
+            SR[currentRow] = true;
+
+            for (int it = 0; it < nbVal; it++) {
+                int j = remaining[it];
+
+                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
+                if (r < shortestPathCosts[j]) {
+                    path[j] = currentRow;
+                    shortestPathCosts[j] = r;
+                }
+            }
+
+            minWeight = lowest;
+
+            int j = remaining[index];
+            if (row4col[j] == -1) {
+                sink = j;
+            } else {
+                currentRow = row4col[j];
+            }
+
+            SC[j] = true;
+            numRemaining--;
+            remaining[index] = remaining[numRemaining];
+        }
+
+        this.minWeight = minWeight;
+        return sink;
     }
 
     public double compareHungarianAlgorithms
