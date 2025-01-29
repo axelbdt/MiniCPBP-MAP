@@ -23,7 +23,6 @@ import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
-import minicpbp.util.HungarianAlgorithm;
 import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
@@ -86,9 +85,10 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] rowMax;
     private double[] rowMaxSecondBest;
 
-    private HungarianAlgorithm hungarian;
-    private double[][] reducedCosts;
-    private boolean[][] beliefComputed;
+    private double[] u;
+    private double[] v;
+    private double[] shortestPathCosts;
+
 
     private double maxBeliefDiff = 0.0;
     private int maxNbVar = 0;
@@ -161,9 +161,10 @@ public class AllDifferentDC extends AbstractConstraint {
         }
         precompute_gamma(freeVals.size());
 
-        hungarian = new HungarianAlgorithm(freeVals.size());
-        beliefComputed = new boolean[freeVals.size()][freeVals.size()];
-        reducedCosts = new double[freeVals.size()][freeVals.size()];
+        // allocate for JVC algo for maximum weight matching
+        u = new double[freeVars.size()];
+        v = new double[freeVals.size()];
+        shortestPathCosts = new double[freeVals.size()];
     }
 
     @Override
@@ -339,109 +340,7 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
 
-    // @Override
-    public void betterUpdateBeliefMaxProduct() {
-        // System.out.println("AllDifferentDC - MaxProduct");
-        int nbVar, nbVal;
-        // update freeVars/Vals according to bound variables
-        nbVar = freeVars.fillArray(varIndices);
-        for (int j = 0; j < nbVar; j++) {
-            int i = varIndices[j];
-            if (x[i].isBound()) {
-                freeVars.remove(i);
-                int val = x[i].min();
-                freeVals.remove(val);
-                // set trivial local belief for bound var...
-                setLocalBelief(i, val, beliefRep.one());
-                // ...and for other vars on that value
-                for (int k = 0; k < j; k++) {
-                    int l = varIndices[k];
-                    if (x[l].contains(val))
-                        setLocalBelief(l, val, beliefRep.zero());
-                }
-                for (int k = j + 1; k < nbVar; k++) {
-                    int l = varIndices[k];
-                    if (x[l].contains(val))
-                        setLocalBelief(l, val, beliefRep.zero());
-                }
-            }
-        }
-        nbVar = freeVars.fillArray(varIndices);
-        nbVal = freeVals.fillArray(vals);
-
-        if (nbVar > 1) {
-            // reset computed beliefs
-            for (var row : beliefComputed) {
-                Arrays.fill(row, false);
-            }
-            var allCosts = createFullCostMatrix(nbVar, nbVal);
-            hungarian.hgAlgorithmAssignments(allCosts, nbVal);
-            var reducedCosts = hungarian.getCosts();
-            int[] fullAssignment = hungarian.getAssignments();
-
-            // compute product of beliefs for assignment with all vars
-            double fullProduct = beliefRep.one();
-            for (int i = 0; i < nbVar; i++) {
-                int var = varIndices[i];
-                int j = fullAssignment[i];
-                int val = vals[j];
-                if (x[var].contains(val)) {
-                    fullProduct = beliefRep.multiply(fullProduct, outsideBelief(var, val));
-                } else {
-                    fullProduct = beliefRep.zero();
-                    break;
-                }
-            }
-            for (int i = 0; i < nbVar; i++) {
-                int var = varIndices[i];
-                int j = fullAssignment[i];
-                int val = vals[j];
-                if (x[var].contains(val)) {
-                    beliefComputed[i][j] = true;
-                    double newBelief = beliefRep.divide(fullProduct, outsideBelief(var, val));
-                    setLocalBelief(var, val, newBelief);
-
-                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
-                }
-            }
-
-            // Initialize cost matrix for Hungarian Algorithm and max matching
-            // fill array
-            for (int varIterator = 0; varIterator < nbVar; varIterator++) {
-                int var = varIndices[varIterator];
-                for (int valIterator = 0; valIterator < nbVal; valIterator++) {
-                    if (beliefComputed[varIterator][valIterator])
-                        continue;
-                    int val = vals[valIterator];
-                    if (x[var].contains(val)) {
-                        double[][] costs = createCostMatrixWithReuse(
-                                reducedCosts, varIterator, valIterator, nbVar, nbVal);
-                        hungarian.hgAlgorithmAssignments(costs, nbVal - 1);
-                        var assignments = hungarian.getAssignments();
-                        double product = beliefRep.one();
-                        for (int i = 0; i < nbVar - 1; i++) {
-                            int assVar = varIndices[i >= varIterator ? i + 1 : i];
-                            int j = assignments[i];
-                            int assVal = vals[j >= valIterator ? j + 1 : j];
-                            if (x[assVar].contains(assVal)) {
-                                product = beliefRep.multiply(product, outsideBelief(assVar, assVal));
-                            } else {
-                                product = beliefRep.zero();
-                                break;
-                            }
-                        }
-                        double newBelief = product;
-                        assert !Double.isNaN(newBelief);
-                        setLocalBelief(var, val, newBelief);
-
-                        // compareHungarianAlgorithms(varIterator, valIterator, nbVar, nbVal, newBelief);
-                    }
-                }
-            }
-        }
-    }
-
-    public int augmentingPath(int nbVal, double[][] costs, double[] u, double[] v, int[] path, int[] row4col, double[] shortestPathCosts, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
+    public int augmentingPath(int nbVal, double[][] costs, int[] path, int[] row4col, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
         double minWeight = 0;
 
         int numRemaining = nbVal;
@@ -495,9 +394,8 @@ public class AllDifferentDC extends AbstractConstraint {
 
     public double lsap(int nbVar, int nbVal, double[][] costs) {
         // returns the assignment for minimal weight matching
-        double[] u = new double[nbVar];
-        double[] v = new double[nbVal];
-        double[] shortestPathCosts = new double[nbVal];
+        Arrays.fill(u, 0);
+        Arrays.fill(v, 0);
 
         int[] path = new int[nbVal];
         Arrays.fill(path, -1);
@@ -515,7 +413,7 @@ public class AllDifferentDC extends AbstractConstraint {
 
         for (int currentRow = 0; currentRow < nbVar; currentRow++) {
             minWeight = 0;
-            int sink = augmentingPath(nbVal, costs, u, v, path, row4col, shortestPathCosts, currentRow, SR, SC, remaining);
+            int sink = augmentingPath(nbVal, costs, path, row4col, currentRow, SR, SC, remaining);
 
             // update dual variables
             u[currentRow] += minWeight;
@@ -567,57 +465,9 @@ public class AllDifferentDC extends AbstractConstraint {
         return beliefDiff;
     }
 
-    public double[][] createFullCostMatrix(int nbVar, int nbVal) {
-        // will pad to make a square
-        // doesn't allocate but fills the array in the belief field
-        double[][] costs = beliefs;
-        for (int i = 0; i < nbVar; i++) {
-            int var = varIndices[i];
-            for (int j = 0; j < nbVal; j++) {
-                int val = vals[j];
-                if (x[var].contains(val)) {
-                    double b = outsideBelief(var, val);
-                    costs[i][j] = !beliefRep.isZero(b) ?
-                            -beliefRep.rep2log(b)
-                            : Double.MAX_VALUE;
-                } else {
-                    costs[i][j] = Double.MAX_VALUE;
-                }
-            }
-        }
-        for (int i = nbVar; i < nbVal; i++) {
-            // reset costs for dummy rows
-            Arrays.fill(costs[nbVar], Double.MAX_VALUE);
-        }
-        return costs;
-    }
-
-    public double[][] createCostMatrixWithReuse
-            (double[][] reducedCosts, int var, int val, int nbVar, int nbVal) {
-        double[][] costs = this.reducedCosts;
-        for (int j = 0; j < nbVar; j++) {
-            if (j != var) {
-                int jj = j > var ? j - 1 : j; // adjust index relative to var
-                int i = varIndices[j];
-                for (int k = 0; k < nbVal; k++) {
-                    if (k != val) {
-                        int kk = k > val ? k - 1 : k; // adjust index relative to val
-                        int v = vals[k];
-                        if (x[i].contains(v)) {
-                            costs[jj][kk] = reducedCosts[j][k];
-                        } else {
-                            costs[jj][kk] = Double.MAX_VALUE;
-                        }
-                    }
-                }
-            }
-        }
-        return costs;
-    }
 
     @Override
     public void updateBeliefMaxProduct() {
-        // System.out.println("AllDifferentDC - MaxProduct");
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);
@@ -685,31 +535,6 @@ public class AllDifferentDC extends AbstractConstraint {
         }
     }
 
-    public double[][] setCostMatrix(int var, int val, int nbVar, int nbVal) {
-        double[][] costs = beliefs;
-        for (int j = 0; j < nbVar; j++) {
-            if (j != var) {
-                int jj = j > var ? j - 1 : j; // adjust index relative to var
-                int i = varIndices[j];
-                for (int k = 0; k < nbVal; k++) {
-                    if (k != val) {
-                        int kk = k > val ? k - 1 : k; // adjust index relative to val
-                        int v = vals[k];
-                        if (x[i].contains(v)) {
-                            double b = outsideBelief(i, v);
-
-                            costs[jj][kk] = !beliefRep.isZero(b) ?
-                                    -beliefRep.rep2log(b)
-                                    : Double.MAX_VALUE;
-                        } else {
-                            costs[jj][kk] = Double.MAX_VALUE;
-                        }
-                    }
-                }
-            }
-        }
-        return costs;
-    }
 
     public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
         double[][] costs = new double[nbVar - 1][nbVal - 1];
