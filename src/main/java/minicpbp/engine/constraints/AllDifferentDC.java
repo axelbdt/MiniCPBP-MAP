@@ -85,9 +85,16 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] rowMax;
     private double[] rowMaxSecondBest;
 
+    // fields for JVC algo for maximum weight matching
     private double[] u;
     private double[] v;
     private double[] shortestPathCosts;
+    int[] path;
+    int[] row4col;
+    int[] col4row;
+    boolean[] SR;
+    boolean[] SC;
+    int[] remaining;
 
 
     private double maxBeliefDiff = 0.0;
@@ -165,6 +172,12 @@ public class AllDifferentDC extends AbstractConstraint {
         u = new double[freeVars.size()];
         v = new double[freeVals.size()];
         shortestPathCosts = new double[freeVals.size()];
+        path = new int[freeVals.size()];
+        row4col = new int[freeVals.size()];
+        col4row = new int[freeVars.size()];
+        SR = new boolean[freeVals.size()];
+        SC = new boolean[freeVars.size()];
+        remaining = new int[freeVals.size()];
     }
 
     @Override
@@ -340,7 +353,8 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
 
-    public int augmentingPath(int nbVal, double[][] costs, int[] path, int[] row4col, int currentRow, boolean[] SR, boolean[] SC, int[] remaining) {
+    public int augmentingPath(int nbVal, int currentRow) {
+        double[][] costs = beliefs;
         double minWeight = 0;
 
         int numRemaining = nbVal;
@@ -392,28 +406,19 @@ public class AllDifferentDC extends AbstractConstraint {
         return sink;
     }
 
-    public double lsap(int nbVar, int nbVal, double[][] costs) {
+    public double lsap(int nbVar, int nbVal) {
+        double[][] costs = beliefs;
         // returns the assignment for minimal weight matching
         Arrays.fill(u, 0);
         Arrays.fill(v, 0);
-
-        int[] path = new int[nbVal];
         Arrays.fill(path, -1);
-
-        int[] col4row = new int[nbVal];
         Arrays.fill(col4row, -1);
-
-        int[] row4col = new int[nbVar];
         Arrays.fill(row4col, -1);
-
-        boolean[] SR = new boolean[nbVal];
-        boolean[] SC = new boolean[nbVar];
-
-        int[] remaining = new int[nbVal];
+        Arrays.fill(remaining, 0);
 
         for (int currentRow = 0; currentRow < nbVar; currentRow++) {
             minWeight = 0;
-            int sink = augmentingPath(nbVal, costs, path, row4col, currentRow, SR, SC, remaining);
+            int sink = augmentingPath(nbVal, currentRow);
 
             // update dual variables
             u[currentRow] += minWeight;
@@ -504,7 +509,7 @@ public class AllDifferentDC extends AbstractConstraint {
                     int val = vals[j];
                     if (x[var].contains(val)) {
                         double tmp = swap(i, j, nbVal);
-                        double matchingCost = lsap(nbVar - 1, nbVal - 1, beliefs);
+                        double matchingCost = lsap(nbVar - 1, nbVal - 1);
                         swapBack(i, j, nbVal, tmp);
                         double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                                 : beliefRep.log2rep(-matchingCost);
