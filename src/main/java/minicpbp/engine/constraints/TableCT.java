@@ -26,7 +26,8 @@ import java.util.BitSet;
 /**
  * Implementation of Compact Table algorithm described in
  * <p><i>Compact-Table: Efficiently Filtering Table Constraints with Reversible Sparse Bit-Sets</i>
- * Jordan Demeulenaere, Renaud Hartert, Christophe Lecoutre, Guillaume Perez, Laurent Perron, Jean-Charles Régin, Pierre Schaus
+ * Jordan Demeulenaere, Renaud Hartert, Christophe Lecoutre,Guillaume Perez,
+ * Laurent Perron, Jean-Charles Régin, Pierre Schaus
  * <p>See <a href="https://www.info.ucl.ac.be/~pschaus/assets/publi/cp2016-compacttable.pdf">The article.</a>
  */
 public class TableCT extends AbstractConstraint {
@@ -194,7 +195,11 @@ public class TableCT extends AbstractConstraint {
 
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for supported tuples.
-        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
+        for (
+                int k = supportedTuples.nextSetBit(0);
+                k >= 0;
+                k = supportedTuples.nextSetBit(k + 1)
+        ) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
                 tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
@@ -210,13 +215,21 @@ public class TableCT extends AbstractConstraint {
                 BitSet support_i_v = supports[i][v - ofs[i]];
                 // Iterate over supports[i][v] /\ supportedTuples, accumulating the weight of tuples.
                 if (!beliefRep.isZero(outsideBelief_i_v)) {
-                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = support_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = support_i_v.nextSetBit(k + 1)
+                    ) {
                         if (supportedTuples.get(k)) {
                             belief = beliefRep.add(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
                         }
                     }
                 } else { // special case of null outside belief (avoid division by zero)
-                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = support_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = support_i_v.nextSetBit(k + 1)
+                    ) {
                         if (supportedTuples.get(k)) {
                             double weight = beliefRep.one();
                             for (int i2 = 0; i2 < i; i2++) {
@@ -254,7 +267,11 @@ public class TableCT extends AbstractConstraint {
 
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for supported tuples.
-        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
+        for (
+                int k = supportedTuples.nextSetBit(0);
+                k >= 0;
+                k = supportedTuples.nextSetBit(k + 1)
+        ) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
                 tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
@@ -270,13 +287,21 @@ public class TableCT extends AbstractConstraint {
                 BitSet support_i_v = supports[i][v - ofs[i]];
                 // Iterate over supports[i][v] /\ supportedTuples, accumulating the weight of tuples.
                 if (!beliefRep.isZero(outsideBelief_i_v)) {
-                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = support_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = support_i_v.nextSetBit(k + 1)
+                    ) {
                         if (supportedTuples.get(k)) {
                             belief = Math.max(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
                         }
                     }
                 } else { // special case of null outside belief (avoid division by zero)
-                    for (int k = support_i_v.nextSetBit(0); k >= 0; k = support_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = support_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = support_i_v.nextSetBit(k + 1)
+                    ) {
                         if (supportedTuples.get(k)) {
                             double weight = beliefRep.one();
                             for (int i2 = 0; i2 < i; i2++) {
@@ -317,7 +342,11 @@ public class TableCT extends AbstractConstraint {
 
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for supported tuples.
-        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
+        for (
+                int k = supportedTuples.nextSetBit(0);
+                k >= 0;
+                k = supportedTuples.nextSetBit(k + 1)
+        ) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
                 tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));

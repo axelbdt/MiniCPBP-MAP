@@ -160,7 +160,11 @@ public class NegTableCT extends AbstractConstraint {
 
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for menacing tuples.
-        for (int k = menacing.nextSetBit(0); k >= 0; k = menacing.nextSetBit(k + 1)) {
+        for (
+                int k = menacing.nextSetBit(0);
+                k >= 0;
+                k = menacing.nextSetBit(k + 1)
+        ) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
                 tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
@@ -176,13 +180,24 @@ public class NegTableCT extends AbstractConstraint {
                 BitSet conflicts_i_v = conflicts[i][v - ofs[i]];
                 // Iterate over conflicts[i][v] /\ menacing, accumulating the weight of tuples.
                 if (!beliefRep.isZero(outsideBelief_i_v)) {
-                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = conflicts_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = conflicts_i_v.nextSetBit(k + 1)
+                    ) {
                         if (menacing.get(k)) {
-                            belief = beliefRep.add(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
+                            belief =
+                                    beliefRep.add(
+                                            belief,
+                                            beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
                         }
                     }
                 } else { // special case of null outside belief (avoid division by zero)
-                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = conflicts_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = conflicts_i_v.nextSetBit(k + 1)
+                    ) {
                         if (menacing.get(k)) {
                             double weight = beliefRep.one();
                             for (int i2 = 0; i2 < i; i2++) {
@@ -215,7 +230,11 @@ public class NegTableCT extends AbstractConstraint {
 
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for menacing tuples.
-        for (int k = menacing.nextSetBit(0); k >= 0; k = menacing.nextSetBit(k + 1)) {
+        for (
+                int k = menacing.nextSetBit(0);
+                k >= 0;
+                k = menacing.nextSetBit(k + 1)
+        ) {
             tupleWeight[k] = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
                 tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
@@ -231,13 +250,22 @@ public class NegTableCT extends AbstractConstraint {
                 BitSet conflicts_i_v = conflicts[i][v - ofs[i]];
                 // Iterate over conflicts[i][v] /\ menacing, accumulating the weight of tuples.
                 if (!beliefRep.isZero(outsideBelief_i_v)) {
-                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                    int start = conflicts_i_v.nextSetBit(0);
+                    int end = conflicts_i_v.nextSetBit(start + 1);
+                    for (int k = start; k >= 0; k = end) {
                         if (menacing.get(k)) {
-                            belief = Math.max(belief, beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
+                            belief =
+                                    Math.max(
+                                            belief,
+                                            beliefRep.divide(tupleWeight[k], outsideBelief_i_v));
                         }
                     }
                 } else { // special case of null outside belief (avoid division by zero)
-                    for (int k = conflicts_i_v.nextSetBit(0); k >= 0; k = conflicts_i_v.nextSetBit(k + 1)) {
+                    for (
+                            int k = conflicts_i_v.nextSetBit(0);
+                            k >= 0;
+                            k = conflicts_i_v.nextSetBit(k + 1)
+                    ) {
                         if (menacing.get(k)) {
                             double weight = beliefRep.one();
                             for (int i2 = 0; i2 < i; i2++) {
