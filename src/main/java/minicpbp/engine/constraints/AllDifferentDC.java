@@ -89,12 +89,12 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[] u;
     private double[] v;
     private double[] shortestPathCosts;
-    int[] path;
-    int[] row4col;
-    int[] col4row;
-    boolean[] SR;
-    boolean[] SC;
-    int[] remaining;
+    private int[] path;
+    private int[] row4col;
+    private int[] col4row;
+    private boolean[] SR;
+    private boolean[] SC;
+    private int[] remaining;
 
 
     private double maxBeliefDiff = 0.0;
@@ -473,6 +473,8 @@ public class AllDifferentDC extends AbstractConstraint {
 
     @Override
     public void updateBeliefMaxProduct() {
+        final double zeroBelief = beliefRep.zero();
+        final double oneBelief = beliefRep.one();
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);
@@ -483,58 +485,51 @@ public class AllDifferentDC extends AbstractConstraint {
                 int val = x[i].min();
                 freeVals.remove(val);
                 // set trivial local belief for bound var...
-                setLocalBelief(i, val, beliefRep.one());
+                setLocalBelief(i, val, oneBelief);
                 // ...and for other vars on that value
-                for (int k = 0; k < j; k++) {
+                for (int k = 0; k < nbVar; k++) {
+                    if (k == j) continue;
                     int l = varIndices[k];
                     if (x[l].contains(val))
-                        setLocalBelief(l, val, beliefRep.zero());
-                }
-                for (int k = j + 1; k < nbVar; k++) {
-                    int l = varIndices[k];
-                    if (x[l].contains(val))
-                        setLocalBelief(l, val, beliefRep.zero());
+                        setLocalBelief(l, val, zeroBelief);
                 }
             }
         }
+
         nbVar = freeVars.fillArray(varIndices);
         nbVal = freeVals.fillArray(vals);
+
+        if (nbVar <= 1) return;
+
         // Initialize cost matrix for JVC algo and max matching
-        // fill array
-        if (nbVar > 1) {
-            setFullCostMatrix(nbVar, nbVal);
-            for (int i = 0; i < nbVar; i++) {
-                int var = varIndices[i];
-                for (int j = 0; j < nbVal; j++) {
-                    int val = vals[j];
-                    if (x[var].contains(val)) {
-                        double tmp = swap(i, j, nbVal);
-                        double matchingCost = lsap(nbVar - 1, nbVal - 1);
-                        swapBack(i, j, nbVal, tmp);
-                        double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
-                                : beliefRep.log2rep(-matchingCost);
-                        assert !Double.isNaN(newBelief);
-
-                        compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
-                    }
-                }
-            }
-        }
-    }
-
-    public void setFullCostMatrix(int nbVar, int nbVal) {
-        double[][] costs = beliefs;
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     double b = outsideBelief(var, val);
-                    costs[i][j] = !beliefRep.isZero(b) ?
+                    beliefs[i][j] = b != zeroBelief ?
                             -beliefRep.rep2log(b)
                             : Double.MAX_VALUE;
                 } else {
-                    costs[i][j] = Double.MAX_VALUE;
+                    beliefs[i][j] = Double.MAX_VALUE;
+                }
+            }
+        }
+
+        for (int i = 0; i < nbVar; i++) {
+            int var = varIndices[i];
+            for (int j = 0; j < nbVal; j++) {
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    double tmp = swap(i, j, nbVal);
+                    double matchingCost = lsap(nbVar - 1, nbVal - 1);
+                    swapBack(i, j, nbVal, tmp);
+                    double newBelief = matchingCost == Double.MAX_VALUE ? zeroBelief
+                            : beliefRep.log2rep(-matchingCost);
+                    setLocalBelief(var, val, newBelief);
+
+                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
         }
