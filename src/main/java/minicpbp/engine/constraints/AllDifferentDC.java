@@ -23,6 +23,7 @@ import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
+import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
 import java.util.ArrayList;
@@ -398,20 +399,49 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
+        // lsap(nbVar, nbVal);
+
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
                 if (x[var].contains(val)) {
                     double tmp = swap(i, j, nbVal);
+                    // swapElem(u, i, nbVar);
+                    // swapElem(v, j, nbVal);
+                    // swapElem(path, i, nbVar);
+                    // swapElem(col4row, i, nbVar);
+                    // swapElem(row4col, i, nbVar);
+
                     double matchingCost = lsap(nbVar - 1, nbVal - 1);
+                    // double matchingCost = lsapNoReset(nbVar - 1, nbVal - 1, u, v, path, col4row, row4col);
                     swapBack(i, j, nbVal, tmp);
+                    // swapElem(u, i, nbVar);
+                    // swapElem(v, j, nbVal);
+                    // swapElem(path, i, nbVar);
+                    // swapElem(col4row, i, nbVar);
+                    // swapElem(row4col, i, nbVar);
+
                     double newBelief = matchingCost == Double.MAX_VALUE ? zeroBelief
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
+
+                    compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
         }
+    }
+
+    public void swapElem(double[] vec, int idx, int dim) {
+        double tmp = vec[dim - 1];
+        vec[dim - 1] = vec[idx];
+        vec[idx] = tmp;
+    }
+
+    public void swapElem(int[] vec, int idx, int dim) {
+        int tmp = vec[dim - 1];
+        vec[dim - 1] = vec[idx];
+        vec[idx] = tmp;
     }
 
 
@@ -419,10 +449,11 @@ public class AllDifferentDC extends AbstractConstraint {
         double[][] costs = beliefs;
         double minWeight = 0;
 
-        int numRemaining = nbVal;
+        // reset remaining
         for (int it = 0; it < nbVal; it++) {
             remaining[it] = nbVal - it - 1;
         }
+        int numRemaining = nbVal;
 
         Arrays.fill(SR, false);
         Arrays.fill(SC, false);
@@ -468,17 +499,8 @@ public class AllDifferentDC extends AbstractConstraint {
         return sink;
     }
 
-
-    public double lsap(int nbVar, int nbVal) {
+    public double lsapNoReset(int nbVar, int nbVal, double[] u, double[] v, int[] path, int[] col4row, int[] row4col) {
         double[][] costs = beliefs;
-        // returns the assignment for minimal weight matching
-        Arrays.fill(u, 0);
-        Arrays.fill(v, 0);
-        Arrays.fill(path, -1);
-        Arrays.fill(col4row, -1);
-        Arrays.fill(row4col, -1);
-        Arrays.fill(remaining, 0);
-
         for (int currentRow = 0; currentRow < nbVar; currentRow++) {
             minWeight = 0;
             int sink = augmentingPath(nbVal, currentRow);
@@ -518,6 +540,55 @@ public class AllDifferentDC extends AbstractConstraint {
             weight += costs[i][col4row[i]];
         }
         return weight;
+    }
+
+    public double lsap(int nbVar, int nbVal) {
+        // returns the assignment for minimal weight matching
+        Arrays.fill(u, 0);
+        Arrays.fill(v, 0);
+        Arrays.fill(path, -1);
+        Arrays.fill(col4row, -1);
+        Arrays.fill(row4col, -1);
+
+        return lsapNoReset(nbVar, nbVal, u, v, path, col4row, row4col);
+    }
+
+    public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
+        double[][] costs = new double[nbVar - 1][nbVal - 1];
+        for (int j = 0; j < nbVar; j++) {
+            if (j != var) {
+                int jj = j > var ? j - 1 : j; // adjust index relative to var
+                int i = varIndices[j];
+                for (int k = 0; k < nbVal; k++) {
+                    if (k != val) {
+                        int kk = k > val ? k - 1 : k; // adjust index relative to val
+                        int v = vals[k];
+                        if (x[i].contains(v)) {
+                            double b = outsideBelief(i, v);
+
+                            costs[jj][kk] = !beliefRep.isZero(b) ?
+                                    -beliefRep.rep2log(b)
+                                    : Double.MAX_VALUE;
+                        } else {
+                            costs[jj][kk] = Double.MAX_VALUE;
+                        }
+                    }
+                }
+            }
+        }
+        return costs;
+    }
+
+    public double compareHungarianAlgorithms
+            (int i, int j, int nbVar, int nbVal, double newBelief) {
+        // Compare with old hungarian algorithm
+        double[][] oldCosts = createCostMatrix(i, j, nbVar, nbVal);
+        double oldMatchingCost = OldHungarianAlgorithm.hgAlgorithm(oldCosts, "min");
+        double oldNewBelief = oldMatchingCost == Double.MAX_VALUE ? beliefRep.zero()
+                : beliefRep.log2rep(-oldMatchingCost);
+        double beliefDiff = Math.abs(newBelief - oldNewBelief);
+        cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
+        return beliefDiff;
     }
 
 
