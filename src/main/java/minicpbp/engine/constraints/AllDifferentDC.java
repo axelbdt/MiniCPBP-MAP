@@ -23,7 +23,6 @@ import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
-import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
 import java.util.ArrayList;
@@ -353,124 +352,6 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
 
-    public int augmentingPath(int nbVal, int currentRow) {
-        double[][] costs = beliefs;
-        double minWeight = 0;
-
-        int numRemaining = nbVal;
-        for (int it = 0; it < nbVal; it++) {
-            remaining[it] = nbVal - it - 1;
-        }
-
-        Arrays.fill(SR, false);
-        Arrays.fill(SC, false);
-        Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
-
-        int sink = -1;
-        while (sink == -1) {
-            int index = -1;
-            double lowest = Double.POSITIVE_INFINITY;
-            SR[currentRow] = true;
-
-            for (int it = 0; it < numRemaining; it++) {
-                int j = remaining[it];
-
-                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
-                if (r < shortestPathCosts[j]) {
-                    path[j] = currentRow;
-                    shortestPathCosts[j] = r;
-                }
-
-                if (shortestPathCosts[j] < lowest ||
-                        (shortestPathCosts[j] == lowest && row4col[j] == -1)) {
-                    lowest = shortestPathCosts[j];
-                    index = it;
-                }
-            }
-
-            minWeight = lowest;
-
-            int j = remaining[index];
-            if (row4col[j] == -1) {
-                sink = j;
-            } else {
-                currentRow = row4col[j];
-            }
-
-            SC[j] = true;
-            numRemaining--;
-            remaining[index] = remaining[numRemaining];
-        }
-
-        this.minWeight = minWeight;
-        return sink;
-    }
-
-    public double lsap(int nbVar, int nbVal) {
-        double[][] costs = beliefs;
-        // returns the assignment for minimal weight matching
-        Arrays.fill(u, 0);
-        Arrays.fill(v, 0);
-        Arrays.fill(path, -1);
-        Arrays.fill(col4row, -1);
-        Arrays.fill(row4col, -1);
-        Arrays.fill(remaining, 0);
-
-        for (int currentRow = 0; currentRow < nbVar; currentRow++) {
-            minWeight = 0;
-            int sink = augmentingPath(nbVal, currentRow);
-
-            // update dual variables
-            u[currentRow] += minWeight;
-            for (int i = 0; i < nbVar; i++) {
-                if (SR[i] && i != currentRow) {
-                    u[i] += minWeight - shortestPathCosts[col4row[i]];
-                }
-            }
-            for (int j = 0; j < nbVal; j++) {
-                if (SC[j]) {
-                    v[j] -= minWeight - shortestPathCosts[j];
-                }
-            }
-
-            // augment previous solution
-            int j = sink;
-            while (true) {
-                int i = path[j];
-                row4col[j] = i;
-
-                // swap rows
-                int tmp = col4row[i];
-                col4row[i] = j;
-                j = tmp;
-
-                if (i == currentRow) {
-                    break;
-                }
-            }
-        }
-
-        double weight = 0;
-        for (int i = 0; i < nbVar; i++) {
-            weight += costs[i][col4row[i]];
-        }
-        return weight;
-    }
-
-
-    public double compareHungarianAlgorithms
-            (int i, int j, int nbVar, int nbVal, double newBelief) {
-        // Compare with old hungarian algorithm
-        double[][] oldCosts = createCostMatrix(i, j, nbVar, nbVal);
-        double oldMatchingCost = OldHungarianAlgorithm.hgAlgorithm(oldCosts, "min");
-        double oldNewBelief = oldMatchingCost == Double.MAX_VALUE ? beliefRep.zero()
-                : beliefRep.log2rep(-oldMatchingCost);
-        double beliefDiff = Math.abs(newBelief - oldNewBelief);
-        cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
-        return beliefDiff;
-    }
-
-
     @Override
     public void updateBeliefMaxProduct() {
         final double zeroBelief = beliefRep.zero();
@@ -528,39 +409,117 @@ public class AllDifferentDC extends AbstractConstraint {
                     double newBelief = matchingCost == Double.MAX_VALUE ? zeroBelief
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
-
-                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
         }
     }
 
 
-    public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
-        double[][] costs = new double[nbVar - 1][nbVal - 1];
-        for (int j = 0; j < nbVar; j++) {
-            if (j != var) {
-                int jj = j > var ? j - 1 : j; // adjust index relative to var
-                int i = varIndices[j];
-                for (int k = 0; k < nbVal; k++) {
-                    if (k != val) {
-                        int kk = k > val ? k - 1 : k; // adjust index relative to val
-                        int v = vals[k];
-                        if (x[i].contains(v)) {
-                            double b = outsideBelief(i, v);
+    public int augmentingPath(int nbVal, int currentRow) {
+        double[][] costs = beliefs;
+        double minWeight = 0;
 
-                            costs[jj][kk] = !beliefRep.isZero(b) ?
-                                    -beliefRep.rep2log(b)
-                                    : Double.MAX_VALUE;
-                        } else {
-                            costs[jj][kk] = Double.MAX_VALUE;
-                        }
-                    }
+        int numRemaining = nbVal;
+        for (int it = 0; it < nbVal; it++) {
+            remaining[it] = nbVal - it - 1;
+        }
+
+        Arrays.fill(SR, false);
+        Arrays.fill(SC, false);
+        Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
+
+        int sink = -1;
+        while (sink == -1) {
+            int index = -1;
+            double lowest = Double.POSITIVE_INFINITY;
+            SR[currentRow] = true;
+
+            for (int it = 0; it < numRemaining; it++) {
+                int j = remaining[it];
+
+                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
+                if (r < shortestPathCosts[j]) {
+                    path[j] = currentRow;
+                    shortestPathCosts[j] = r;
+                }
+
+                if (shortestPathCosts[j] < lowest ||
+                        (shortestPathCosts[j] == lowest && row4col[j] == -1)) {
+                    lowest = shortestPathCosts[j];
+                    index = it;
+                }
+            }
+
+            minWeight = lowest;
+
+            int j = remaining[index];
+            if (row4col[j] == -1) {
+                sink = j;
+            } else {
+                currentRow = row4col[j];
+            }
+
+            SC[j] = true;
+            numRemaining--;
+            remaining[index] = remaining[numRemaining];
+        }
+
+        this.minWeight = minWeight;
+        return sink;
+    }
+
+
+    public double lsap(int nbVar, int nbVal) {
+        double[][] costs = beliefs;
+        // returns the assignment for minimal weight matching
+        Arrays.fill(u, 0);
+        Arrays.fill(v, 0);
+        Arrays.fill(path, -1);
+        Arrays.fill(col4row, -1);
+        Arrays.fill(row4col, -1);
+        Arrays.fill(remaining, 0);
+
+        for (int currentRow = 0; currentRow < nbVar; currentRow++) {
+            minWeight = 0;
+            int sink = augmentingPath(nbVal, currentRow);
+
+            // update dual variables
+            u[currentRow] += minWeight;
+            for (int i = 0; i < nbVar; i++) {
+                if (SR[i] && i != currentRow) {
+                    u[i] += minWeight - shortestPathCosts[col4row[i]];
+                }
+            }
+            for (int j = 0; j < nbVal; j++) {
+                if (SC[j]) {
+                    v[j] -= minWeight - shortestPathCosts[j];
+                }
+            }
+
+            // augment previous solution
+            int j = sink;
+            while (true) {
+                int i = path[j];
+                row4col[j] = i;
+
+                // swap rows
+                int tmp = col4row[i];
+                col4row[i] = j;
+                j = tmp;
+
+                if (i == currentRow) {
+                    break;
                 }
             }
         }
-        return costs;
+
+        double weight = 0;
+        for (int i = 0; i < nbVar; i++) {
+            weight += costs[i][col4row[i]];
+        }
+        return weight;
     }
+
 
     @Override
     public double weightedCounting() {
