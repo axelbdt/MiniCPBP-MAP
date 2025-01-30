@@ -95,13 +95,25 @@ public class AllDifferentDC extends AbstractConstraint {
     private boolean[] SR;
     private boolean[] SC;
     private int[] remaining;
+    private double[] minWeight;
+
+    // fileds for a second JVC algo
+    private double[] u2;
+    private double[] v2;
+    private double[] shortestPathCosts2;
+    private int[] path2;
+    private int[] row4col2;
+    private int[] col4row2;
+    private boolean[] SR2;
+    private boolean[] SC2;
+    private int[] remaining2;
+    private double[] minWeight2;
 
 
     private double maxBeliefDiff = 0.0;
     private int maxNbVar = 0;
     private int maxNbVal = 0;
 
-    private double minWeight;
 
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
@@ -178,6 +190,19 @@ public class AllDifferentDC extends AbstractConstraint {
         SR = new boolean[freeVals.size()];
         SC = new boolean[freeVars.size()];
         remaining = new int[freeVals.size()];
+        minWeight = new double[1];
+
+        // allocate for second JVC algo for maximum weight matching
+        u2 = new double[freeVars.size()];
+        v2 = new double[freeVals.size()];
+        shortestPathCosts2 = new double[freeVals.size()];
+        path2 = new int[freeVals.size()];
+        row4col2 = new int[freeVals.size()];
+        col4row2 = new int[freeVars.size()];
+        SR2 = new boolean[freeVals.size()];
+        SC2 = new boolean[freeVars.size()];
+        remaining2 = new int[freeVals.size()];
+        minWeight2 = new double[1];
     }
 
     @Override
@@ -399,7 +424,7 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
-        // lsap(nbVar, nbVal);
+        // lsap(nbVar, nbVal, u, v, shortestPathCosts, path, col4row, row4col, SR, SC, remaining, minWeight);
 
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
@@ -413,7 +438,20 @@ public class AllDifferentDC extends AbstractConstraint {
                     // swapElem(col4row, i, nbVar);
                     // swapElem(row4col, i, nbVar);
 
-                    double matchingCost = lsap(nbVar - 1, nbVal - 1);
+                    double matchingCost = lsap(
+                            nbVar - 1,
+                            nbVal - 1,
+                            u,
+                            v,
+                            shortestPathCosts,
+                            path,
+                            col4row,
+                            row4col,
+                            SR,
+                            SC,
+                            remaining,
+                            minWeight
+                    );
                     // double matchingCost = lsapNoReset(nbVar - 1, nbVal - 1, u, v, path, col4row, row4col);
                     swapBack(i, j, nbVal, tmp);
                     // swapElem(u, i, nbVar);
@@ -447,7 +485,7 @@ public class AllDifferentDC extends AbstractConstraint {
 
     public int augmentingPath(int nbVal, int currentRow) {
         double[][] costs = beliefs;
-        double minWeight = 0;
+        double newMinWeight = 0;
 
         // reset remaining
         for (int it = 0; it < nbVal; it++) {
@@ -468,7 +506,7 @@ public class AllDifferentDC extends AbstractConstraint {
             for (int it = 0; it < numRemaining; it++) {
                 int j = remaining[it];
 
-                double r = minWeight + costs[currentRow][j] - u[currentRow] - v[j];
+                double r = newMinWeight + costs[currentRow][j] - u[currentRow] - v[j];
                 if (r < shortestPathCosts[j]) {
                     path[j] = currentRow;
                     shortestPathCosts[j] = r;
@@ -481,7 +519,7 @@ public class AllDifferentDC extends AbstractConstraint {
                 }
             }
 
-            minWeight = lowest;
+            newMinWeight = lowest;
 
             int j = remaining[index];
             if (row4col[j] == -1) {
@@ -495,26 +533,39 @@ public class AllDifferentDC extends AbstractConstraint {
             remaining[index] = remaining[numRemaining];
         }
 
-        this.minWeight = minWeight;
+        minWeight[0] = newMinWeight;
         return sink;
     }
 
-    public double lsapNoReset(int nbVar, int nbVal, double[] u, double[] v, int[] path, int[] col4row, int[] row4col) {
+    public double lsapNoReset(
+            int nbVar,
+            int nbVal,
+            double[] u,
+            double[] v,
+            double[] shortestPathCosts,
+            int[] path,
+            int[] col4row,
+            int[] row4col,
+            boolean[] SR,
+            boolean[] SC,
+            int[] remaining,
+            double[] minWeight
+    ) {
         double[][] costs = beliefs;
         for (int currentRow = 0; currentRow < nbVar; currentRow++) {
-            minWeight = 0;
+            minWeight[0] = 0;
             int sink = augmentingPath(nbVal, currentRow);
 
             // update dual variables
-            u[currentRow] += minWeight;
+            u[currentRow] += minWeight[0];
             for (int i = 0; i < nbVar; i++) {
                 if (SR[i] && i != currentRow) {
-                    u[i] += minWeight - shortestPathCosts[col4row[i]];
+                    u[i] += minWeight[0] - shortestPathCosts[col4row[i]];
                 }
             }
             for (int j = 0; j < nbVal; j++) {
                 if (SC[j]) {
-                    v[j] -= minWeight - shortestPathCosts[j];
+                    v[j] -= minWeight[0] - shortestPathCosts[j];
                 }
             }
 
@@ -542,7 +593,20 @@ public class AllDifferentDC extends AbstractConstraint {
         return weight;
     }
 
-    public double lsap(int nbVar, int nbVal) {
+    public double lsap(
+            int nbVar,
+            int nbVal,
+            double[] u,
+            double[] v,
+            double[] shortestPathCosts,
+            int[] path,
+            int[] col4row,
+            int[] row4col,
+            boolean[] SR,
+            boolean[] SC,
+            int[] remaining,
+            double[] minWeight
+    ) {
         // returns the assignment for minimal weight matching
         Arrays.fill(u, 0);
         Arrays.fill(v, 0);
@@ -550,7 +614,7 @@ public class AllDifferentDC extends AbstractConstraint {
         Arrays.fill(col4row, -1);
         Arrays.fill(row4col, -1);
 
-        return lsapNoReset(nbVar, nbVal, u, v, path, col4row, row4col);
+        return lsapNoReset(nbVar, nbVal, u, v, shortestPathCosts, path, col4row, row4col, SR, SC, remaining, minWeight);
     }
 
     public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
