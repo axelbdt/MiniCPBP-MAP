@@ -1,0 +1,53 @@
+
+usage: solve-XCSP
+    --branching <STRATEGY>                 branching strategy.
+                                           Valid branching strategies are:
+                                           "dom-wdeg",
+                                           "first-fail-random-value",
+                                           "impact-based-search",
+                                           "impact-entropy",
+                                           "impact-min-entropy",
+                                           "max-marginal",
+                                           "max-marginal-strength",
+                                           "min-entropy",
+                                           "min-entropy-biased",
+                                           "min-marginal",
+                                           "min-marginal-strength"
+    --cutoff <CUTOF>                       number of failure before
+                                           restart
+    --damp-messages                        damp messages
+    --damping-factor <LAMBDA>              the damping factor used for
+                                           damping the messages
+    --dynamic-stop                         BP iterations are stopped
+                                           dynamically instead of a fixed
+                                           number of iteration
+    --init-impact                          initialize impact before search
+    --input <FILE>                         input FZN or XCSP file
+    --max-iter <ITERATIONS>                maximum number of belief
+                                           propagation iterations
+    --restart                              authorized restart during
+                                           search (available with dfs
+                                           only)
+    --restart-factor <restartFactor>       factor to increase number of
+                                           failure before restart
+    --search-type <SEARCH>                 search type.
+                                           Valid search types are:
+                                           "dfs",
+                                           "lds"
+    --solution <FILE>                      file for storing the solution
+    --stats <FILE>                         file for storing the statistics
+    --timeout <SECONDS>                    timeout in seconds
+    --trace-bp                             trace the belief propagation
+                                           progress
+    --trace-entropy                        trace the evolution of model's
+                                           entropy after each BP iteration
+    --trace-iter                           trace the number of BP
+                                           iterations before each
+                                           branching
+    --trace-search                         trace the search progress
+    --var-threshold <variationThreshold>   threshold on entropy's
+                                           variation under to stop belief
+                                           propagation
+    --verify                               check the correctness of
+                                           obtained solution
+

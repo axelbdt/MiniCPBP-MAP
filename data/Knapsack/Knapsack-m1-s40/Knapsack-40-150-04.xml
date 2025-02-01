@@ -1,0 +1,18 @@
+<instance format="XCSP3" type="COP">
+  <variables>
+    <array id="x" size="[40]"> 0 1 </array>
+  </variables>
+  <constraints>
+    <sum>
+      <list> x[] </list>
+      <coeffs> 35 25 17 21 29 15 7 12 5 4 33 25 21 3 23 13 8 7 25 7 5 10 31 33 2 24 1 36 32 31 34 6 10 30 18 37 34 4 1 31 </coeffs>
+      <condition> (le,150) </condition>
+    </sum>
+  </constraints>
+  <objectives>
+    <maximize type="sum">
+      <list> x[] </list>
+      <coeffs> 29 67 96 3 62 97 7 42 65 49 45 50 54 81 74 83 59 10 87 95 87 89 27 3 10 36 78 2 37 10 28 45 48 76 60 3 76 92 99 24 </coeffs>
+    </maximize>
+  </objectives>
+</instance>

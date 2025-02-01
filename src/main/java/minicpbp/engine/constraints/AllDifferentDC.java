@@ -26,10 +26,7 @@ import minicpbp.util.GraphUtil.Graph;
 import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Domain Consistent AllDifferent Constraint
@@ -96,6 +93,9 @@ public class AllDifferentDC extends AbstractConstraint {
     private boolean[] SC;
     private int[] remaining;
     private double[] minWeight;
+
+    private PriorityQueue<Double> pq;
+
 
     // fileds for a second JVC algo
     private double[] u2;
@@ -191,6 +191,8 @@ public class AllDifferentDC extends AbstractConstraint {
         SC = new boolean[freeVars.size()];
         remaining = new int[freeVals.size()];
         minWeight = new double[1];
+
+        pq = new PriorityQueue<>(freeVals.size());
 
         // allocate for second JVC algo for maximum weight matching
         u2 = new double[freeVars.size()];
@@ -464,7 +466,7 @@ public class AllDifferentDC extends AbstractConstraint {
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
 
-                    compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
+                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
         }
@@ -488,6 +490,7 @@ public class AllDifferentDC extends AbstractConstraint {
         double newMinWeight = 0;
 
         // reset remaining
+        // remaining is the set of values not visited yet (not in SC)
         for (int it = 0; it < nbVal; it++) {
             remaining[it] = nbVal - it - 1;
         }
@@ -503,11 +506,16 @@ public class AllDifferentDC extends AbstractConstraint {
             double lowest = Double.POSITIVE_INFINITY;
             SR[currentRow] = true;
 
+            // Find the shortest augmenting path from currentRow
+            // index is the value assigned to currentRow
             for (int it = 0; it < numRemaining; it++) {
-                int j = remaining[it];
+                int j = remaining[it]; // select a value to visit
 
+                // r is the cost of the path if we assign value j to the current row
                 double r = newMinWeight + costs[currentRow][j] - u[currentRow] - v[j];
                 if (r < shortestPathCosts[j]) {
+                    // if this is the shortest path so far,
+                    // we do assign value j to current row
                     path[j] = currentRow;
                     shortestPathCosts[j] = r;
                 }
@@ -521,14 +529,15 @@ public class AllDifferentDC extends AbstractConstraint {
 
             newMinWeight = lowest;
 
-            int j = remaining[index];
-            if (row4col[j] == -1) {
-                sink = j;
+            // check if we arrived to an unassigned value
+            int endVal = remaining[index];
+            if (row4col[endVal] == -1) {
+                sink = endVal;
             } else {
-                currentRow = row4col[j];
+                currentRow = row4col[endVal];
             }
 
-            SC[j] = true;
+            SC[endVal] = true; // mark end value as visited
             numRemaining--;
             remaining[index] = remaining[numRemaining];
         }
