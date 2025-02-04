@@ -26,7 +26,10 @@ import minicpbp.util.GraphUtil.Graph;
 import minicpbp.util.OldHungarianAlgorithm;
 import minicpbp.util.exception.InconsistencyException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Domain Consistent AllDifferent Constraint
@@ -93,27 +96,11 @@ public class AllDifferentDC extends AbstractConstraint {
     private boolean[] SC;
     private int[] remaining;
     private double[] minWeight;
+    private double[] costRow;
 
-    private PriorityQueue<Double> pq;
-
-
-    // fileds for a second JVC algo
-    private double[] u2;
-    private double[] v2;
-    private double[] shortestPathCosts2;
-    private int[] path2;
-    private int[] row4col2;
-    private int[] col4row2;
-    private boolean[] SR2;
-    private boolean[] SC2;
-    private int[] remaining2;
-    private double[] minWeight2;
-
-
-    private double maxBeliefDiff = 0.0;
-    private int maxNbVar = 0;
-    private int maxNbVal = 0;
-
+    private int[] pathBackUp;
+    private int[] row4colBackUp;
+    private int[] col4rowBackUp;
 
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
@@ -191,20 +178,10 @@ public class AllDifferentDC extends AbstractConstraint {
         SC = new boolean[freeVars.size()];
         remaining = new int[freeVals.size()];
         minWeight = new double[1];
-
-        pq = new PriorityQueue<>(freeVals.size());
-
-        // allocate for second JVC algo for maximum weight matching
-        u2 = new double[freeVars.size()];
-        v2 = new double[freeVals.size()];
-        shortestPathCosts2 = new double[freeVals.size()];
-        path2 = new int[freeVals.size()];
-        row4col2 = new int[freeVals.size()];
-        col4row2 = new int[freeVars.size()];
-        SR2 = new boolean[freeVals.size()];
-        SC2 = new boolean[freeVars.size()];
-        remaining2 = new int[freeVals.size()];
-        minWeight2 = new double[1];
+        costRow = new double[freeVals.size()];
+        pathBackUp = new int[freeVals.size()];
+        row4colBackUp = new int[freeVals.size()];
+        col4rowBackUp = new int[freeVars.size()];
     }
 
     @Override
@@ -382,8 +359,6 @@ public class AllDifferentDC extends AbstractConstraint {
 
     @Override
     public void updateBeliefMaxProduct() {
-        final double zeroBelief = beliefRep.zero();
-        final double oneBelief = beliefRep.one();
         int nbVar, nbVal;
         // update freeVars/Vals according to bound variables
         nbVar = freeVars.fillArray(varIndices);
@@ -394,17 +369,20 @@ public class AllDifferentDC extends AbstractConstraint {
                 int val = x[i].min();
                 freeVals.remove(val);
                 // set trivial local belief for bound var...
-                setLocalBelief(i, val, oneBelief);
+                setLocalBelief(i, val, beliefRep.one());
                 // ...and for other vars on that value
-                for (int k = 0; k < nbVar; k++) {
-                    if (k == j) continue;
+                for (int k = 0; k < j; k++) {
                     int l = varIndices[k];
                     if (x[l].contains(val))
-                        setLocalBelief(l, val, zeroBelief);
+                        setLocalBelief(l, val, beliefRep.zero());
+                }
+                for (int k = j + 1; k < nbVar; k++) {
+                    int l = varIndices[k];
+                    if (x[l].contains(val))
+                        setLocalBelief(l, val, beliefRep.zero());
                 }
             }
         }
-
         nbVar = freeVars.fillArray(varIndices);
         nbVal = freeVals.fillArray(vals);
 
@@ -415,92 +393,111 @@ public class AllDifferentDC extends AbstractConstraint {
             int var = varIndices[i];
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
-                if (x[var].contains(val)) {
-                    double b = outsideBelief(var, val);
-                    beliefs[i][j] = b != zeroBelief ?
-                            -beliefRep.rep2log(b)
-                            : Double.MAX_VALUE;
-                } else {
-                    beliefs[i][j] = Double.MAX_VALUE;
-                }
+                beliefs[i][j] = x[var].contains(val) && !beliefRep.isZero(outsideBelief(var, val)) ?
+                        -beliefRep.rep2log(outsideBelief(var, val))
+                        : Double.MAX_VALUE;
             }
         }
 
-        // lsap(nbVar, nbVal, u, v, shortestPathCosts, path, col4row, row4col, SR, SC, remaining, minWeight);
-
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
+            swapRow(i, nbVar);
+            lsap(nbVar - 1, nbVal);
+            System.arraycopy(path, 0, pathBackUp, 0, nbVar);
+            System.arraycopy(row4col, 0, row4colBackUp, 0, nbVar);
+            System.arraycopy(col4row, 0, col4rowBackUp, 0, nbVar);
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
                 if (x[var].contains(val)) {
-                    double tmp = swap(i, j, nbVal);
-                    // swapElem(u, i, nbVar);
-                    // swapElem(v, j, nbVal);
-                    // swapElem(path, i, nbVar);
-                    // swapElem(col4row, i, nbVar);
-                    // swapElem(row4col, i, nbVar);
+                    // augmenting path starting with edge from i to j
+                    int sink = augmentingPath(nbVal, nbVar - 1, j);
 
-                    double matchingCost = lsap(
-                            nbVar - 1,
-                            nbVal - 1,
-                            u,
-                            v,
-                            shortestPathCosts,
-                            path,
-                            col4row,
-                            row4col,
-                            SR,
-                            SC,
-                            remaining,
-                            minWeight
-                    );
-                    // double matchingCost = lsapNoReset(nbVar - 1, nbVal - 1, u, v, path, col4row, row4col);
-                    swapBack(i, j, nbVal, tmp);
-                    // swapElem(u, i, nbVar);
-                    // swapElem(v, j, nbVal);
-                    // swapElem(path, i, nbVar);
-                    // swapElem(col4row, i, nbVar);
-                    // swapElem(row4col, i, nbVar);
+                    // augment partial solution
+                    if (sink != j) {
+                        int l = sink;
+                        while (true) {
+                            int k = path[l];
+                            row4col[l] = k;
 
-                    double newBelief = matchingCost == Double.MAX_VALUE ? zeroBelief
+                            // swap col4row[k] and l
+                            int tmp = col4row[k];
+                            col4row[k] = l;
+                            l = tmp;
+
+                            if (k == nbVar - 1) {
+                                break;
+                            }
+                        }
+                    }
+                    // compute matching cost for n - 1 vars
+                    double matchingCost = assignmentScore(nbVar - 1);
+                    if (j < nbVal - 1) {
+                        System.arraycopy(pathBackUp, 0, path, 0, nbVar);
+
+                        if (sink != j) {
+                            System.arraycopy(row4colBackUp, 0, row4col, 0, nbVal);
+                            System.arraycopy(col4rowBackUp, 0, col4row, 0, nbVar);
+                        }
+                    }
+
+                    double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
 
                     // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
+            swapRow(i, nbVar);
         }
     }
 
-    public void swapElem(double[] vec, int idx, int dim) {
-        double tmp = vec[dim - 1];
-        vec[dim - 1] = vec[idx];
-        vec[idx] = tmp;
-    }
-
-    public void swapElem(int[] vec, int idx, int dim) {
-        int tmp = vec[dim - 1];
-        vec[dim - 1] = vec[idx];
-        vec[idx] = tmp;
-    }
-
-
-    public int augmentingPath(int nbVal, int currentRow) {
-        double[][] costs = beliefs;
+    public int augmentingPath(int nbVal, int currentRow, int assignedVal) {
+        // CAUTION: mutates the following
+        // path
+        // CAUTION: resets the following
+        // SR, SC, remaining, minWeight, shortestPathCosts
         double newMinWeight = 0;
-
-        // reset remaining
-        // remaining is the set of values not visited yet (not in SC)
-        for (int it = 0; it < nbVal; it++) {
-            remaining[it] = nbVal - it - 1;
-        }
-        int numRemaining = nbVal;
 
         Arrays.fill(SR, false);
         Arrays.fill(SC, false);
         Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
 
+        // reset remaining
+        // remaining is the set of values not visited yet (not in SC)
+        int assignedIndex = -1;
+        for (int it = 0; it < nbVal; it++) {
+            int remainingVal = nbVal - it - 1;
+            remaining[it] = remainingVal;
+            if (remainingVal == assignedVal) {
+                assignedIndex = it;
+            }
+        }
+        int numRemaining = nbVal;
+
         int sink = -1;
+        if (assignedIndex != -1) {
+            SR[currentRow] = true;
+
+            // Find the shortest augmenting path from currentRow
+            // index is the value assigned to currentRow
+            int j = assignedVal; // select a value to visit
+            path[j] = currentRow;
+            shortestPathCosts[j] = 0;
+            newMinWeight = 0;
+            int index = assignedIndex;
+
+            // check if we arrived to an unassigned value
+            if (row4col[j] == -1) {
+                sink = j;
+            } else {
+                currentRow = row4col[j];
+            }
+
+            SC[j] = true; // mark end value as visited
+            numRemaining--;
+            remaining[index] = remaining[numRemaining];
+        }
+
         while (sink == -1) {
             int index = -1;
             double lowest = Double.POSITIVE_INFINITY;
@@ -512,7 +509,7 @@ public class AllDifferentDC extends AbstractConstraint {
                 int j = remaining[it]; // select a value to visit
 
                 // r is the cost of the path if we assign value j to the current row
-                double r = newMinWeight + costs[currentRow][j] - u[currentRow] - v[j];
+                double r = newMinWeight + beliefs[currentRow][j] - u[currentRow] - v[j];
                 if (r < shortestPathCosts[j]) {
                     // if this is the shortest path so far,
                     // we do assign value j to current row
@@ -546,24 +543,28 @@ public class AllDifferentDC extends AbstractConstraint {
         return sink;
     }
 
-    public double lsapNoReset(
-            int nbVar,
-            int nbVal,
-            double[] u,
-            double[] v,
-            double[] shortestPathCosts,
-            int[] path,
-            int[] col4row,
-            int[] row4col,
-            boolean[] SR,
-            boolean[] SC,
-            int[] remaining,
-            double[] minWeight
-    ) {
-        double[][] costs = beliefs;
+    public double assignmentScore(int nbVar) {
+        double weight = 0;
+        for (int i = 0; i < nbVar; i++) {
+            weight += beliefs[i][col4row[i]];
+        }
+        if (weight > 1e300) {
+            int dummy = 0;
+        }
+        return weight;
+    }
+
+    public int[] lsap(int nbVar, int nbVal) {
+        // returns the assignment for minimal weight matching
+        Arrays.fill(u, 0);
+        Arrays.fill(v, 0);
+        Arrays.fill(path, -1);
+        Arrays.fill(col4row, -1);
+        Arrays.fill(row4col, -1);
+
         for (int currentRow = 0; currentRow < nbVar; currentRow++) {
             minWeight[0] = 0;
-            int sink = augmentingPath(nbVal, currentRow);
+            int sink = augmentingPath(nbVal, currentRow, -1);
 
             // update dual variables
             u[currentRow] += minWeight[0];
@@ -595,35 +596,7 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
-        double weight = 0;
-        for (int i = 0; i < nbVar; i++) {
-            weight += costs[i][col4row[i]];
-        }
-        return weight;
-    }
-
-    public double lsap(
-            int nbVar,
-            int nbVal,
-            double[] u,
-            double[] v,
-            double[] shortestPathCosts,
-            int[] path,
-            int[] col4row,
-            int[] row4col,
-            boolean[] SR,
-            boolean[] SC,
-            int[] remaining,
-            double[] minWeight
-    ) {
-        // returns the assignment for minimal weight matching
-        Arrays.fill(u, 0);
-        Arrays.fill(v, 0);
-        Arrays.fill(path, -1);
-        Arrays.fill(col4row, -1);
-        Arrays.fill(row4col, -1);
-
-        return lsapNoReset(nbVar, nbVal, u, v, shortestPathCosts, path, col4row, row4col, SR, SC, remaining, minWeight);
+        return col4row;
     }
 
     public double[][] createCostMatrix(int var, int val, int nbVar, int nbVal) {
@@ -660,6 +633,9 @@ public class AllDifferentDC extends AbstractConstraint {
         double oldNewBelief = oldMatchingCost == Double.MAX_VALUE ? beliefRep.zero()
                 : beliefRep.log2rep(-oldMatchingCost);
         double beliefDiff = Math.abs(newBelief - oldNewBelief);
+        if (beliefDiff > 0.001 || oldMatchingCost > 1e300) {
+            int dummy = 0;
+        }
         cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
         return beliefDiff;
     }
@@ -877,6 +853,15 @@ public class AllDifferentDC extends AbstractConstraint {
         swapBack(var, val, dim, tmp);
 
         return p; // that value should actually be divided by (# dummy rows)!
+    }
+
+    public void swapRow(int i, int dim) {
+        for (int j = 0; j < dim; j++) {
+            double tmp = beliefs[i][j];
+            beliefs[i][j] = beliefs[dim - 1][j];
+            beliefs[dim - 1][j] = tmp;
+        }
+
     }
 
     public double swap(int var, int val, int dim) {

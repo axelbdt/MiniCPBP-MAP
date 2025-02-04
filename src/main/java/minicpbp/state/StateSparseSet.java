@@ -36,10 +36,10 @@ public class StateSparseSet {
     /**
      * Creates a set containing the elements {@code {ofs,ofs+1,...,ofs+n-1}}.
      *
-     * @param sm the state manager that will save and restore the set when
-     *        {@link StateManager#saveState()} / {@link StateManager#restoreState()}
-     *           mehtods are called
-     * @param n  the number of elements in the set
+     * @param sm  the state manager that will save and restore the set when
+     *            {@link StateManager#saveState()} / {@link StateManager#restoreState()}
+     *            mehtods are called
+     * @param n   the number of elements in the set
      * @param ofs the minimum value in the set containing {@code {ofs,ofs+1,...,ofs+n-1}}
      */
     public StateSparseSet(StateManager sm, int n, int ofs) {

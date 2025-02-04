@@ -57,7 +57,7 @@ public class MiniCP implements Solver {
     private static boolean switchToSumProductAfterSolution = false;
     private static boolean oracleOnObjective = true;
     // nb of BP iterations performed
-    private static int beliefPropaMaxIter = 50;
+    private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
     private static boolean damping = true;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
