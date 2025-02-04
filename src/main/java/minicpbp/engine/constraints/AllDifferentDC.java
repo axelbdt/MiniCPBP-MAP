@@ -548,9 +548,6 @@ public class AllDifferentDC extends AbstractConstraint {
         for (int i = 0; i < nbVar; i++) {
             weight += beliefs[i][col4row[i]];
         }
-        if (weight > 1e300) {
-            int dummy = 0;
-        }
         return weight;
     }
 
@@ -633,9 +630,6 @@ public class AllDifferentDC extends AbstractConstraint {
         double oldNewBelief = oldMatchingCost == Double.MAX_VALUE ? beliefRep.zero()
                 : beliefRep.log2rep(-oldMatchingCost);
         double beliefDiff = Math.abs(newBelief - oldNewBelief);
-        if (beliefDiff > 0.001 || oldMatchingCost > 1e300) {
-            int dummy = 0;
-        }
         cp.setMaxBeliefDiff(beliefDiff, nbVar, nbVal);
         return beliefDiff;
     }
