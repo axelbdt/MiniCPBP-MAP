@@ -850,12 +850,11 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     public void swapRow(int i, int dim) {
-        for (int j = 0; j < dim; j++) {
-            double tmp = beliefs[i][j];
-            beliefs[i][j] = beliefs[dim - 1][j];
-            beliefs[dim - 1][j] = tmp;
-        }
-
+        // CAUTION: this swaps references
+        // use when you don't plan to mutate the array
+        double[] tmp = beliefs[dim - 1];
+        beliefs[dim - 1] = beliefs[i];
+        beliefs[i] = tmp;
     }
 
     public double swap(int var, int val, int dim) {
