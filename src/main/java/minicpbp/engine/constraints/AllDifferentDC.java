@@ -934,4 +934,62 @@ public class AllDifferentDC extends AbstractConstraint {
             return prod * newFactor / oldFactor;
     }
 
+    private class PriorityQueue {
+        private int[] queue;
+        private int size;
+        private int cursor;
+        private int indexToQueue;
+        private int[] values;
+        private double[] costs;
+
+        public PriorityQueue(int capacity) {
+            queue = new int[capacity];
+            cursor = 0;
+            size = 0;
+        }
+
+        public void clear() {
+            size = 0;
+            cursor = 0;
+            indexToQueue = 0;
+        }
+
+        public void add(int value, double cost) {
+            if (size >= queue.length) {
+                throw new IllegalArgumentException("Capacity exceeded");
+            }
+            // sift up
+            int k = size;
+            while (k > 0) {
+                int parent = (k - 1) / 2;
+                if (costs[queue[parent]] >= cost) {
+                    break;
+                }
+                k = parent;
+            }
+            queue[k] = indexToQueue;
+            values[indexToQueue] = value;
+            costs[indexToQueue] = cost;
+            indexToQueue++;
+
+            size++;
+        }
+
+        public int peek() {
+            return queue[0];
+        }
+
+        public boolean hasNext() {
+            return cursor < size;
+        }
+
+        public int next() {
+            if (!hasNext()) {
+                throw new IllegalArgumentException("No more elements");
+            }
+            cursor++;
+            return queue[cursor - 1];
+        }
+    }
+
 }
