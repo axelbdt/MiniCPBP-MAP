@@ -96,7 +96,7 @@ public class AllDifferentDC extends AbstractConstraint {
     private boolean[] SC;
     private int[] remaining;
     private double[] minWeight;
-    private double[] costRow;
+    private PriorityQueue pq;
 
     private int[] pathBackUp;
     private int[] row4colBackUp;
@@ -178,10 +178,10 @@ public class AllDifferentDC extends AbstractConstraint {
         SC = new boolean[freeVars.size()];
         remaining = new int[freeVals.size()];
         minWeight = new double[1];
-        costRow = new double[freeVals.size()];
         pathBackUp = new int[freeVals.size()];
         row4colBackUp = new int[freeVals.size()];
         col4rowBackUp = new int[freeVars.size()];
+        pq = new PriorityQueue(freeVals.size() * freeVars.size());
     }
 
     @Override
@@ -444,7 +444,7 @@ public class AllDifferentDC extends AbstractConstraint {
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
 
-                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
+                    compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
             swapRow(i, nbVar);
@@ -461,6 +461,7 @@ public class AllDifferentDC extends AbstractConstraint {
         Arrays.fill(SR, false);
         Arrays.fill(SC, false);
         Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
+        pq.clear();
 
         // reset remaining
         // remaining is the set of values not visited yet (not in SC)
@@ -484,19 +485,20 @@ public class AllDifferentDC extends AbstractConstraint {
             path[j] = currentRow;
             shortestPathCosts[j] = 0;
             newMinWeight = 0;
-            int index = assignedIndex;
+
+            SC[j] = true; // mark end value as visited
+            numRemaining--;
+            remaining[assignedIndex] = remaining[numRemaining];
 
             // check if we arrived to an unassigned value
             if (row4col[j] == -1) {
-                sink = j;
+                return j;
             } else {
                 currentRow = row4col[j];
             }
 
-            SC[j] = true; // mark end value as visited
-            numRemaining--;
-            remaining[index] = remaining[numRemaining];
         }
+
 
         while (sink == -1) {
             int index = -1;
