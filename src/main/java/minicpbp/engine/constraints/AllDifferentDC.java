@@ -96,7 +96,6 @@ public class AllDifferentDC extends AbstractConstraint {
     private boolean[] SC;
     private int[] remaining;
     private double[] minWeight;
-    private PriorityQueue pq;
 
     private int[] pathBackUp;
     private int[] row4colBackUp;
@@ -174,14 +173,13 @@ public class AllDifferentDC extends AbstractConstraint {
         path = new int[freeVals.size()];
         row4col = new int[freeVals.size()];
         col4row = new int[freeVars.size()];
-        SR = new boolean[freeVals.size()];
-        SC = new boolean[freeVars.size()];
+        SR = new boolean[freeVars.size()];
+        SC = new boolean[freeVals.size()];
         remaining = new int[freeVals.size()];
         minWeight = new double[1];
         pathBackUp = new int[freeVals.size()];
         row4colBackUp = new int[freeVals.size()];
         col4rowBackUp = new int[freeVars.size()];
-        pq = new PriorityQueue(freeVals.size() * freeVars.size());
     }
 
     @Override
@@ -403,8 +401,8 @@ public class AllDifferentDC extends AbstractConstraint {
             int var = varIndices[i];
             swapRow(i, nbVar);
             lsap(nbVar - 1, nbVal);
-            System.arraycopy(path, 0, pathBackUp, 0, nbVar);
-            System.arraycopy(row4col, 0, row4colBackUp, 0, nbVar);
+            System.arraycopy(path, 0, pathBackUp, 0, nbVal);
+            System.arraycopy(row4col, 0, row4colBackUp, 0, nbVal);
             System.arraycopy(col4row, 0, col4rowBackUp, 0, nbVar);
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
@@ -413,38 +411,33 @@ public class AllDifferentDC extends AbstractConstraint {
                     int sink = augmentingPath(nbVal, nbVar - 1, j);
 
                     // augment partial solution
-                    if (sink != j) {
-                        int l = sink;
-                        while (true) {
-                            int k = path[l];
-                            row4col[l] = k;
+                    int l = sink;
+                    while (true) {
+                        int k = path[l];
+                        row4col[l] = k;
 
-                            // swap col4row[k] and l
-                            int tmp = col4row[k];
-                            col4row[k] = l;
-                            l = tmp;
+                        // swap col4row[k] and l
+                        int tmp = col4row[k];
+                        col4row[k] = l;
+                        l = tmp;
 
-                            if (k == nbVar - 1) {
-                                break;
-                            }
+                        if (k == nbVar - 1) {
+                            break;
                         }
                     }
                     // compute matching cost for n - 1 vars
                     double matchingCost = assignmentScore(nbVar - 1);
                     if (j < nbVal - 1) {
-                        System.arraycopy(pathBackUp, 0, path, 0, nbVar);
-
-                        if (sink != j) {
-                            System.arraycopy(row4colBackUp, 0, row4col, 0, nbVal);
-                            System.arraycopy(col4rowBackUp, 0, col4row, 0, nbVar);
-                        }
+                        System.arraycopy(pathBackUp, 0, path, 0, nbVal);
+                        System.arraycopy(row4colBackUp, 0, row4col, 0, nbVal);
+                        System.arraycopy(col4rowBackUp, 0, col4row, 0, nbVar);
                     }
 
                     double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                             : beliefRep.log2rep(-matchingCost);
                     setLocalBelief(var, val, newBelief);
 
-                    compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
+                    // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
             }
             swapRow(i, nbVar);
@@ -461,7 +454,6 @@ public class AllDifferentDC extends AbstractConstraint {
         Arrays.fill(SR, false);
         Arrays.fill(SC, false);
         Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
-        pq.clear();
 
         // reset remaining
         // remaining is the set of values not visited yet (not in SC)
@@ -934,64 +926,6 @@ public class AllDifferentDC extends AbstractConstraint {
             return newProd;
         } else
             return prod * newFactor / oldFactor;
-    }
-
-    private class PriorityQueue {
-        private int[] queue;
-        private int size;
-        private int cursor;
-        private int indexToQueue;
-        private int[] values;
-        private double[] costs;
-
-        public PriorityQueue(int capacity) {
-            queue = new int[capacity];
-            cursor = 0;
-            size = 0;
-        }
-
-        public void clear() {
-            size = 0;
-            cursor = 0;
-            indexToQueue = 0;
-        }
-
-        public void add(int value, double cost) {
-            if (size >= queue.length) {
-                throw new IllegalArgumentException("Capacity exceeded");
-            }
-            // sift up
-            int k = size;
-            while (k > 0) {
-                int parent = (k - 1) / 2;
-                if (costs[queue[parent]] >= cost) {
-                    break;
-                }
-                k = parent;
-            }
-            queue[k] = indexToQueue;
-            values[indexToQueue] = value;
-            costs[indexToQueue] = cost;
-            indexToQueue++;
-
-            size++;
-        }
-
-        public int peek() {
-            return queue[0];
-        }
-
-        public boolean hasNext() {
-            return cursor < size;
-        }
-
-        public int next() {
-            if (!hasNext()) {
-                throw new IllegalArgumentException("No more elements");
-            }
-            cursor++;
-            return queue[cursor - 1];
-        }
     }
 
 }
