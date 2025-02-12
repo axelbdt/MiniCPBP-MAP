@@ -98,7 +98,8 @@ public class Equal extends AbstractConstraint {
     }
 
     @Override
-    public void updateBeliefSumProduct() {
+    public void updateBelief() {
+        // Same algorigthm for sum and max product
         // Treatment of x
         int nVal = x.fillArray(domainValues);
         for (int k = 0; k < nVal; k++) {
