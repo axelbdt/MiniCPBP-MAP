@@ -95,4 +95,62 @@ public class NotEqual extends AbstractConstraint {
         }
     }
 
+    @Override
+    public void updateBeliefMaxProduct() {
+        int maxBelValX = -1;
+        double maxBelX = beliefRep.zero();
+        int secondMaxBelValX = -1;
+        double secondMaxBelX = beliefRep.zero();
+
+        int maxBelValY = -1;
+        double maxBelY = beliefRep.zero();
+        int secondMaxBelValY = -1;
+        double secondMaxBelY = beliefRep.zero();
+
+        // find max and second max beliefs for x
+        for (int vx = x.min(); vx <= x.max(); vx++) {
+            if (x.contains(vx)) {
+                double belief = outsideBelief(0, vx);
+                if (belief > maxBelX) {
+                    secondMaxBelValX = maxBelValX;
+                    secondMaxBelX = maxBelX;
+                    maxBelValX = vx;
+                    maxBelX = outsideBelief(0, vx);
+                } else if (belief > secondMaxBelX) {
+                    secondMaxBelValX = maxBelValX;
+                    secondMaxBelX = outsideBelief(0, vx);
+                }
+            }
+        }
+
+        // find max and second max beliefs for y
+        for (int vy = y.min(); vy <= y.max(); vy++) {
+            if (y.contains(vy)) {
+                double belief = outsideBelief(1, vy);
+                if (belief > maxBelY) {
+                    secondMaxBelValY = maxBelValY;
+                    secondMaxBelY = maxBelY;
+                    maxBelValY = vy;
+                    maxBelY = outsideBelief(1, vy);
+                } else if (belief > secondMaxBelY) {
+                    secondMaxBelValY = maxBelValY;
+                    secondMaxBelY = outsideBelief(1, vy);
+                }
+            }
+        }
+
+
+        // Treatment of x
+        for (int vx = x.min(); vx <= x.max(); vx++) {
+            if (x.contains(vx)) {
+                setLocalBelief(0, vx, vx - c == maxBelValY ? secondMaxBelY : maxBelY);
+            }
+        }
+        // Treatment of y
+        for (int vy = y.min(); vy <= y.max(); vy++) {
+            if (y.contains(vy)) {
+                setLocalBelief(1, vy, vy + c == maxBelValX ? secondMaxBelX : maxBelX);
+            }
+        }
+    }
 }
