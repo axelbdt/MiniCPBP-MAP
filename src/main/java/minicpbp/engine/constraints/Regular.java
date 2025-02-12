@@ -21,10 +21,10 @@ package minicpbp.engine.constraints;
 import minicpbp.engine.core.AbstractConstraint;
 import minicpbp.engine.core.IntVar;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Regular Constraint
@@ -197,6 +197,63 @@ public class Regular extends AbstractConstraint {
                         op[i - 1][k] = beliefRep.add(op[i - 1][k], beliefRep.multiply(op[i][newState], outsideBelief(i, v)));
                         // add the combination of ip[i][k] and op[i][newState] to belief
                         belief = beliefRep.add(belief, beliefRep.multiply(ip[i][k], op[i][newState]));
+                    }
+                }
+                setLocalBelief(i, v, belief);
+            }
+        }
+        int s = x[0].fillArray(domainValues);
+        for (int j = 0; j < s; j++) {
+            int v = domainValues[j];
+            int newState = transitionFct[initialState][v];
+            if (newState >= 0) {
+                setLocalBelief(0, v, op[0][newState]);
+            } else
+                setLocalBelief(0, v, beliefRep.zero());
+        }
+    }
+
+    @Override
+    public void updateBeliefMaxProduct() {
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(ip[i], beliefRep.zero());
+        }
+        // Reach forward
+        ip[0][initialState] = beliefRep.one();
+        for (int i = 0; i < n - 1; i++) {
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                int v = domainValues[j];
+                for (int k = 0; k < nbStates; k++) {
+                    int newState = transitionFct[k][v];
+                    if ((newState >= 0) && (!beliefRep.isZero(ip[i][k]))) {
+                        // take max the combination of ip[i][k] and outsideBelief(i,v) to ip[i+1][newState]
+                        ip[i + 1][newState] = Math.max(ip[i + 1][newState], beliefRep.multiply(ip[i][k], outsideBelief(i, v)));
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(op[i], beliefRep.zero());
+        }
+        // Reach backward and set local beliefs
+        Iterator<Integer> itr = finalStates.iterator();
+        while (itr.hasNext()) {
+            op[n - 1][itr.next().intValue()] = beliefRep.one();
+        }
+        for (int i = n - 1; i > 0; i--) {
+            int s = x[i].fillArray(domainValues);
+            for (int j = 0; j < s; j++) {
+                int v = domainValues[j];
+                double belief = beliefRep.zero();
+                for (int k = 0; k < nbStates; k++) {
+                    int newState = transitionFct[k][v];
+                    if ((newState >= 0) && (!beliefRep.isZero(op[i][newState]))) {
+                        // take max of the combination of op[i][newState] and outsideBelief(i,v) to op[i-1][k]
+                        op[i - 1][k] = Math.max(op[i - 1][k], beliefRep.multiply(op[i][newState], outsideBelief(i, v)));
+                        // take max of the combination of ip[i][k] and op[i][newState] to belief
+                        belief = Math.max(belief, beliefRep.multiply(ip[i][k], op[i][newState]));
                     }
                 }
                 setLocalBelief(i, v, belief);
