@@ -456,7 +456,7 @@ public class MiniCP implements Solver {
                 propagationQueue.remove().setScheduled(false);
             throw e;
         }
-        printMaxBeliefDiff();
+        // printMaxBeliefDiff();
     }
 
     /**

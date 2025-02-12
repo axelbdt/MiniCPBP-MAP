@@ -619,7 +619,7 @@ public class SumDC extends AbstractConstraint {
                                     Math.max(
                                             op[i - 1][k + offset],
                                             beliefRep.multiply(op[i][k + offset + v], outsideBelief(i, v)));
-                            // add the combination of ip[i][k+offset] and op[i][k+offset+V] to belief
+                            // take max of belief the combination of ip[i][k+offset] and op[i][k+offset+V]
                             belief =
                                     Math.max(
                                             belief,
