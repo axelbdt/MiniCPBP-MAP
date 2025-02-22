@@ -122,21 +122,22 @@ public class Or extends AbstractConstraint { // x1 or x2 or ... xn
         double maxTrueBel = Double.NEGATIVE_INFINITY;
         double secondMaxTrueBel = Double.NEGATIVE_INFINITY;
         double maxBelief = beliefRep.one();
-        double trueMaxNumber = 0;
+        int trueMaxNumber = 0;
+
+        // compute the max assignment
+        // count true variables in max assignment
         for (int i = wL.value(); i <= wR.value(); i++) {
-            if (!x[i].isBound()) {
-                if (outsideBelief(i, 1) >= maxTrueBel) {
-                    secondMaxTrueBel = maxTrueBel;
-                    secondMaxTrueVar = maxTrueVar;
-                    maxTrueVar = i;
-                    maxTrueBel = outsideBelief(i, 1);
-                } else if (outsideBelief(i, 1) > secondMaxTrueBel) {
-                    secondMaxTrueVar = i;
-                    secondMaxTrueBel = outsideBelief(i, 1);
-                }
-                trueMaxNumber += x[i].valueWithMaxMarginal();
-                maxBelief = beliefRep.multiply(maxBelief, x[i].maxMarginal());
+            if (outsideBelief(i, 1) >= maxTrueBel) {
+                secondMaxTrueBel = maxTrueBel;
+                secondMaxTrueVar = maxTrueVar;
+                maxTrueVar = i;
+                maxTrueBel = outsideBelief(i, 1);
+            } else if (outsideBelief(i, 1) > secondMaxTrueBel) {
+                secondMaxTrueVar = i;
+                secondMaxTrueBel = outsideBelief(i, 1);
             }
+            trueMaxNumber += x[i].valueWithMaxMarginal();
+            maxBelief = beliefRep.multiply(maxBelief, x[i].maxMarginal());
         }
 
         // if 0 or 1 variable is true in max assignment,
@@ -154,13 +155,20 @@ public class Or extends AbstractConstraint { // x1 or x2 or ... xn
             for (int i = wL.value(); i <= wR.value(); i++) {
                 if (!x[i].isBound()) {
                     if (i == maxTrueVar) {
-                        setLocalBelief(i, 1, beliefRep.divide(maxBelief, outsideBelief(i, 1)));
-                        // if maxTrueVar is set to false, set the second max variable to true
-                        setLocalBelief(i, 0,
-                                beliefRep.multiply(outsideBelief(secondMaxTrueVar, 1),
-                                        beliefRep.divide(
-                                                beliefRep.divide(maxBelief, outsideBelief(i, 1)),
-                                                outsideBelief(secondMaxTrueVar, 0))));
+                        // if there are more than one unbound variable
+                        if (secondMaxTrueVar != -1) {
+                            setLocalBelief(i, 1, beliefRep.divide(maxBelief, outsideBelief(i, 1)));
+                            // if maxTrueVar is set to false, set the second max variable to true
+                            setLocalBelief(i, 0,
+                                    beliefRep.multiply(outsideBelief(secondMaxTrueVar, 1),
+                                            beliefRep.divide(
+                                                    beliefRep.divide(maxBelief, outsideBelief(i, 1)),
+                                                    outsideBelief(secondMaxTrueVar, 0))));
+                        } else { // if there is only one unbound variable
+                            setLocalBelief(i, 1, beliefRep.one());
+                            setLocalBelief(i, 0, beliefRep.zero());
+
+                        }
                     } else {
                         setLocalBelief(i, 1, beliefRep.divide(maxBelief, outsideBelief(i, 0))); // set to false
                         setLocalBelief(i, 0, beliefRep.divide(maxBelief, outsideBelief(i, 0))); // set to false
