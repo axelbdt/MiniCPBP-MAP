@@ -20,9 +20,7 @@ package minicpbp.engine.constraints;
 
 import minicpbp.engine.core.AbstractConstraint;
 import minicpbp.engine.core.BoolVar;
-import minicpbp.engine.core.IntVar;
 import minicpbp.state.StateInt;
-import minicpbp.util.exception.NotImplementedException;
 
 import static minicpbp.util.exception.InconsistencyException.INCONSISTENCY;
 
@@ -113,6 +111,71 @@ public class Or extends AbstractConstraint { // x1 or x2 or ... xn
                 // will be normalized
                 setLocalBelief(i, 1, beliefRep.one());
                 setLocalBelief(i, 0, beliefRep.complement(beliefRep.divide(beliefAllFalse, outsideBelief(i, 0))));
+            }
+        }
+    }
+
+    @Override
+    public void updateBeliefMaxProduct() {
+        int maxTrueVar = -1;
+        int secondMaxTrueVar = -1;
+        double maxTrueBel = Double.NEGATIVE_INFINITY;
+        double secondMaxTrueBel = Double.NEGATIVE_INFINITY;
+        double maxBelief = beliefRep.one();
+        double trueMaxNumber = 0;
+        for (int i = wL.value(); i <= wR.value(); i++) {
+            if (!x[i].isBound()) {
+                if (outsideBelief(i, 1) >= maxTrueBel) {
+                    secondMaxTrueBel = maxTrueBel;
+                    secondMaxTrueVar = maxTrueVar;
+                    maxTrueVar = i;
+                    maxTrueBel = outsideBelief(i, 1);
+                } else if (outsideBelief(i, 1) > secondMaxTrueBel) {
+                    secondMaxTrueVar = i;
+                    secondMaxTrueBel = outsideBelief(i, 1);
+                }
+                trueMaxNumber += x[i].valueWithMaxMarginal();
+                maxBelief = beliefRep.multiply(maxBelief, x[i].maxMarginal());
+            }
+        }
+
+        // if 0 or 1 variable is true in max assignment,
+        // we have to add true to the max assignment to satisfy the constraint
+        if (trueMaxNumber <= 1) {
+            // set at maxTrueVar to true
+            if (trueMaxNumber == 0) {
+                maxBelief = beliefRep.multiply(
+                        beliefRep.divide(
+                                maxBelief,
+                                outsideBelief(maxTrueVar, 0))
+                        , outsideBelief(maxTrueVar, 1));
+            }
+
+            for (int i = wL.value(); i <= wR.value(); i++) {
+                if (!x[i].isBound()) {
+                    if (i == maxTrueVar) {
+                        setLocalBelief(i, 1, beliefRep.divide(maxBelief, outsideBelief(i, 1)));
+                        // if maxTrueVar is set to false, set the second max variable to true
+                        setLocalBelief(i, 0,
+                                beliefRep.multiply(outsideBelief(secondMaxTrueVar, 1),
+                                        beliefRep.divide(
+                                                beliefRep.divide(maxBelief, outsideBelief(i, 1)),
+                                                outsideBelief(secondMaxTrueVar, 0))));
+                    } else {
+                        setLocalBelief(i, 1, beliefRep.divide(maxBelief, outsideBelief(i, 0))); // set to false
+                        setLocalBelief(i, 0, beliefRep.divide(maxBelief, outsideBelief(i, 0))); // set to false
+                    }
+                }
+            }
+            return;
+        }
+
+        // if more than one variable is true in max assignment,
+        // we use max assignment in all messages
+        for (int i = wL.value(); i <= wR.value(); i++) {
+            if (!x[i].isBound()) {
+                setLocalBelief(i, 1, beliefRep.divide(maxBelief, x[i].maxMarginal()));
+                setLocalBelief(i, 0, beliefRep.divide(maxBelief, x[i].maxMarginal()));
             }
         }
     }
