@@ -2,7 +2,6 @@ package minicpbp.examples.cops;
 
 import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.AllDifferentDC;
-import minicpbp.engine.constraints.MaximizeOracle;
 import minicpbp.engine.constraints.SumDC;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
@@ -29,7 +28,6 @@ public class LatinSquare {
         FIRST_FAIL,
         LEXICO,
         MAX_VALUE,
-        DOM_WDEG,
         DOM_WDEG_BEST_VALUE,
         DOM_WDEG_MAX_MARGINAL;
 
@@ -92,13 +90,6 @@ public class LatinSquare {
         }
     }
 
-    public record SearchSpec(BPAlgorithm bp, Branching branching, boolean oracle) {
-        public String toString() {
-            String oracleStr = oracle ? "-oracle" : "";
-            return String.format("%s-%s%s", bp, branching, oracleStr);
-        }
-
-    }
 
     private Solver cp;
     private IntVar[][] x;
@@ -107,7 +98,7 @@ public class LatinSquare {
     private Search search;
     private Objective obj;
 
-    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, boolean oracle, int truncateRate) {
+    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int truncateRate, int maxIter) {
         // Create solver and square variables
         cp = makeSolver();
         switch (bp) {
@@ -125,6 +116,7 @@ public class LatinSquare {
             default:
                 throw new IllegalArgumentException("Unknown BP algorithm: " + bp);
         }
+        cp.setMaxIter(maxIter);
 
         x = new IntVar[n][n];
         for (int i = 0; i < n; i++) {
@@ -192,9 +184,12 @@ public class LatinSquare {
         cp.post(new SumDC(objectiveVars, z));
 
         // add preference for larger values
-        if (oracle) {
-            cp.post(new MaximizeOracle(z));
+        if (oracle > 0) {
+            cp.setOracleOnObjective(true);
+            cp.setOracleWeight(oracle);
         }
+
+        obj = cp.maximize(z);
 
         try {
             String filename = String.format("latin-square-%d-holes%d-%d.pls", n, nbHoles, nbFile);
@@ -247,9 +242,6 @@ public class LatinSquare {
             case MAX_MARGINAL_STRENGTH:
                 branchingProcedure = maxMarginalStrength(xFlat);
                 break;
-            case DOM_WDEG:
-                branchingProcedure = domWdeg(xFlat);
-                break;
             case DOM_WDEG_BEST_VALUE:
                 branchingProcedure = domWdegBestValue();
                 break;
@@ -276,8 +268,6 @@ public class LatinSquare {
             System.out.println("NEW SOLUTION FOUND");
             System.out.println("solution score : " + sum);
         });
-
-        obj = cp.maximize(z);
     }
 
     public void propagate() {
@@ -287,7 +277,8 @@ public class LatinSquare {
     }
 
     public SearchStatistics optimize() {
-        int timeLimit = 4 * 3600000; // 4 hours
+        int timeLimit = 1 * 3600000; // 1 hour
+        // int timeLimit = 4 * 3600000; // 4 hours
         // int timeLimit = 10 * 60000; // 10 minutes
         return search.optimize(obj, stat -> stat.isCompleted() || stat.timeElapsed() > timeLimit);
     }
@@ -420,19 +411,6 @@ public class LatinSquare {
     }
 
     public static void main(String[] args) {
-        SearchSpec[] searchSpecArray = {
-                new SearchSpec(BPAlgorithm.NO_BP, Branching.DOM_WDEG_BEST_VALUE, false),
-                new SearchSpec(BPAlgorithm.NO_BP, Branching.MAX_VALUE, false),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, false),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
-                new SearchSpec(BPAlgorithm.MAX_PRODUCT, Branching.MAX_MARGINAL_REGRET, true),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, false),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.MAX_MARGINAL_STRENGTH, true),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, false),
-                new SearchSpec(BPAlgorithm.SUM_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
-                new SearchSpec(BPAlgorithm.MAX_PRODUCT, Branching.DOM_WDEG_MAX_MARGINAL, true),
-        };
         // var objectivePatternArray = new ObjectivePattern[]{
         //         new ObjectivePattern(20),
         //         new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 0),
@@ -450,15 +428,20 @@ public class LatinSquare {
         String nbFileArg = arguments.get("nbFile");
         String objectiveString = arguments.get("objective");
         String searchTypeArg = arguments.get("searchType");
-        String modelNumberArg = arguments.get("modelNumber");
         String truncateRateArg = arguments.get("truncateRate");
+        String oracleArg = arguments.get("oracle");
+        String maxIterArg = arguments.get("maxIter");
+        String bpArg = arguments.get("bp");
+        String branchingArg = arguments.get("branching");
 
         int nbHoles = Integer.parseInt(nbHolesArg);
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
         int nbFile = Integer.parseInt(nbFileArg);
         int truncateRate = Integer.parseInt(truncateRateArg);
-        int modelNumber = Integer.parseInt(modelNumberArg);
-        var spec = searchSpecArray[modelNumber];
+        float oracle = Float.parseFloat(oracleArg);
+        int maxIter = Integer.parseInt(maxIterArg);
+        BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.toUpperCase());
+        Branching branching = Branching.valueOf(branchingArg.toUpperCase());
 
         ObjectivePattern objective;
         String[] parts = objectiveString.toUpperCase().split("_");
@@ -477,18 +460,8 @@ public class LatinSquare {
             throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
         }
 
-        // Manually define an instance
-        // n = 20;
-        // searchTypeArray = new SearchType[]{SearchType.LDS};
-        // truncateRateArray = new int[]{0};
-        // searchSpecArray = new ExperimentSpec[]{searchSpecArray[0]};
-        // nbHolesArray = new int[]{300};
-        // objectivePatternArray = new ObjectivePattern[]{objectivePatternArray[2]};
-        // nbFileArray = new int[]{1};
-
-
         // Create the model
-        LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, spec.bp, spec.branching, objective, spec.oracle, truncateRate);
+        LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, bp, branching, objective, oracle, truncateRate, maxIter);
 
         System.out.println("INFO");
         System.out.println("n : " + n);
@@ -506,15 +479,16 @@ public class LatinSquare {
             System.out.println("n : " + n);
             System.out.println("nbHoles : " + nbHoles);
             System.out.println("nbFile : " + nbFile);
-            System.out.println("bp : " + spec.bp);
+            System.out.println("bp : " + bp);
 
             ls.propagate();
         } else {
             System.out.println("objective : " + objective);
             System.out.println("search: " + searchType);
-            System.out.println("bp : " + spec.bp);
-            System.out.println("branchingScheme : " + spec.branching);
-            System.out.println("oracle : " + spec.oracle);
+            System.out.println("bp : " + bp);
+            System.out.println("branchingScheme : " + branching);
+            System.out.println("oracle : " + oracle);
+            System.out.println("maxIter : " + maxIter);
             System.out.println("truncateRate : " + truncateRate);
 
             System.out.println("START SEARCH");

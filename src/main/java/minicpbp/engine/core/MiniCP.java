@@ -44,7 +44,6 @@ public class MiniCP implements Solver {
 
     private StateStack<IntVar> variables;
     private StateStack<Constraint> constraints;
-    private Constraint objectiveOracle;
 
     private Random rand;
 
@@ -53,9 +52,11 @@ public class MiniCP implements Solver {
     // BP /* belief propagation */
     // SBP /* first apply support propagation, then belief propagation */
     private static PropaMode mode = PropaMode.SBP;
-    private static BPAlgorithm bpAlgorithm = BPAlgorithm.SUM_PRODUCT;
+    private static BPAlgorithm bpAlgorithm = BPAlgorithm.MAX_PRODUCT;
     private static boolean switchToSumProductAfterSolution = false;
-    private static boolean oracleOnObjective = true;
+    private static boolean oracleOnObjective = false;
+    private static double oracleWeight = 1;
+    private Constraint objectiveOracle;
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
@@ -189,6 +190,12 @@ public class MiniCP implements Solver {
 
     public void setOracleOnObjective(boolean oracleOnObjective) {
         MiniCP.oracleOnObjective = oracleOnObjective;
+    }
+
+    public void setOracleWeight(double weight) {
+        assert weight >= 0 : "Oracle weight must be non-negative";
+        MiniCP.oracleWeight = weight;
+
     }
 
     public BPAlgorithm getBPAlgorithm() {
@@ -389,9 +396,14 @@ public class MiniCP implements Solver {
             }
             double previousEntropy, currentEntropy = 1.0;
             for (int iter = 1; iter <= beliefPropaMaxIter; iter++) {
+                // if (this.objectiveOracle != null)
+                //     System.out.println("Oracle Weight (iteration " + iter + "): " + objectiveOracle.weight());
                 BPiteration();
                 if (traceBP) {
+                    // System.out.println("BP Algo : " + bpAlgorithm);
                     System.out.println("##### after BP iteration " + iter + " #####");
+                    if (objectiveOracle != null)
+                        System.out.println("Oracle Weight : " + objectiveOracle.weight());
                     for (int i = 0; i < variables.size(); i++) {
                         System.out.print(variables.get(i).getName());
                         System.out.println(variables.get(i).toString());
@@ -688,6 +700,7 @@ public class MiniCP implements Solver {
         if (MiniCP.oracleOnObjective) {
             var oracle = new MinimizeOracle(x);
             oracle.setName("objective oracle (min)");
+            oracle.setWeight(MiniCP.oracleWeight);
             post(oracle);
             objectiveOracle = oracle;
         }
@@ -696,10 +709,12 @@ public class MiniCP implements Solver {
 
     @Override
     public Objective maximize(IntVar x) {
+        // System.out.println("oracle on objective: " + MiniCP.oracleOnObjective);
         if (MiniCP.oracleOnObjective) {
             var oracle = new MaximizeOracle(x, x.min() - 1);
             oracle.setName("objective oracle (max)");
             post(oracle);
+            oracle.setWeight(MiniCP.oracleWeight);
             objectiveOracle = oracle;
         }
         return minimize(Factory.minus(x));

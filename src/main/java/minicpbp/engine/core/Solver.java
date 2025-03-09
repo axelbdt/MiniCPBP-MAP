@@ -111,6 +111,8 @@ public interface Solver {
 
     void setOracleOnObjective(boolean oracleOnObjective);
 
+    void setOracleWeight(double weight);
+
 
     /**
      * @return the constraint weighing scheme

@@ -15,7 +15,8 @@ import static minicpbp.cp.Factory.*;
 public class Example {
     public static void main(String[] args) {
         Solver cp = makeSolver();
-        cp.setBPAlgorithm(Solver.BPAlgorithm.MAX_PRODUCT);
+        Solver.BPAlgorithm bp = Solver.BPAlgorithm.SUM_PRODUCT;
+        cp.setBPAlgorithm(bp);
 
         IntVar a = makeIntVar(cp, 1, 4);
         IntVar b = makeIntVar(cp, 1, 4);
@@ -33,7 +34,9 @@ public class Example {
         c.setName("c");
         d.setName("d");
 
-        IntVar objective_var = a;
+        cp.setOracleOnObjective(true);
+        cp.setOracleWeight(1.0);
+        IntVar objective_var = d;
         String max_min = "minimize";
         // max_min = "maximize";
         Objective objective;
@@ -44,7 +47,7 @@ public class Example {
         } else {
             throw new IllegalArgumentException("Invalid max_min: " + max_min);
         }
-        cp.setOracleOnObjective(true);
+        System.out.println(bp);
         System.out.println(max_min);
         System.out.println("objective: " + objective_var.getName());
         System.out.println("oracle: " + objective.getSolver().getOracleOnObjective());
