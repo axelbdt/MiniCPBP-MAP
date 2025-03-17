@@ -2169,9 +2169,9 @@ public class XCSP implements XCallbacks2 {
         XCSP.bpAlgorithm = bpAlgorithm;
     }
 
-    private static boolean oracleOnObjective = false;
+    private static float oracleOnObjective = 0;
 
-    public void oracleOnObjective(boolean oracleOnObjective) {
+    public void oracleOnObjective(float oracleOnObjective) {
         XCSP.oracleOnObjective = oracleOnObjective;
     }
 
@@ -2211,8 +2211,15 @@ public class XCSP implements XCallbacks2 {
 //		minicp.setDamp(damp);
 //		minicp.setDampingFactor(dampingFactor);
 //		minicp.setVariationThreshold(variationThreshold);
-        minicp.setBPAlgorithm(bpAlgorithm);
-        minicp.setOracleOnObjective(oracleOnObjective);
+        if (bpAlgorithm != null)
+            minicp.setBPAlgorithm(bpAlgorithm);
+        else
+            minicp.setMode(PropaMode.SP);
+
+        if (oracleOnObjective > 0) {
+            minicp.setOracleOnObjective(true);
+            minicp.setOracleWeight(oracleOnObjective);
+        }
         minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
 
         if (hasFailed) {
@@ -2339,7 +2346,7 @@ public class XCSP implements XCallbacks2 {
             Objective objective = minicp.minimize(objectiveMinimize.get());
 
             stats = search.optimize(objective, ss -> {
-                return ss.isCompleted();
+                return (System.currentTimeMillis() - t0 >= timeout * 1000 || ss.isCompleted());
             });
         } else {
             if (!restart) {

@@ -20,8 +20,6 @@ import minicpbp.engine.core.IntVar;
 
 import static minicpbp.cp.Factory.equal;
 
-import minicpbp.util.exception.NotImplementedException;
-
 public class Element1DVar extends AbstractConstraint {
 
     private final IntVar[] array;
@@ -156,6 +154,47 @@ public class Element1DVar extends AbstractConstraint {
                         int v = domainValues[j];
                         if (v == z.min()) {
                             setLocalBelief(i, v, beliefRep.add(cumulOthers, outsideBelief(array.length, i)));
+                        } else {
+                            setLocalBelief(i, v, cumulOthers);
+                        }
+                    }
+                } else { // its values equally support every solution
+                    nVal = array[i].fillArray(domainValues);
+                    for (int j = 0; j < nVal; j++) {
+                        setLocalBelief(i, domainValues[j], beliefRep.one()); // will be normalized
+                    }
+                }
+            }
+        } else { // default uniform belief
+            for (int i = 0; i < vars.length; i++) {
+                int nVal = vars[i].fillArray(domainValues);
+                for (int j = 0; j < nVal; j++) {
+                    setLocalBelief(i, domainValues[j], beliefRep.one()); // will be normalized
+                }
+            }
+        }
+    }
+
+    public void updateBeliefMaxProduct() {
+        if (z.isBound()) { // special case: compute exact beliefs
+            double cumul = beliefRep.zero();
+            // for y
+            int nVal = y.fillArray(domainValues);
+            for (int j = 0; j < nVal; j++) {
+                int v = domainValues[j];
+                setLocalBelief(array.length /* i.e. y */, v, outsideBelief(v, z.min()));
+                cumul = Math.max(cumul, beliefRep.multiply(outsideBelief(v, z.min()),
+                        outsideBelief(array.length, v)));
+            }
+            // for array
+            for (int i = 0; i < array.length; i++) {
+                if (y.contains(i)) {
+                    double cumulOthers = beliefRep.subtract(cumul, beliefRep.multiply(outsideBelief(i, z.min()), outsideBelief(array.length, i)));
+                    nVal = array[i].fillArray(domainValues);
+                    for (int j = 0; j < nVal; j++) {
+                        int v = domainValues[j];
+                        if (v == z.min()) {
+                            setLocalBelief(i, v, Math.max(cumulOthers, outsideBelief(array.length, i)));
                         } else {
                             setLocalBelief(i, v, cumulOthers);
                         }
