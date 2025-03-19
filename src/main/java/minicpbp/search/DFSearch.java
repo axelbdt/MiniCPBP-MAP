@@ -296,18 +296,20 @@ public class DFSearch extends Search {
      */
     public SearchStatistics optimize(Objective obj, Predicate<SearchStatistics> limit) {
         SearchStatistics statistics = new SearchStatistics();
-//         onSolution(() -> obj.tighten());
-        onSolution(() -> {
-            var cp = obj.getSolver();
-            if (cp.shouldSwitchToSumProductAfterSolution()) {
-                cp.switchToSumProductNoOracle();
-            }
-            //System.out.println("c (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
-            System.out.println("Solution found");
-            System.out.println("score: " + obj.getMin());
-            System.out.println(statistics);
-            obj.tighten();
-        });
+        // onSolution(() -> obj.tighten());
+        if (!obj.problemIsBound()) {
+            onSolution(() -> {
+                var cp = obj.getSolver();
+                if (cp.shouldSwitchToSumProductAfterSolution()) {
+                    cp.switchToSumProductNoOracle();
+                }
+                //System.out.println("c (solution found in "+statistics.numberOfFailures()+" fails and "+statistics.timeElapsed()+" msecs)");
+                System.out.println("Solution found");
+                System.out.println("score: " + obj.getMin());
+                System.out.println(statistics);
+                obj.tighten();
+            });
+        }
         return solve(statistics, limit);
     }
 

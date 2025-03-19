@@ -33,6 +33,8 @@ public interface Objective {
      */
     void tighten();
 
+    boolean problemIsBound();
+
     int getMin();
 
     Solver getSolver();
