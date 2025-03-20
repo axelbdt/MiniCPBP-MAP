@@ -85,9 +85,6 @@ public class SolveXCSPFZN {
         String quotedValidBPAlgorithms = algorithmMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
-        String quotedValidOracleOnObjective = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
-                .collect(Collectors.joining(",\n"));
-
         String quotedValidSwitchToSumProductAfterSolution = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
@@ -103,8 +100,8 @@ public class SolveXCSPFZN {
         Option bpAlgorithmOpt = Option.builder().longOpt("bp-algorithm").argName("ALGORITHM").required().hasArg()
                 .desc("BP algorithm.\nValid BP algorithms are:\n" + quotedValidBPAlgorithms).build();
 
-        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("BOOL").required().hasArg()
-                .desc("oracle on objective.\nValid oracle on objective are:\n" + quotedValidOracleOnObjective).build();
+        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("ORACLE").required().hasArg()
+                .desc("oracle on objective.\nValid oracle on objective are floats").build();
 
         Option switchToSumProductAfterSolutionOpt = Option.builder().longOpt("switch-to-sum-product-after-solution").argName("BOOL").hasArg()
                 .desc("switch to sum product after solution.\nValid switch to sum product after solution are:\n" + quotedValidSwitchToSumProductAfterSolution).build();

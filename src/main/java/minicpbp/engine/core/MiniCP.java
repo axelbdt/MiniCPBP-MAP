@@ -195,7 +195,6 @@ public class MiniCP implements Solver {
     public void setOracleWeight(double weight) {
         assert weight >= 0 : "Oracle weight must be non-negative";
         MiniCP.oracleWeight = weight;
-
     }
 
     public BPAlgorithm getBPAlgorithm() {
@@ -697,7 +696,9 @@ public class MiniCP implements Solver {
 
     @Override
     public Objective minimize(IntVar x) {
+        System.out.println("MINIMIZE CREATED");
         if (MiniCP.oracleOnObjective) {
+            System.out.println("MINIMIZEORACLE CREATED");
             var oracle = new MinimizeOracle(x);
             oracle.setName("objective oracle (min)");
             oracle.setWeight(MiniCP.oracleWeight);

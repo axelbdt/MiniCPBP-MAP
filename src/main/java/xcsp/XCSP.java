@@ -2253,6 +2253,8 @@ public class XCSP implements XCallbacks2 {
 		}
 		*/
 
+        System.out.println("MAKE SEARCH");
+
         Search search = null;
         switch (heuristic) {
             case FFRV:
@@ -2309,6 +2311,8 @@ public class XCSP implements XCallbacks2 {
                 System.exit(1);
         }
 
+        System.out.println("SET SEARCH");
+
         if (checkSolution || (solFileStr != ""))
             extractSolutionStr = true;
 
@@ -2340,6 +2344,7 @@ public class XCSP implements XCallbacks2 {
 //			System.out.println("SOLN:"+solutionStr);
         });
 
+        System.out.println("START SEARCH");
         SearchStatistics stats;
         if (isCOP()) {
             System.out.println("optimizing...");

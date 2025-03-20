@@ -30,7 +30,6 @@ public class MinimizeOracle extends AbstractConstraint {
     // the reference value used to compute the marginal
     // must be lower than the min of the domain of x
     private int reference;
-    private boolean muted = false;
 
     /**
      * @param x the variable
@@ -61,17 +60,6 @@ public class MinimizeOracle extends AbstractConstraint {
 
     @Override
     public void updateBelief() {
-        if (muted) {
-            for (int val = x.min(); val <= x.max(); val++) {
-                if (x.contains(val)) {
-                    setLocalBelief(0, val, 1.0);
-                } else {
-                    setLocalBelief(0, val, 0.0);
-                }
-            }
-            // System.out.println("Maximize Oracle Muted");
-            return;
-        }
         // System.out.println("Max Oracle");
         if (x.isBound()) {
             setLocalBelief(0, x.min(), 1.0);
@@ -89,10 +77,5 @@ public class MinimizeOracle extends AbstractConstraint {
             }
         }
         // System.out.println("Max Oracle Propagated");
-    }
-
-    public void mute() {
-        /// System.out.println("Just Muted the Oracle");
-        muted = true;
     }
 }

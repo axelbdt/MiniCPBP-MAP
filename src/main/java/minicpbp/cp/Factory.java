@@ -26,14 +26,14 @@ import minicpbp.search.Objective;
 import minicpbp.state.Copier;
 import minicpbp.state.StateStack;
 import minicpbp.state.Trailer;
-import minicpbp.util.exception.InconsistencyException;
-import minicpbp.util.Procedure;
 import minicpbp.util.CFG;
+import minicpbp.util.Procedure;
+import minicpbp.util.exception.InconsistencyException;
 
-import java.util.Arrays;
-import java.util.Set;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -103,7 +103,7 @@ public final class Factory {
      * @param byCopy a value that should be true to specify
      *               copy-based state management
      *               or false for a trail-based memory management
-     * @param seed the random number generator seed
+     * @param seed   the random number generator seed
      * @return a constraint programming solver
      */
     public static Solver makeSolver(boolean byCopy, long seed) {
@@ -257,7 +257,10 @@ public final class Factory {
      * @see BranchingScheme#branch(Procedure...)
      */
     public static LDSearch makeLds(Solver cp, Supplier<Procedure[]> branching, boolean geometric) {
+        Solver.PropaMode oldMode = cp.getMode();
+        cp.setMode(Solver.PropaMode.SP);
         cp.propagateSolver(); // initial propagation at root node
+        cp.setMode(oldMode);
         // compute an upper bound on the number of discrepancies in the rightmost branch of a complete search tree
         int discrepancyUB = 0;
         for (int i = 0; i < cp.getVariables().size(); i++) {
@@ -334,7 +337,7 @@ public final class Factory {
     // -------------- branches -----------------------
 
     /**
-     * Branches on x=v  
+     * Branches on x=v
      * and performs propagation according to the mode.
      *
      * @param x the variable to be assigned to v
@@ -346,7 +349,7 @@ public final class Factory {
     }
 
     /**
-     * Branches on x=v,  
+     * Branches on x=v,
      * performs propagation according to the mode
      * and compute impact on the entropy of the model
      *
@@ -356,24 +359,23 @@ public final class Factory {
     public static void branchEqualRegisterImpact(IntVar x, int v) {
         double oldEntropy = 0.0;
         double newEntropy = 0.0;
-        StateStack<IntVar> listeVariables =  x.getSolver().getVariables();
-        for(int i = 0; i < listeVariables.size(); i++) 
-            if(listeVariables.get(i).isForBranching())
-                oldEntropy += listeVariables.get(i).entropy()/Math.log(listeVariables.get(i).size());
-        
+        StateStack<IntVar> listeVariables = x.getSolver().getVariables();
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                oldEntropy += listeVariables.get(i).entropy() / Math.log(listeVariables.get(i).size());
+
         x.assign(v);
         try {
             x.getSolver().propagateSolver();
-        }
-        catch (InconsistencyException e) {
+        } catch (InconsistencyException e) {
             x.registerImpact(v, 1.0);
             throw e;
         }
-        for(int i = 0; i < listeVariables.size(); i++) 
-            if(listeVariables.get(i).isForBranching())
-                newEntropy += listeVariables.get(i).entropy()/Math.log(listeVariables.get(i).size());
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                newEntropy += listeVariables.get(i).entropy() / Math.log(listeVariables.get(i).size());
 
-        x.registerImpact(v, (1.0 - (newEntropy/oldEntropy)));
+        x.registerImpact(v, (1.0 - (newEntropy / oldEntropy)));
     }
 
     /**
@@ -387,24 +389,23 @@ public final class Factory {
     public static void branchEqualRegisterImpactOnDomains(IntVar x, int v) {
         double oldSearchSize = 1.0;
         double newSearchSize = 1.0;
-        StateStack<IntVar> listeVariables =  x.getSolver().getVariables();
-        for(int i = 0; i < listeVariables.size(); i++)
-            if(listeVariables.get(i).isForBranching())
-                oldSearchSize = oldSearchSize*listeVariables.get(i).size();
+        StateStack<IntVar> listeVariables = x.getSolver().getVariables();
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                oldSearchSize = oldSearchSize * listeVariables.get(i).size();
 
         x.assign(v);
         try {
             x.getSolver().propagateSolver();
-        }
-        catch (InconsistencyException e) {
+        } catch (InconsistencyException e) {
             x.registerImpact(v, 1.0);
             throw e;
         }
-        for(int i = 0; i < listeVariables.size(); i++)
-            if(listeVariables.get(i).isForBranching())
-                newSearchSize = newSearchSize*listeVariables.get(i).size();
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                newSearchSize = newSearchSize * listeVariables.get(i).size();
 
-        x.registerImpact(v, (1.0 - (newSearchSize/oldSearchSize)));
+        x.registerImpact(v, (1.0 - (newSearchSize / oldSearchSize)));
     }
 
     /**
@@ -420,47 +421,52 @@ public final class Factory {
         int v = a.getVal();
         double oldSearchSize = 1.0;
         double newSearchSize = 1.0;
-        StateStack<IntVar> listeVariables =  x.getSolver().getVariables();
-        for(int i = 0; i < listeVariables.size(); i++)
-            if(listeVariables.get(i).isForBranching())
-                oldSearchSize = oldSearchSize*listeVariables.get(i).size();
+        StateStack<IntVar> listeVariables = x.getSolver().getVariables();
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                oldSearchSize = oldSearchSize * listeVariables.get(i).size();
 
         x.assign(v);
         try {
             x.getSolver().propagateSolver();
-        }
-        catch (InconsistencyException e) {
+        } catch (InconsistencyException e) {
             x.registerImpact(v, 1.0);
             throw e;
         }
-        for(int i = 0; i < listeVariables.size(); i++)
-            if(listeVariables.get(i).isForBranching())
-                newSearchSize = newSearchSize*listeVariables.get(i).size();
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
+                newSearchSize = newSearchSize * listeVariables.get(i).size();
 
-        x.registerImpact(v, (1.0 - (newSearchSize/oldSearchSize)));
+        x.registerImpact(v, (1.0 - (newSearchSize / oldSearchSize)));
     }
 
 
     public static class IntHolder {
         private int val;
         private IntVar var;
-        public IntHolder() {}
+
+        public IntHolder() {
+        }
+
         public int getVal() {
             return val;
         }
+
         public IntVar getVar() {
             return var;
         }
+
         public void setVal(int value) {
             val = value;
         }
+
         public void setVar(IntVar a) {
             var = a;
         }
     }
 
     /**
-     * Branches on x=v,  
+     * Branches on x=v,
      * performs propagation according to the mode
      * and compute impact on the entropy of the model
      *
@@ -472,29 +478,28 @@ public final class Factory {
         int v = a.getVal();
         double oldEntropy = 0.0;
         double newEntropy = 0.0;
-        StateStack<IntVar> listeVariables =  x.getSolver().getVariables();
+        StateStack<IntVar> listeVariables = x.getSolver().getVariables();
 
-        for(int i = 0; i < listeVariables.size(); i++) {
-            if(listeVariables.get(i).isForBranching())
+        for (int i = 0; i < listeVariables.size(); i++) {
+            if (listeVariables.get(i).isForBranching())
                 oldEntropy += listeVariables.get(i).entropy();
         }
         x.assign(v);
         try {
             x.getSolver().propagateSolver();
-        }
-        catch (InconsistencyException e) {
+        } catch (InconsistencyException e) {
             x.registerImpact(v, 1.0);
             throw e;
         }
-        for(int i = 0; i < listeVariables.size(); i++) 
-            if(listeVariables.get(i).isForBranching())
+        for (int i = 0; i < listeVariables.size(); i++)
+            if (listeVariables.get(i).isForBranching())
                 newEntropy += listeVariables.get(i).entropy();
 
-        x.registerImpact(v, (1.0 - (newEntropy/oldEntropy)));
+        x.registerImpact(v, (1.0 - (newEntropy / oldEntropy)));
     }
 
     /**
-     * Branches on x!=v 
+     * Branches on x!=v
      * and performs propagation according to the mode.
      *
      * @param x the variable that is constrained to be different from v
@@ -506,7 +511,7 @@ public final class Factory {
     }
 
     /**
-     * Branches on x<=v  
+     * Branches on x<=v
      * and performs propagation according to the mode.
      *
      * @param x the variable that is constrained to be less or equal to v
@@ -518,14 +523,14 @@ public final class Factory {
     }
 
     /**
-     * Branches on x>v  
+     * Branches on x>v
      * and performs propagation according to the mode.
      *
      * @param x the variable that is constrained to be greater than v
-     * @param v 
+     * @param v
      */
     public static void branchGreater(IntVar x, int v) {
-        x.removeBelow(v+1);
+        x.removeBelow(v + 1);
         x.getSolver().propagateSolver();
     }
 
@@ -547,7 +552,7 @@ public final class Factory {
 
     public static BoolVar isOr(BoolVar[] x) {
         BoolVar r = makeBoolVar(x[0].getSolver());
-        r.getSolver().post(new IsOr(r,x));
+        r.getSolver().post(new IsOr(r, x));
         return r;
     }
 
@@ -790,7 +795,7 @@ public final class Factory {
      * x takes a value less than that of y
      */
     public static BoolVar isLess(IntVar x, IntVar y) {
-        return isLessOrEqual(x, minus(y,1));
+        return isLessOrEqual(x, minus(y, 1));
     }
 
     /**
@@ -850,7 +855,7 @@ public final class Factory {
      * x takes a value larger than that of y
      */
     public static BoolVar isLarger(IntVar x, IntVar y) {
-        return isLessOrEqual(y, minus(x,1));
+        return isLessOrEqual(y, minus(x, 1));
     }
 
     /**
@@ -874,7 +879,7 @@ public final class Factory {
      * @return a constraint so that {@code x < y}
      */
     public static Constraint less(IntVar x, IntVar y) {
-        return new LessOrEqual(x, minus(y,1));
+        return new LessOrEqual(x, minus(y, 1));
     }
 
     /**
@@ -898,7 +903,7 @@ public final class Factory {
      * @return a constraint so that {@code x > y}
      */
     public static Constraint larger(IntVar x, IntVar y) {
-        return new LessOrEqual(y, minus(x,1));
+        return new LessOrEqual(y, minus(x, 1));
     }
 
     /**
@@ -923,9 +928,9 @@ public final class Factory {
      */
     public static IntVar product(IntVar x, IntVar y) {
         Solver cp = x.getSolver();
-	    IntVar z = makeIntVar(cp, Math.min(Math.min(Math.min(x.min()*y.min(),x.min()*y.max()),x.max()*y.min()),x.max()*y.max()), Math.max(Math.max(Math.max(x.min()*y.min(),x.min()*y.max()),x.max()*y.min()),x.max()*y.max()));
+        IntVar z = makeIntVar(cp, Math.min(Math.min(Math.min(x.min() * y.min(), x.min() * y.max()), x.max() * y.min()), x.max() * y.max()), Math.max(Math.max(Math.max(x.min() * y.min(), x.min() * y.max()), x.max() * y.min()), x.max() * y.max()));
         cp.post(new Product(x, y, z));
-	return z;
+        return z;
     }
 
     /**
@@ -938,7 +943,7 @@ public final class Factory {
      * @return a constraint so that {@code x / y = z}
      */
     public static Constraint quotient(IntVar x, IntVar y, IntVar z) {
-	    y.remove(0);
+        y.remove(0);
         return new Product(y, z, x);
     }
 
@@ -952,7 +957,7 @@ public final class Factory {
     public static IntVar quotient(IntVar x, IntVar y) {
         Solver cp = x.getSolver();
         y.remove(0);
-        IntVar z = makeIntVar(cp, Math.min(Math.min(Math.min(x.min()/y.min(),x.min()/y.max()),x.max()/y.min()),x.max()/y.max()), Math.max(Math.max(Math.max(x.min()/y.min(),x.min()/y.max()),x.max()/y.min()),x.max()/y.max()));
+        IntVar z = makeIntVar(cp, Math.min(Math.min(Math.min(x.min() / y.min(), x.min() / y.max()), x.max() / y.min()), x.max() / y.max()), Math.max(Math.max(Math.max(x.min() / y.min(), x.min() / y.max()), x.max() / y.min()), x.max() / y.max()));
         cp.post(new Product(y, z, x));
         return z;
     }
@@ -979,7 +984,7 @@ public final class Factory {
      */
     public static IntVar pow(IntVar x, IntVar y) {
         Solver cp = x.getSolver();
-        IntVar z = makeIntVar(cp, (int) Math.floor(Math.min(Math.min(Math.min(Math.pow((double) x.min(),(double) y.min()),Math.pow((double) x.min(),(double) y.max())),Math.pow((double) x.max(),(double) y.min())),Math.pow((double) x.max(),(double) y.max()))), (int) Math.ceil(Math.max(Math.max(Math.max(Math.pow((double) x.min(),(double) y.min()),Math.pow((double) x.min(),(double) y.max())),Math.pow((double) x.max(),(double) y.min())),Math.pow((double) x.max(),(double) y.max()))));
+        IntVar z = makeIntVar(cp, (int) Math.floor(Math.min(Math.min(Math.min(Math.pow((double) x.min(), (double) y.min()), Math.pow((double) x.min(), (double) y.max())), Math.pow((double) x.max(), (double) y.min())), Math.pow((double) x.max(), (double) y.max()))), (int) Math.ceil(Math.max(Math.max(Math.max(Math.pow((double) x.min(), (double) y.min()), Math.pow((double) x.min(), (double) y.max())), Math.pow((double) x.max(), (double) y.min())), Math.pow((double) x.max(), (double) y.max()))));
         cp.post(new Pow(x, y, z));
         return z;
     }
@@ -994,26 +999,26 @@ public final class Factory {
      * @return a constraint so that {@code x % p = z}
      */
     public static Constraint modulo(IntVar x, IntVar p, IntVar z) {
-	    p.removeBelow(1); // a modulus is >= 1
-	    z.removeBelow(0);
-        x.getSolver().post(less(z,p)); // the remainder lies between 0 and p-1
-	    // decomposed into x = k*p + z for some integer k
+        p.removeBelow(1); // a modulus is >= 1
+        z.removeBelow(0);
+        x.getSolver().post(less(z, p)); // the remainder lies between 0 and p-1
+        // decomposed into x = k*p + z for some integer k
         int min, max;
-        if (x.max()>=0) {
+        if (x.max() >= 0) {
             max = x.max() / p.min();
         } else {
             max = 0;
         }
-        if (x.min()<0) {
+        if (x.min() < 0) {
             min = x.min() / p.min();
             if (x.min() % p.min() != 0) {
-               min--;
+                min--;
             }
         } else {
             min = 0;
         }
         IntVar k = makeIntVar(x.getSolver(), min, max); // min( 0, floor(min(x) / min(p)) ) <= k <= max( 0, floor(max(x) / min(p)) )
-        return new Equal(x,sum(product(k,p),z));
+        return new Equal(x, sum(product(k, p), z));
     }
 
     /**
@@ -1032,14 +1037,16 @@ public final class Factory {
 
     /**
      * Returns a constraint imposing that array[y] = z
+     *
      * @param array an array of int
-     * @param y a variable
-     * @param z a variable
+     * @param y     a variable
+     * @param z     a variable
      * @return a constraint so that {@code array[y] = z}
      */
     public static Constraint element(int[] array, IntVar y, IntVar z) {
         return new Element1DDomainConsistent(array, y, z);
     }
+
     public static Constraint element(int[] array, IntVar y, int v) {
         IntVar z = makeIntVar(y.getSolver(), v, v);
         return new Element1DDomainConsistent(array, y, z);
@@ -1051,6 +1058,7 @@ public final class Factory {
         vars[array.length + 1] = z;
         return new Element1DVar(array, y, z, vars);
     }
+
     public static Constraint element(IntVar[] array, IntVar y, int v) {
         IntVar[] vars = Arrays.copyOf(array, array.length + 1);
         vars[array.length] = y;
@@ -1060,15 +1068,17 @@ public final class Factory {
 
     /**
      * Returns a constraint imposing that array[x][y] = z
+     *
      * @param array an array of int
-     * @param x a variable
-     * @param y a variable
-     * @param z a variable
+     * @param x     a variable
+     * @param y     a variable
+     * @param z     a variable
      * @return a constraint so that {@code array[x][y] = z}
      */
     public static Constraint element(int[][] array, IntVar x, IntVar y, IntVar z) {
         return new Element2DDomainConsistent(array, x, y, z);
     }
+
     public static Constraint element(int[][] array, IntVar x, IntVar y, int v) {
         IntVar z = makeIntVar(y.getSolver(), v, v);
         return new Element2DDomainConsistent(array, x, y, z);
@@ -1107,7 +1117,7 @@ public final class Factory {
         Solver cp = y.getSolver();
         int min = array[0].min();
         int max = array[0].max();
-        for (int i = 1;  i < array.length; i++) {
+        for (int i = 1; i < array.length; i++) {
             if (array[i].min() < min)
                 min = array[i].min();
             if (array[i].max() > max)
@@ -1475,7 +1485,7 @@ public final class Factory {
      * Returns a disjunctive constraint.
      * This relation is enforced by the {@link Disjunctive} constraint
      * posted by calling this method.
-     *
+     * <p>
      * For any two pair i,j of activities we have
      * {@code start[i]+duration[i] <= start[j] or start[j]+duration[j] <= start[i]}.
      *
@@ -1484,14 +1494,14 @@ public final class Factory {
      * @return a disjunctive constraint
      */
     public static Constraint disjunctive(IntVar[] start, int[] duration) {
-	return new Disjunctive(start, duration);
+        return new Disjunctive(start, duration);
     }
 
     /**
      * Returns a cumulative constraint with a time-table filtering.
      * This relation is enforced by the {@link Cumulative} constraint
      * posted by calling this method.
-     *
+     * <p>
      * At any time-point t, the sum of the demands
      * of the activities overlapping t do not overlap the capacity.
      *
@@ -1630,7 +1640,7 @@ public final class Factory {
      * @param x an array of variables
      * @param g a context-free grammar
      * @return a constraint so that {@code x is a word recognized by context-free grammar g}
-     *
+     * <p>
      * NOTE: The grammar must be in its Chomsky form
      */
     public static Constraint grammar(IntVar[] x, CFG g) {
@@ -1729,41 +1739,41 @@ public final class Factory {
     }
 
     /**
- 	 * A special case of cardinality constraint when the bounds on number of
- 	 * occurrences are given
- 	 * 
- 	 * @param x    an array of variables
- 	 * @param vals an array of values whose occurrences in x we count
- 	 * @param oMin an array of constants indicating the minimum number of
- 	 *             occurrences of each entry of vals in x
- 	 * @param oMax an array of constants indicating the maximum number of
- 	 *             occurrences of each entry of vals in x
- 	 * @return
- 	 */
-	  public static Constraint cardinality(IntVar[] x, int[] vals, int[] oMin, int[] oMax) {
-		int n = vals.length;
-		assert (oMin.length == n);
-		assert (oMax.length == n);
-		int maxDomainSize = 0;
-			for (int i = 0; i < x.length; i++) {
-			maxDomainSize = Math.max(maxDomainSize, x[i].size());
-		}
-		IntVar[] oVar = new IntVar[n];
-		Solver cp = x[0].getSolver();
-		for (int i = 0; i < n; i++)
-			oVar[i] = makeIntVar(cp, oMin[i], oMax[i]);
+     * A special case of cardinality constraint when the bounds on number of
+     * occurrences are given
+     *
+     * @param x    an array of variables
+     * @param vals an array of values whose occurrences in x we count
+     * @param oMin an array of constants indicating the minimum number of
+     *             occurrences of each entry of vals in x
+     * @param oMax an array of constants indicating the maximum number of
+     *             occurrences of each entry of vals in x
+     * @return
+     */
+    public static Constraint cardinality(IntVar[] x, int[] vals, int[] oMin, int[] oMax) {
+        int n = vals.length;
+        assert (oMin.length == n);
+        assert (oMax.length == n);
+        int maxDomainSize = 0;
+        for (int i = 0; i < x.length; i++) {
+            maxDomainSize = Math.max(maxDomainSize, x[i].size());
+        }
+        IntVar[] oVar = new IntVar[n];
+        Solver cp = x[0].getSolver();
+        for (int i = 0; i < n; i++)
+            oVar[i] = makeIntVar(cp, oMin[i], oMax[i]);
 
-		return new Cardinality(x, vals, oVar, makeIntVar(cp,1,maxDomainSize));
-	}
+        return new Cardinality(x, vals, oVar, makeIntVar(cp, 1, maxDomainSize));
+    }
 
     /**
      * Returns a soft cardinality constraint.
      * This relation is currently enforced by decomposing it into {@link TableCT} and {@link Sum} constraints; it is not domain consistent
      *
-     * @param x    an array of variables
-     * @param vals an array of values whose occurrences in x we count
-     * @param o    an array of variables corresponding to the number of occurrences of vals in x
-     * @param nbViolations  the number of violations for the constraint
+     * @param x            an array of variables
+     * @param vals         an array of values whose occurrences in x we count
+     * @param o            an array of variables corresponding to the number of occurrences of vals in x
+     * @param nbViolations the number of violations for the constraint
      * @return a soft cardinality constraint
      */
     public static Constraint cardinalitySoft(IntVar[] x, int[] vals, IntVar[] o, IntVar nbViolations) {
@@ -1793,40 +1803,40 @@ public final class Factory {
     }
 
     /**
- 	 * A special case of soft cardinality constraint when the bounds on number of
- 	 * occurrences are given
- 	 * 
- 	 * @param x    an array of variables
- 	 * @param vals an array of values whose occurrences in x we count
- 	 * @param oMin an array of constants indicating the minimum number of
- 	 *             occurrences of each entry of vals in x
- 	 * @param oMax an array of constants indicating the maximum number of
- 	 *             occurrences of each entry of vals in x
-	 * @param nbViolations  the number of violations for the constraint
- 	 * @return
- 	 */
-	  public static Constraint cardinalitySoft(IntVar[] x, int[] vals, int[] oMin, int[] oMax, IntVar nbViolations) {
-		int n = vals.length;
-		assert (oMin.length == n);
-		assert (oMax.length == n);
-		int maxDomainSize = 0;
-			for (int i = 0; i < x.length; i++) {
-			maxDomainSize = Math.max(maxDomainSize, x[i].size());
-		}
-		IntVar[] oVar = new IntVar[n];
-		Solver cp = x[0].getSolver();
-		for (int i = 0; i < n; i++)
-			oVar[i] = makeIntVar(cp, oMin[i], oMax[i]);
+     * A special case of soft cardinality constraint when the bounds on number of
+     * occurrences are given
+     *
+     * @param x            an array of variables
+     * @param vals         an array of values whose occurrences in x we count
+     * @param oMin         an array of constants indicating the minimum number of
+     *                     occurrences of each entry of vals in x
+     * @param oMax         an array of constants indicating the maximum number of
+     *                     occurrences of each entry of vals in x
+     * @param nbViolations the number of violations for the constraint
+     * @return
+     */
+    public static Constraint cardinalitySoft(IntVar[] x, int[] vals, int[] oMin, int[] oMax, IntVar nbViolations) {
+        int n = vals.length;
+        assert (oMin.length == n);
+        assert (oMax.length == n);
+        int maxDomainSize = 0;
+        for (int i = 0; i < x.length; i++) {
+            maxDomainSize = Math.max(maxDomainSize, x[i].size());
+        }
+        IntVar[] oVar = new IntVar[n];
+        Solver cp = x[0].getSolver();
+        for (int i = 0; i < n; i++)
+            oVar[i] = makeIntVar(cp, oMin[i], oMax[i]);
 
-		return new SoftCardinality(x, vals, oVar, nbViolations, makeIntVar(cp,1,maxDomainSize));
-	}
+        return new SoftCardinality(x, vals, oVar, nbViolations, makeIntVar(cp, 1, maxDomainSize));
+    }
 
     /**
      * Returns a NValues constraint.
      * This relation is currently enforced by decomposing it into {@link TableCT}, {@link IsOr} and {@link Sum} constraints; it is not domain consistent
      *
-     * @param x    an array of variables
-     * @param nDistinct    a variable corresponding to the number of distinct values occurring in x
+     * @param x         an array of variables
+     * @param nDistinct a variable corresponding to the number of distinct values occurring in x
      * @return a NValues constraint
      */
     public static Constraint nValues(IntVar[] x, IntVar nDistinct) {
@@ -1839,17 +1849,19 @@ public final class Factory {
 
     /**
      * Returns a Circuit Constraint
-     * @param x       an array of variables
-     * @param offset  the smallest value in the domains of x
+     *
+     * @param x      an array of variables
+     * @param offset the smallest value in the domains of x
      * @return
      */
     public static Constraint circuit(IntVar[] x, int offset) {
-	IntVar[] x_offset = new IntVar[x.length];
-	for (int i = 0; i < x.length; i++) {
-	    x_offset[i] = new IntVarViewOffset(x[i], -offset);
-	}
+        IntVar[] x_offset = new IntVar[x.length];
+        for (int i = 0; i < x.length; i++) {
+            x_offset[i] = new IntVarViewOffset(x[i], -offset);
+        }
         return new Circuit(x_offset);
     }
+
     /**
      * special case without offset
      */
@@ -1859,6 +1871,7 @@ public final class Factory {
 
     /**
      * Returns a bin packing constraint.
+     *
      * @param b    the bin into which each item is put
      * @param size the size of each item
      * @param l    the load of each bin
@@ -1869,105 +1882,110 @@ public final class Factory {
         for (int i = 0; i < l.length; i++) {
             vars[b.length + i] = l[i];
         }
-        return new BinPacking(b,size,l,vars);
+        return new BinPacking(b, size, l, vars);
     }
+
     /**
      * special case with same capacity on every bin and no handle on bin load
      */
     public static Constraint binPacking(IntVar[] b, int[] size, int capacity) {
         // find out the range of available bins (assumes bins are indexed starting at 0)
         int lastBin = 0;
-        for (int i=0; i < b.length; i++) {
+        for (int i = 0; i < b.length; i++) {
             if (b[i].max() > lastBin)
                 lastBin = b[i].max();
         }
-        IntVar[] l = new IntVar[lastBin+1];
+        IntVar[] l = new IntVar[lastBin + 1];
         // restrict the capacity of bins
         for (int j = 0; j <= lastBin; j++) {
             l[j] = makeIntVar(b[0].getSolver(), 0, capacity);
         }
-        return binPacking(b,size,l);
+        return binPacking(b, size, l);
     }
 
     /**
      * Returns a lexicographically less constraint between two arrays of variables of same length.
-     * @param x    an array of variables
-     * @param y    an array of variables
+     *
+     * @param x an array of variables
+     * @param y an array of variables
      * @return a constraint so that {@code x is lexicographically less than y}
      */
     public static Constraint lexLess(IntVar[] x, IntVar[] y) {
-      int n = x.length;
-      assert (y.length == n);
-      Solver cp = x[0].getSolver();
-      IntVar[] z = new IntVar[n];
-      for (int i = 0; i < n; i++) {
-        IntVar[] b = new IntVar[4];
-        b[0] = isLess(x[i],y[i]);
-        b[0].setName("b"+i+".0 (lexLess)");
-        b[1] = isEqual(x[i],y[i]);
-        b[1].setName("b"+i+".1 (lexLess)");
-        b[2] = isLarger(x[i],y[i]);
-        b[2].setName("b"+i+".2 (lexLess)");
-        z[i] = makeIntVar(cp, 3);
-        z[i].setName("z"+i+" (lexLess)");
-        b[3] = z[i];
-        cp.post(table(b,new int[][]{{1,0,0,0},{0,1,0,1},{0,0,1,2}}));
-      }
-      int[][] A = new int[][]{{1,0,-1},{1,1,1}};
-      List<Integer> f = new ArrayList<Integer>();
-      f.add(1);
-      return regular(z, A, f);
+        int n = x.length;
+        assert (y.length == n);
+        Solver cp = x[0].getSolver();
+        IntVar[] z = new IntVar[n];
+        for (int i = 0; i < n; i++) {
+            IntVar[] b = new IntVar[4];
+            b[0] = isLess(x[i], y[i]);
+            b[0].setName("b" + i + ".0 (lexLess)");
+            b[1] = isEqual(x[i], y[i]);
+            b[1].setName("b" + i + ".1 (lexLess)");
+            b[2] = isLarger(x[i], y[i]);
+            b[2].setName("b" + i + ".2 (lexLess)");
+            z[i] = makeIntVar(cp, 3);
+            z[i].setName("z" + i + " (lexLess)");
+            b[3] = z[i];
+            cp.post(table(b, new int[][]{{1, 0, 0, 0}, {0, 1, 0, 1}, {0, 0, 1, 2}}));
+        }
+        int[][] A = new int[][]{{1, 0, -1}, {1, 1, 1}};
+        List<Integer> f = new ArrayList<Integer>();
+        f.add(1);
+        return regular(z, A, f);
     }
 
     /**
      * Returns a lexicographically less-or-equal constraint between two arrays of variables of same length.
-     * @param x    an array of variables
-     * @param y    an array of variables
+     *
+     * @param x an array of variables
+     * @param y an array of variables
      * @return a constraint so that {@code x is lexicographically less or equal to y}
      */
     public static Constraint lexLessOrEqual(IntVar[] x, IntVar[] y) {
-      int n = x.length;
-      assert (y.length == n);
-      Solver cp = x[0].getSolver();
-      IntVar[] z = new IntVar[n];
-      for (int i = 0; i < n; i++) {
-          IntVar[] b = new IntVar[4];
-          b[0] = isLess(x[i],y[i]);
-          b[0].setName("b"+i+".0 (lexLessOrEqual)");
-          b[1] = isEqual(x[i],y[i]);
-          b[1].setName("b"+i+".1 (lexLessOrEqual)");
-          b[2] = isLarger(x[i],y[i]);
-          b[2].setName("b"+i+".2 (lexLessOrEqual)");
-          z[i] = makeIntVar(cp, 3);
-          z[i].setName("z"+i+" (lexLessOrEqual)");
-          b[3] = z[i];
-          cp.post(table(b,new int[][]{{1,0,0,0},{0,1,0,1},{0,0,1,2}}));
-      }
-      int[][] A = new int[][]{{1,0,-1},{1,1,1}};
-      return regular(z, A); // all states are accepting
+        int n = x.length;
+        assert (y.length == n);
+        Solver cp = x[0].getSolver();
+        IntVar[] z = new IntVar[n];
+        for (int i = 0; i < n; i++) {
+            IntVar[] b = new IntVar[4];
+            b[0] = isLess(x[i], y[i]);
+            b[0].setName("b" + i + ".0 (lexLessOrEqual)");
+            b[1] = isEqual(x[i], y[i]);
+            b[1].setName("b" + i + ".1 (lexLessOrEqual)");
+            b[2] = isLarger(x[i], y[i]);
+            b[2].setName("b" + i + ".2 (lexLessOrEqual)");
+            z[i] = makeIntVar(cp, 3);
+            z[i].setName("z" + i + " (lexLessOrEqual)");
+            b[3] = z[i];
+            cp.post(table(b, new int[][]{{1, 0, 0, 0}, {0, 1, 0, 1}, {0, 0, 1, 2}}));
+        }
+        int[][] A = new int[][]{{1, 0, -1}, {1, 1, 1}};
+        return regular(z, A); // all states are accepting
     }
 
     /**
      * Returns an inverse constraint between two arrays of variables of same length.
-     * @param f       an array of variables
-     * @param invf    an array of variables
-     * @param offset  the smallest value in the domain
+     *
+     * @param f      an array of variables
+     * @param invf   an array of variables
+     * @param offset the smallest value in the domain
      * @return a constraint so that {@code invf is the inverse function of f}
      */
     public static Constraint inverse(IntVar[] f, IntVar[] invf, int offset) {
-	IntVar[] f_offset = new IntVar[f.length];
-	IntVar[] invf_offset = new IntVar[f.length];
-	for (int i = 0; i < f.length; i++) {
-	    f_offset[i] = new IntVarViewOffset(f[i], -offset);
-	    invf_offset[i] = new IntVarViewOffset(invf[i], -offset);
-	}
-        return new Inverse(f_offset,invf_offset);
+        IntVar[] f_offset = new IntVar[f.length];
+        IntVar[] invf_offset = new IntVar[f.length];
+        for (int i = 0; i < f.length; i++) {
+            f_offset[i] = new IntVarViewOffset(f[i], -offset);
+            invf_offset[i] = new IntVarViewOffset(invf[i], -offset);
+        }
+        return new Inverse(f_offset, invf_offset);
     }
+
     /**
      * special case without offset
      */
     public static Constraint inverse(IntVar[] f, IntVar[] invf) {
-        return new Inverse(f,invf);
+        return new Inverse(f, invf);
     }
 
     /**
@@ -2086,10 +2104,10 @@ public final class Factory {
      *
      * @param Ae the mexn matrix of coefficients
      * @param Ai the mixn matrix of coefficients
-     * @param x the column vector of n variables
+     * @param x  the column vector of n variables
      * @param be the column vector of me rhs values
      * @param bi the column vector of mi rhs values
-     * @param p the prime modulus
+     * @param p  the prime modulus
      * @return a constraint so that {@code Aex = be and Aix <= bi (mod p)}.
      */
     public static Constraint linSystemModP(int[][] Ae, int[][] Ai, IntVar[] x, int[] be, int[] bi, int p) {
