@@ -257,10 +257,7 @@ public final class Factory {
      * @see BranchingScheme#branch(Procedure...)
      */
     public static LDSearch makeLds(Solver cp, Supplier<Procedure[]> branching, boolean geometric) {
-        Solver.PropaMode oldMode = cp.getMode();
-        cp.setMode(Solver.PropaMode.SP);
         cp.propagateSolver(); // initial propagation at root node
-        cp.setMode(oldMode);
         // compute an upper bound on the number of discrepancies in the rightmost branch of a complete search tree
         int discrepancyUB = 0;
         for (int i = 0; i < cp.getVariables().size(); i++) {

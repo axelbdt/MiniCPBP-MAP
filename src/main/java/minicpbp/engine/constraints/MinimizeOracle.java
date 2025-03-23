@@ -60,7 +60,7 @@ public class MinimizeOracle extends AbstractConstraint {
 
     @Override
     public void updateBelief() {
-        // System.out.println("Max Oracle");
+        // System.out.println("Min Oracle");
         if (x.isBound()) {
             setLocalBelief(0, x.min(), 1.0);
             return;
@@ -74,8 +74,9 @@ public class MinimizeOracle extends AbstractConstraint {
         for (int val = x.min(); val <= x.max(); val++) {
             if (x.contains(val)) {
                 setLocalBelief(0, val, (reference - val) / sum);
+                // System.out.println("Min Oracle to " + x.getName() + " : " + val + " with " + (reference - val) / sum);
             }
         }
-        // System.out.println("Max Oracle Propagated");
+        // System.out.println("Min Oracle Propagated");
     }
 }

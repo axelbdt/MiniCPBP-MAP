@@ -364,7 +364,7 @@ public class MiniCP implements Solver {
             sum += iterator.next().size();
         }
         potentialTrigger++;
-        if (sum >= (1.0 - beliefUpdateThreshold) * sumDomainSizes.value()) { // trigger BP only if domains sufficiently
+        if (sum > (1.0 - beliefUpdateThreshold) * sumDomainSizes.value()) { // trigger BP only if domains sufficiently
             // changed
             iterator = variables.iterator();
             while (iterator.hasNext()) {
@@ -696,9 +696,7 @@ public class MiniCP implements Solver {
 
     @Override
     public Objective minimize(IntVar x) {
-        System.out.println("MINIMIZE CREATED");
         if (MiniCP.oracleOnObjective) {
-            System.out.println("MINIMIZEORACLE CREATED");
             var oracle = new MinimizeOracle(x);
             oracle.setName("objective oracle (min)");
             oracle.setWeight(MiniCP.oracleWeight);

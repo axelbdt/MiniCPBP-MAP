@@ -29,7 +29,8 @@ public class LatinSquare {
         LEXICO,
         MAX_VALUE,
         DOM_WDEG_BEST_VALUE,
-        DOM_WDEG_MAX_MARGINAL;
+        DOM_WDEG_MAX_MARGINAL,
+        MIN_ENTROPY;
 
         @Override
         public String toString() {
@@ -247,6 +248,9 @@ public class LatinSquare {
                 break;
             case DOM_WDEG_MAX_MARGINAL:
                 branchingProcedure = domWdegMaxMarginal(xFlat);
+                break;
+            case MIN_ENTROPY:
+                branchingProcedure = minEntropy(xFlat);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown branching scheme: " + branching);

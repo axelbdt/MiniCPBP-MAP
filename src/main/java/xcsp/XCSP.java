@@ -2252,8 +2252,9 @@ public class XCSP implements XCallbacks2 {
 			vars[i] = minicp.getVariables().get(i);
 		}
 		*/
-
-        System.out.println("MAKE SEARCH");
+        Objective objective = null;
+        if (isCOP())
+            objective = minicp.minimize(objectiveMinimize.get());
 
         Search search = null;
         switch (heuristic) {
@@ -2311,8 +2312,6 @@ public class XCSP implements XCallbacks2 {
                 System.exit(1);
         }
 
-        System.out.println("SET SEARCH");
-
         if (checkSolution || (solFileStr != ""))
             extractSolutionStr = true;
 
@@ -2344,11 +2343,9 @@ public class XCSP implements XCallbacks2 {
 //			System.out.println("SOLN:"+solutionStr);
         });
 
-        System.out.println("START SEARCH");
         SearchStatistics stats;
         if (isCOP()) {
             System.out.println("optimizing...");
-            Objective objective = minicp.minimize(objectiveMinimize.get());
 
             stats = search.optimize(objective, ss -> {
                 return (System.currentTimeMillis() - t0 >= timeout * 1000 || ss.isCompleted());
@@ -2450,7 +2447,6 @@ public class XCSP implements XCallbacks2 {
         out.println("nodes: " + stats.numberOfNodes());
         out.println("runtime (ms): " + runtime);
         out.println("complete:" + stats.isCompleted());
-
         out.close();
 
     }

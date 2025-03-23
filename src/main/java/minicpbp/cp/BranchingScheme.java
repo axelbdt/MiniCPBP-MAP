@@ -112,9 +112,19 @@ public final class BranchingScheme {
      */
     public static <T, N extends Comparable<N>> T selectMin(T[] x, Predicate<T> p, Function<T, N> f) {
         T sel = null;
+        N selValue = null;
         for (T xi : x) {
             if (p.test(xi)) {
-                sel = sel == null || f.apply(xi).compareTo(f.apply(sel)) < 0 ? xi : sel;
+                if (sel == null) {
+                    sel = xi;
+                    selValue = f.apply(xi);
+                } else {
+                    N currentValue = f.apply(xi);
+                    if (currentValue.compareTo(selValue) < 0) {
+                        sel = xi;
+                        selValue = currentValue;
+                    }
+                }
             }
         }
         return sel;
