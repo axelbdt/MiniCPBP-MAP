@@ -409,9 +409,6 @@ public final class Factory {
      * Branches on x=v,
      * performs propagation according to the mode
      * and compute impact on the product of domains sizes
-     *
-     * @param x the variable to be assigned to v
-     * @param v the value that must be assigned to x
      */
     public static void branchEqualRegisterImpactOnDomains(IntHolder a) {
         IntVar x = a.getVar();
@@ -466,9 +463,6 @@ public final class Factory {
      * Branches on x=v,
      * performs propagation according to the mode
      * and compute impact on the entropy of the model
-     *
-     * @param x the variable to be assigned to v
-     * @param v the value that must be assigned to x
      */
     public static void branchEqualRegisterImpact(IntHolder a) {
         IntVar x = a.getVar();
@@ -1236,7 +1230,6 @@ public final class Factory {
      * the sum modulo p of a given set of variable.
      *
      * @param x an array of variables
-     * @param y a constant
      * @param p the modulus
      * @return a constraint so that {@code y = x[0]+x[1]+...+x[n-1] (mod p)}
      */
