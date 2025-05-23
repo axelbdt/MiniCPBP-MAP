@@ -30,7 +30,8 @@ public class LatinSquare {
         MAX_VALUE,
         DOM_WDEG_BEST_VALUE,
         DOM_WDEG_MAX_MARGINAL,
-        MIN_ENTROPY;
+        MIN_ENTROPY,
+        MIN_NORMALIZED_ENTROPY;
 
         @Override
         public String toString() {
@@ -99,9 +100,12 @@ public class LatinSquare {
     private Search search;
     private Objective obj;
 
-    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int truncateRate, int maxIter) {
+    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int truncateRate, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
         // Create solver and square variables
         cp = makeSolver();
+
+        cp.setPropagationShortcut(propagationShortcut);
+
         switch (bp) {
             case NO_BP:
                 cp.setMode(Solver.PropaMode.SP);
@@ -235,13 +239,13 @@ public class LatinSquare {
                 branchingProcedure = maxValue();
                 break;
             case MAX_MARGINAL:
-                branchingProcedure = maxMarginal(xFlat);
+                branchingProcedure = maxMarginalOrDomWDeg(xFlat, entropyBranchingThreshold);
                 break;
             case MAX_MARGINAL_REGRET:
-                branchingProcedure = maxMarginalRegret(xFlat);
+                branchingProcedure = maxMarginalRegretOrDomWDeg(xFlat, entropyBranchingThreshold);
                 break;
             case MAX_MARGINAL_STRENGTH:
-                branchingProcedure = maxMarginalStrength(xFlat);
+                branchingProcedure = maxMarginalStrengthOrDomWDeg(xFlat, entropyBranchingThreshold);
                 break;
             case DOM_WDEG_BEST_VALUE:
                 branchingProcedure = domWdegBestValue();
@@ -250,7 +254,10 @@ public class LatinSquare {
                 branchingProcedure = domWdegMaxMarginal(xFlat);
                 break;
             case MIN_ENTROPY:
-                branchingProcedure = minEntropy(xFlat);
+                branchingProcedure = minEntropyOrDomWDeg(xFlat, entropyBranchingThreshold);
+                break;
+            case MIN_NORMALIZED_ENTROPY:
+                branchingProcedure = minNormalizedEntropyOrDomWDeg(xFlat, entropyBranchingThreshold);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown branching scheme: " + branching);
@@ -437,6 +444,8 @@ public class LatinSquare {
         String maxIterArg = arguments.get("maxIter");
         String bpArg = arguments.get("bp");
         String branchingArg = arguments.get("branching");
+        String entropyBranchingThresholdArg = arguments.get("entropyBranchingThreshold");
+        String propagationShortcutArg = arguments.get("propagationShortcut");
 
         int nbHoles = Integer.parseInt(nbHolesArg);
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
@@ -446,6 +455,8 @@ public class LatinSquare {
         int maxIter = Integer.parseInt(maxIterArg);
         BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.toUpperCase());
         Branching branching = Branching.valueOf(branchingArg.toUpperCase());
+        float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdArg);
+        boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
 
         ObjectivePattern objective;
         String[] parts = objectiveString.toUpperCase().split("_");
@@ -465,7 +476,20 @@ public class LatinSquare {
         }
 
         // Create the model
-        LatinSquare ls = new LatinSquare(n, nbHoles, nbFile, searchType, bp, branching, objective, oracle, truncateRate, maxIter);
+        LatinSquare ls = new LatinSquare(
+                n,
+                nbHoles,
+                nbFile,
+                searchType,
+                bp,
+                branching,
+                objective,
+                oracle,
+                truncateRate,
+                maxIter,
+                entropyBranchingThreshold,
+                propagationShortcut
+        );
 
         System.out.println("INFO");
         System.out.println("n : " + n);
@@ -491,6 +515,8 @@ public class LatinSquare {
             System.out.println("search: " + searchType);
             System.out.println("bp : " + bp);
             System.out.println("branchingScheme : " + branching);
+            System.out.println("entropyBranchingThreshold : " + entropyBranchingThreshold);
+            System.out.println("propagationShortcut : " + propagationShortcut);
             System.out.println("oracle : " + oracle);
             System.out.println("maxIter : " + maxIter);
             System.out.println("truncateRate : " + truncateRate);

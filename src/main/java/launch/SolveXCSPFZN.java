@@ -45,6 +45,9 @@ public class SolveXCSPFZN {
         MNEBW, //min-entropy with biased wheel value selection
         WDEG, //dom-wdeg
         WDEGMXMR,
+        MNEDWDEG, // min entropy with dom wdeg fallback
+        MNNE, // min normalized entropy
+        MNNEDWDEG, // min normalized entropy with dom wdeg fallback
         IBS, //impact-based search
     }
 
@@ -64,6 +67,9 @@ public class SolveXCSPFZN {
             put("min-entropy-biased", BranchingHeuristic.MNEBW);
             put("dom-wdeg", BranchingHeuristic.WDEG);
             put("dom-wdeg-max-marginal", BranchingHeuristic.WDEGMXMR);
+            put("min-entropy-dom-wdeg", BranchingHeuristic.MNEDWDEG);
+            put("min-normalized-entropy", BranchingHeuristic.MNNE);
+            put("min-normalized-entropy-dom-wdeg", BranchingHeuristic.MNNEDWDEG);
             put("impact-based-search", BranchingHeuristic.IBS);
         }
     };
@@ -88,6 +94,9 @@ public class SolveXCSPFZN {
         String quotedValidSwitchToSumProductAfterSolution = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
+        String quotedValidPropagationShortcut = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
@@ -100,7 +109,7 @@ public class SolveXCSPFZN {
         Option bpAlgorithmOpt = Option.builder().longOpt("bp-algorithm").argName("ALGORITHM").required().hasArg()
                 .desc("BP algorithm.\nValid BP algorithms are:\n" + quotedValidBPAlgorithms).build();
 
-        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("ORACLE").required().hasArg()
+        Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("ORACLE").hasArg().type(Float.class)
                 .desc("oracle on objective.\nValid oracle on objective are floats").build();
 
         Option switchToSumProductAfterSolutionOpt = Option.builder().longOpt("switch-to-sum-product-after-solution").argName("BOOL").hasArg()
@@ -108,6 +117,12 @@ public class SolveXCSPFZN {
 
         Option branchingOpt = Option.builder().longOpt("branching").argName("STRATEGY").required().hasArg()
                 .desc("branching strategy.\nValid branching strategies are:\n" + quotedValidBranchings).build();
+
+        Option entropyBranchingThresholdOpt = Option.builder().longOpt("entropy-branching-threshold").argName("FLOAT").hasArg()
+                .desc("entropy branching threshold.\nValid entropy branching threshold are floats").build();
+
+        Option propagationShortcutOpt = Option.builder().longOpt("propagation-shortcut").argName("BOOL").hasArg()
+                .desc("propagation shortcut.\nValid propagation shortcut are:\n" + quotedValidPropagationShortcut).build();
 
         Option searchOpt = Option.builder().longOpt("search-type").argName("SEARCH").required().hasArg()
                 .desc("search type.\nValid search types are:\n" + quotedValidSearchTypes).build();
@@ -185,8 +200,8 @@ public class SolveXCSPFZN {
         options.addOption(dynamicStopBPOpt);
         options.addOption(traceNbIterOpt);
         options.addOption(traceEntropyOpt);
-        options.addOption(oracleOnObjectiveOpt);
         options.addOption(switchToSumProductAfterSolutionOpt);
+        options.addOption(entropyBranchingThresholdOpt);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -204,7 +219,7 @@ public class SolveXCSPFZN {
         if (bpAlgorithmStr != "no-bp")
             bpAlgorithm = algorithmMap.get(bpAlgorithmStr);
 
-        String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective");
+        String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective", "0");
         checkOracleOnObjectiveOption(oracleOnObjectiveStr);
         float oracleOnObjective = Float.parseFloat(oracleOnObjectiveStr);
 
@@ -218,6 +233,17 @@ public class SolveXCSPFZN {
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
         BranchingHeuristic heuristic = branchingMap.get(branchingStr);
+
+        String entropyBranchingThresholdStr = cmd.getOptionValue("entropy-branching-threshold", "2.0");
+        checkEntropyBranchingThresholdOption(entropyBranchingThresholdStr);
+        float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdStr);
+
+        String bpShortcutStr = cmd.getOptionValue("propagation-shortcut");
+        boolean propagationShortcut = true;
+        if (bpShortcutStr != null) {
+            checkPropagationShortcutOption(bpShortcutStr);
+            propagationShortcut = BoolMap.get(bpShortcutStr);
+        }
 
         String searchTypeStr = cmd.getOptionValue("search-type");
         checkSearchTypeOption(searchTypeStr);
@@ -299,7 +325,10 @@ public class SolveXCSPFZN {
                 System.out.println("BP algorithm: " + bpAlgorithmStr);
                 System.out.println("oracle on objective: " + oracleOnObjective);
                 System.out.println("branching strategy: " + branchingStr);
+                System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
+                System.out.println("propagation shortcut: " + propagationShortcut);
                 System.out.println("search type: " + searchTypeStr);
+                System.out.println("maxIter: " + maxIter);
                 System.out.println("switch to sum product after solution: " + switchToSumProductAfterSolution);
 
                 XCSP xcsp = new XCSP(inputStr);
@@ -320,6 +349,8 @@ public class SolveXCSPFZN {
                 xcsp.traceEntropy(traceEntropy);
                 xcsp.BPAlgorithm(bpAlgorithm);
                 xcsp.oracleOnObjective(oracleOnObjective);
+                xcsp.entropyBranchingThreshold(entropyBranchingThreshold);
+                xcsp.propagationShortcut(propagationShortcut);
                 xcsp.switchToSumProductAfterSolution(switchToSumProductAfterSolution);
 
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
@@ -349,12 +380,30 @@ public class SolveXCSPFZN {
         }
     }
 
+    private static void checkEntropyBranchingThresholdOption(String entropyBranchingThresholdStr) {
+        if (Float.isNaN(Float.parseFloat(entropyBranchingThresholdStr))) {
+            System.out.println("invalid entropy branching threshold " + entropyBranchingThresholdStr);
+            System.out.println("entropy branching threshold should be a float number");
+            System.exit(1);
+        }
+    }
+
     private static void checkSwitchToSumProductAfterSolutionOption(String switchToSumProductAfterSolutionStr) {
         if (!BoolMap.containsKey(switchToSumProductAfterSolutionStr)) {
             System.out.println("invalid switch to sum product after solution " + switchToSumProductAfterSolutionStr);
             System.out.println("switch to sum product after solution should be one of the following: ");
             for (String switchToSumProductAfterSolution : BoolMap.keySet())
                 System.out.println(switchToSumProductAfterSolution);
+            System.exit(1);
+        }
+    }
+
+    private static void checkPropagationShortcutOption(String propagationShortcutStr) {
+        if (!BoolMap.containsKey(propagationShortcutStr)) {
+            System.out.println("invalid propagation shortcut " + propagationShortcutStr);
+            System.out.println("propagation shortcut should be one of the following: ");
+            for (String propagationShortcut : BoolMap.keySet())
+                System.out.println(propagationShortcut);
             System.exit(1);
         }
     }

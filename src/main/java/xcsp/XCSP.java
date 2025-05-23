@@ -2169,6 +2169,19 @@ public class XCSP implements XCallbacks2 {
         XCSP.bpAlgorithm = bpAlgorithm;
     }
 
+    private static float entropyBranchingThreshold = 1.0f;
+
+
+    public void entropyBranchingThreshold(float entropyBranchingThreshold) {
+        XCSP.entropyBranchingThreshold = entropyBranchingThreshold;
+    }
+
+    private static boolean propagationShortcut = false;
+
+    public void propagationShortcut(boolean propagationShortcut) {
+        XCSP.propagationShortcut = propagationShortcut;
+    }
+
     private static float oracleOnObjective = 0;
 
     public void oracleOnObjective(float oracleOnObjective) {
@@ -2221,6 +2234,7 @@ public class XCSP implements XCallbacks2 {
             minicp.setOracleWeight(oracleOnObjective);
         }
         minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
+        minicp.setPropagationShortcut(propagationShortcut);
 
         if (hasFailed) {
             if (!competitionOutput) {
@@ -2263,13 +2277,13 @@ public class XCSP implements XCallbacks2 {
                 search = makeSearch(firstFailRandomVal(vars));
                 break;
             case MXMS:
-                search = makeSearch(maxMarginalStrength(vars));
+                search = makeSearch(maxMarginalStrengthOrDomWDeg(vars, entropyBranchingThreshold));
                 break;
             case MXMR:
-                search = makeSearch(maxMarginalRegret(vars));
+                search = makeSearch(maxMarginalRegretOrDomWDeg(vars, entropyBranchingThreshold));
                 break;
             case MXM:
-                search = makeSearch(maxMarginal(vars));
+                search = makeSearch(maxMarginalOrDomWDeg(vars, entropyBranchingThreshold));
                 break;
             case MNMS:
                 search = makeSearch(minMarginalStrength(vars));
@@ -2278,7 +2292,7 @@ public class XCSP implements XCallbacks2 {
                 search = makeSearch(minMarginal(vars));
                 break;
             case MNE:
-                search = makeSearch(minEntropy(vars));
+                search = makeSearch(minEntropyOrDomWDeg(vars, entropyBranchingThreshold));
                 break;
             case IE:
                 search = makeSearch(impactEntropy(vars));
@@ -2298,6 +2312,9 @@ public class XCSP implements XCallbacks2 {
                 break;
             case MNEBW:
                 search = makeSearch(minEntropyBiasedWheelSelectVal(vars));
+                break;
+            case MNNE:
+                search = makeSearch(minNormalizedEntropyOrDomWDeg(vars, entropyBranchingThreshold));
                 break;
             case WDEG:
                 minicp.setMode(PropaMode.SP);

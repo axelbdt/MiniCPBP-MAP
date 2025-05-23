@@ -60,6 +60,7 @@ public class MiniCP implements Solver {
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
+    private static boolean propagationShortcut = true;
     private static boolean damping = true;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
     private static double dampingFactor = 0.75;
@@ -566,16 +567,18 @@ public class MiniCP implements Solver {
                 if (currentEntropy == 0) { // either all branching vars are bound or BP says there's no solution
                     break;
                 }
-                if (previousDeltaEntropy <= 0 && currentDeltaEntropy > ENTROPY_TOLERANCE) {
+                if (propagationShortcut) {
+                    if (previousDeltaEntropy <= 0 && currentDeltaEntropy > ENTROPY_TOLERANCE) {
 //                    System.out.println("valley");
-                    valleyCount++;
-                    if (valleyCount >= 2) {
-                        // System.out.println("two valleys ==> oscillation");
-                        if (dampingFactor() - DAMPING_FACTOR_DELTA >= MIN_DAMPING_FACTOR) {
-                            setDampingFactor(dampingFactor() - DAMPING_FACTOR_DELTA); // increase damping
-                            dampingFactorDetermined = false;
+                        valleyCount++;
+                        if (valleyCount >= 2) {
+                            // System.out.println("two valleys ==> oscillation");
+                            if (dampingFactor() - DAMPING_FACTOR_DELTA >= MIN_DAMPING_FACTOR) {
+                                setDampingFactor(dampingFactor() - DAMPING_FACTOR_DELTA); // increase damping
+                                dampingFactorDetermined = false;
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
             }
@@ -634,6 +637,16 @@ public class MiniCP implements Solver {
             loss -= Math.log(beliefRep.rep2std(c.weightedCounting()));
         }
         return loss;
+    }
+
+    @Override
+    public boolean propagationShortcut() {
+        return MiniCP.propagationShortcut;
+    }
+
+    @Override
+    public void setPropagationShortcut(boolean propagationShortcut) {
+        MiniCP.propagationShortcut = propagationShortcut;
     }
 
     /**

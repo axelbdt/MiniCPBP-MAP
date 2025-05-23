@@ -305,6 +305,11 @@ public class IntVarImpl implements IntVar {
     }
 
     @Override
+    public double normalizedEntropy() {
+        return domain.normalizedEntropy();
+    }
+
+    @Override
     public double impact() {
         return domain.impact();
     }

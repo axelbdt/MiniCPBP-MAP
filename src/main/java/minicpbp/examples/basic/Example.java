@@ -15,7 +15,7 @@ import static minicpbp.cp.Factory.*;
 public class Example {
     public static void main(String[] args) {
         Solver cp = makeSolver();
-        Solver.BPAlgorithm bp = Solver.BPAlgorithm.SUM_PRODUCT;
+        Solver.BPAlgorithm bp = Solver.BPAlgorithm.MAX_PRODUCT;
         cp.setBPAlgorithm(bp);
 
         IntVar a = makeIntVar(cp, 1, 4);
@@ -36,9 +36,9 @@ public class Example {
 
         cp.setOracleOnObjective(true);
         cp.setOracleWeight(1.0);
-        IntVar objective_var = d;
+        IntVar objective_var = a;
         String max_min = "minimize";
-        // max_min = "maximize";
+        max_min = "maximize";
         Objective objective;
         if (max_min.equals("minimize")) {
             objective = cp.minimize(objective_var);

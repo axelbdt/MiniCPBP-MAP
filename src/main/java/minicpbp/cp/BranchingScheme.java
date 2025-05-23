@@ -610,6 +610,144 @@ public final class BranchingScheme {
     }
 
     /**
+     * Minimum normalized entropy strategy.
+     * It selects an unbound variable with the smallest normalized entropy
+     * of its marginal distribution.
+     * Then it creates two branches:
+     * the left branch assigning the variable to the value with the largest marginal;
+     * the right branch removing this value from the domain.
+     *
+     * @param x the variable on which the min entropy strategy is applied.
+     * @return minEntropy branching strategy
+     * @see Factory#makeDfs(Solver, Supplier)
+     */
+    public static Supplier<Procedure[]> minNormalizedEntropy(IntVar[] x) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> xi.normalizedEntropy());
+            if (xs == null)
+                return EMPTY;
+            else {
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; entropy=" + xs.entropy());
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    /**
+     * Minimum entropy strategy.
+     * It selects an unbound variable with the smallest entropy
+     * of its marginal distribution.
+     * If the entropy is too high, use domWdeg
+     * Then it creates two branches:
+     * the left branch assigning the variable to the value with the largest marginal;
+     * the right branch removing this value from the domain.
+     *
+     * @param x the variable on which the min entropy strategy is applied.
+     * @return minEntropy branching strategy
+     * @see Factory#makeDfs(Solver, Supplier)
+     */
+    public static Supplier<Procedure[]> minEntropyOrDomWDeg(IntVar[] x, double threshold) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs0 = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> xi.entropy());
+            if (xs0 == null)
+                return EMPTY;
+            else {
+                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+                if (xs == null)
+                    return EMPTY;
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; entropy=" + xs.entropy());
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    /**
+     * Minimum entropy strategy.
+     * It selects an unbound variable with the smallest entropy
+     * of its marginal distribution.
+     * If the entropy is too high, use domWdeg
+     * Then it creates two branches:
+     * the left branch assigning the variable to the value with the largest marginal;
+     * the right branch removing this value from the domain.
+     *
+     * @param x the variable on which the min entropy strategy is applied.
+     * @return minEntropy branching strategy
+     * @see Factory#makeDfs(Solver, Supplier)
+     */
+    public static Supplier<Procedure[]> minNormalizedEntropyOrDomWDeg(IntVar[] x, double threshold) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs0 = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> xi.normalizedEntropy());
+            if (xs0 == null)
+                return EMPTY;
+            else {
+                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+                if (xs == null)
+                    return EMPTY;
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; entropy=" + xs.entropy());
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    /**
      * Minimum entropy strategy with random tie breaking.
      * It selects an unbound variable with the smallest entropy
      * of its marginal distribution.
@@ -840,6 +978,41 @@ public final class BranchingScheme {
         };
     }
 
+    public static Supplier<Procedure[]> maxMarginalStrengthOrDomWDeg(IntVar[] x, double threshold) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs0 = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> 1.0 / xi.size() - beliefRep.rep2std(xi.maxMarginal()));
+            if (xs0 == null)
+                return EMPTY;
+            else {
+                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+                if (xs == null)
+                    return EMPTY;
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; strength=" + (beliefRep.rep2std(xs.maxMarginal()) - 1.0 / xs.size()));
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
     /**
      * Maximum Marginal Strength strategy with random tie breaking.
      * It selects an unbound variable with the largest marginal strength
@@ -912,6 +1085,43 @@ public final class BranchingScheme {
             if (xs == null)
                 return EMPTY;
             else {
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + "; marginal=" + beliefRep.rep2std(xs.maxMarginal()) + "; regret=" + (beliefRep.rep2std(xs.maxMarginalRegret())) + "; nb of ties=" + nbTied);
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+
+    public static Supplier<Procedure[]> maxMarginalRegretOrDomWDeg(IntVar[] x, double threshold) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs0 = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> -xi.maxMarginalRegret()
+            );
+            if (xs0 == null)
+                return EMPTY;
+            else {
+                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+                if (xs == null)
+                    return EMPTY;
                 int v = xs.valueWithMaxMarginal();
                 return branch(
                         () -> {
@@ -1116,6 +1326,41 @@ public final class BranchingScheme {
             if (xs == null)
                 return EMPTY;
             else {
+                int v = xs.valueWithMaxMarginal();
+                return branch(
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "=" + v + " marginal=" + beliefRep.rep2std(xs.maxMarginal()));
+                            branchEqual(xs, v);
+                        },
+                        () -> {
+                            if (tracing)
+                                System.out.println("### branching on " + xs.getName() + "!=" + v);
+                            branchNotEqual(xs, v);
+                        });
+            }
+        };
+    }
+
+    public static Supplier<Procedure[]> maxMarginalOrDomWDeg(IntVar[] x, double threshold) {
+        boolean tracing = x[0].getSolver().tracingSearch();
+        Belief beliefRep = x[0].getSolver().getBeliefRep();
+        for (IntVar a : x)
+            a.setForBranching(true);
+        if (x[0].getSolver().getWeighingScheme() == ConstraintWeighingScheme.ARITY)
+            x[0].getSolver().computeMinArity();
+        return () -> {
+            IntVar xs0 = selectMin(x,
+                    xi -> xi.size() > 1,
+                    xi -> -beliefRep.rep2std(xi.maxMarginal()));
+            if (xs0 == null)
+                return EMPTY;
+            else {
+                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> ((double) xi.size()) / ((double) xi.wDeg()));
+                if (xs == null)
+                    return EMPTY;
                 int v = xs.valueWithMaxMarginal();
                 return branch(
                         () -> {

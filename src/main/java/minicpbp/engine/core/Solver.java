@@ -319,5 +319,8 @@ public interface Solver {
      */
     double globalLossFct();
 
+    public boolean propagationShortcut();
+
+    public void setPropagationShortcut(boolean propagationShortcut);
 }
 
