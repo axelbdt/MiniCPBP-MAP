@@ -65,15 +65,9 @@ public class MinimizeOracle extends AbstractConstraint {
             setLocalBelief(0, x.min(), 1.0);
             return;
         }
-        float sum = 0;
         for (int val = x.min(); val <= x.max(); val++) {
             if (x.contains(val)) {
-                sum += reference - val;
-            }
-        }
-        for (int val = x.min(); val <= x.max(); val++) {
-            if (x.contains(val)) {
-                setLocalBelief(0, val, (reference - val) / sum);
+                setLocalBelief(0, val, reference - val);
                 // System.out.println("Min Oracle to " + x.getName() + " : " + val + " with " + (reference - val) / sum);
             }
         }
