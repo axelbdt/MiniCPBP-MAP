@@ -44,6 +44,12 @@ public interface Solver {
         ARITY  /* a constraint's weight is related to its arity; = 1 + arity/total_nb_of_vars */
     }
 
+    public enum FasterAllDiffMaxProd {
+        NO,
+        SQUARE,
+        YES
+    }
+
     public void setMaxBeliefDiff(double beliefDiff, int nbVar, int nbVal);
 
     /**
@@ -323,9 +329,9 @@ public interface Solver {
 
     public void setPropagationShortcut(boolean propagationShortcut);
 
-    public boolean fasterAllDiffMaxProd();
+    public FasterAllDiffMaxProd fasterAllDiffMaxProd();
 
-    public void setFasterAllDiffMaxProd(boolean fasterAllDiffMaxProd);
+    public void setFasterAllDiffMaxProd(FasterAllDiffMaxProd fasterAllDiffMaxProd);
 
     public boolean skipUniformMaxProd();
 

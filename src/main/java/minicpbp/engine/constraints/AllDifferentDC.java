@@ -20,6 +20,7 @@ package minicpbp.engine.constraints;
 
 import minicpbp.engine.core.AbstractConstraint;
 import minicpbp.engine.core.IntVar;
+import minicpbp.engine.core.Solver;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
@@ -39,6 +40,7 @@ import java.util.TreeSet;
  */
 public class AllDifferentDC extends AbstractConstraint {
 
+    private double largestDiff;
     private IntVar[] x;
 
     private final MaximumMatching maximumMatching;
@@ -100,6 +102,12 @@ public class AllDifferentDC extends AbstractConstraint {
     private int[] pathBackUp;
     private int[] row4colBackUp;
     private int[] col4rowBackUp;
+
+    // Additional fields for fast max product algorithm
+    private int[] optimalCol4Row;
+    private int[] optimalRow4Col;
+    private double[] optimalU;
+    private double[] optimalV;
 
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
@@ -180,6 +188,12 @@ public class AllDifferentDC extends AbstractConstraint {
         pathBackUp = new int[freeVals.size()];
         row4colBackUp = new int[freeVals.size()];
         col4rowBackUp = new int[freeVars.size()];
+
+        // Additional allocations for fast max product algorithm
+        optimalCol4Row = new int[freeVars.size()];
+        optimalRow4Col = new int[freeVals.size()];
+        optimalU = new double[freeVars.size()];
+        optimalV = new double[freeVals.size()];
     }
 
     @Override
@@ -397,6 +411,18 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
+        // Choose algorithm based on flag
+        Solver.FasterAllDiffMaxProd flag = cp.fasterAllDiffMaxProd();
+        if ((flag == Solver.FasterAllDiffMaxProd.YES) ||
+                (flag == Solver.FasterAllDiffMaxProd.SQUARE && nbVar == nbVal)) {
+            updateBeliefMaxProductFast(nbVar, nbVal);
+        } else {
+            updateBeliefMaxProductExact(nbVar, nbVal);
+        }
+    }
+
+    private void updateBeliefMaxProductExact(int nbVar, int nbVal) {
+        // Original exact algorithm
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
             swapRow(i, nbVar);
@@ -442,6 +468,185 @@ public class AllDifferentDC extends AbstractConstraint {
             }
             swapRow(i, nbVar);
         }
+    }
+
+    private void updateBeliefMaxProductFast(int nbVar, int nbVal) {
+        // Faster algorithm using forced edge matching
+        // Compute initial optimal matching for all variables
+        lsap(nbVar, nbVal);
+
+        // Store optimal solution
+        System.arraycopy(col4row, 0, optimalCol4Row, 0, nbVar);
+        System.arraycopy(row4col, 0, optimalRow4Col, 0, nbVal);
+        System.arraycopy(u, 0, optimalU, 0, nbVar);
+        System.arraycopy(v, 0, optimalV, 0, nbVal);
+
+        // For each variable and each possible value
+        for (int i = 0; i < nbVar; i++) {
+            int var = varIndices[i];
+            for (int j = 0; j < nbVal; j++) {
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    double matchingCost = computeMatchingCostWithForcedEdge(i, j, nbVar, nbVal);
+                    double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
+                            : beliefRep.log2rep(-matchingCost);
+                    setLocalBelief(var, val, newBelief);
+                }
+            }
+        }
+    }
+
+    private double computeMatchingCostWithForcedEdge(int forcedRow, int forcedCol, int nbVar, int nbVal) {
+        // Restore optimal matching and dual variables
+        System.arraycopy(optimalCol4Row, 0, col4row, 0, nbVar);
+        System.arraycopy(optimalRow4Col, 0, row4col, 0, nbVal);
+        System.arraycopy(optimalU, 0, u, 0, nbVar);
+        System.arraycopy(optimalV, 0, v, 0, nbVal);
+
+        // Check if forced edge is already in optimal matching
+        if (col4row[forcedRow] == forcedCol) {
+            return assignmentScore(nbVar);
+        }
+
+        // Force the edge and identify displaced nodes
+        int originalColForRow = col4row[forcedRow];
+        int originalRowForCol = row4col[forcedCol];
+
+        // Remove old assignments
+        if (originalColForRow != -1) {
+            row4col[originalColForRow] = -1;
+        }
+        if (originalRowForCol != -1) {
+            col4row[originalRowForCol] = -1;
+        }
+
+        // Force the edge - this is now locked
+        col4row[forcedRow] = forcedCol;
+        row4col[forcedCol] = forcedRow;
+
+        // Find new assignment for displaced row if any
+        if (originalRowForCol != -1 && originalRowForCol != forcedRow) {
+            int displacedRow = originalRowForCol;
+
+            // Use augmenting path while avoiding the forced row
+            int sink = augmentingPathAvoidingRow(nbVal, displacedRow, -1, forcedRow);
+
+            if (sink == -1) {
+                return Double.MAX_VALUE; // No feasible assignment
+            }
+
+            // Update dual variables
+            u[displacedRow] += minWeight[0];
+            for (int i = 0; i < nbVar; i++) {
+                if (SR[i] && i != displacedRow && col4row[i] != -1) {
+                    u[i] += minWeight[0] - shortestPathCosts[col4row[i]];
+                }
+            }
+            for (int j = 0; j < nbVal; j++) {
+                if (SC[j]) {
+                    v[j] -= minWeight[0] - shortestPathCosts[j];
+                }
+            }
+
+            // Apply the augmenting path
+            int j = sink;
+            while (true) {
+                int i = path[j];
+                int oldJ = col4row[i];
+                row4col[j] = i;
+                col4row[i] = j;
+                j = oldJ;
+                if (i == displacedRow) {
+                    break;
+                }
+            }
+        }
+
+        return assignmentScore(nbVar);
+    }
+
+    public int augmentingPathAvoidingRow(int nbVal, int currentRow, int assignedVal, int forbiddenRow) {
+        // Find shortest augmenting path while avoiding paths through forbiddenRow
+        double newMinWeight = 0;
+
+        Arrays.fill(SR, false);
+        Arrays.fill(SC, false);
+        Arrays.fill(shortestPathCosts, Double.POSITIVE_INFINITY);
+
+        // Reset remaining - set of values not visited yet
+        int assignedIndex = -1;
+        for (int it = 0; it < nbVal; it++) {
+            int remainingVal = nbVal - it - 1;
+            remaining[it] = remainingVal;
+            if (remainingVal == assignedVal) {
+                assignedIndex = it;
+            }
+        }
+        int numRemaining = nbVal;
+
+        int sink = -1;
+        if (assignedIndex != -1) {
+            SR[currentRow] = true;
+
+            int j = assignedVal;
+            path[j] = currentRow;
+            shortestPathCosts[j] = 0;
+            newMinWeight = 0;
+
+            SC[j] = true;
+            numRemaining--;
+            remaining[assignedIndex] = remaining[numRemaining];
+
+            if (row4col[j] == -1) {
+                return j;
+            } else {
+                currentRow = row4col[j];
+            }
+        }
+
+        while (sink == -1) {
+            int index = -1;
+            double lowest = Double.POSITIVE_INFINITY;
+            SR[currentRow] = true;
+
+            for (int it = 0; it < numRemaining; it++) {
+                int j = remaining[it];
+
+                double r = newMinWeight + beliefs[currentRow][j] - u[currentRow] - v[j];
+                if (r < shortestPathCosts[j]) {
+                    path[j] = currentRow;
+                    shortestPathCosts[j] = r;
+                }
+
+                // Skip columns that are matched to the forbidden row
+                boolean skipThisColumn = (forbiddenRow != -1 && row4col[j] == forbiddenRow);
+
+                if (!skipThisColumn && (shortestPathCosts[j] < lowest ||
+                        (shortestPathCosts[j] == lowest && row4col[j] == -1))) {
+                    lowest = shortestPathCosts[j];
+                    index = it;
+                }
+            }
+
+            newMinWeight = lowest;
+            if (newMinWeight == Double.POSITIVE_INFINITY) {
+                return -1; // No feasible path found
+            }
+
+            int endVal = remaining[index];
+            if (row4col[endVal] == -1) {
+                sink = endVal;
+            } else {
+                currentRow = row4col[endVal];
+            }
+
+            SC[endVal] = true;
+            numRemaining--;
+            remaining[index] = remaining[numRemaining];
+        }
+
+        minWeight[0] = newMinWeight;
+        return sink;
     }
 
     public int augmentingPath(int nbVal, int currentRow, int assignedVal) {
@@ -909,7 +1114,7 @@ public class AllDifferentDC extends AbstractConstraint {
     }
 
     // swap the elements at indices i and j in the permutation for Heap's algorithm
-    // returns the new prod   
+    // returns the new prod
     private double swap(double[][] A, int[] permutation, int i, int j, int n, double prod) {
         int e = permutation[i];
         permutation[i] = permutation[j];
