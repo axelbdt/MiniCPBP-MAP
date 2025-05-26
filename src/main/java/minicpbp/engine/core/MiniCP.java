@@ -61,6 +61,8 @@ public class MiniCP implements Solver {
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
     private static boolean propagationShortcut = true;
+    private static boolean skipUniformMaxProd = true;
+    private static boolean fasterAllDiffMaxProd = false;
     private static boolean damping = true;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
     private static double dampingFactor = 0.75;
@@ -647,6 +649,26 @@ public class MiniCP implements Solver {
     @Override
     public void setPropagationShortcut(boolean propagationShortcut) {
         MiniCP.propagationShortcut = propagationShortcut;
+    }
+
+    @Override
+    public boolean skipUniformMaxProd() {
+        return MiniCP.skipUniformMaxProd;
+    }
+
+    @Override
+    public void setSkipUniformMaxProd(boolean skipUniformMaxProd) {
+        MiniCP.skipUniformMaxProd = skipUniformMaxProd;
+    }
+
+    @Override
+    public boolean fasterAllDiffMaxProd() {
+        return MiniCP.fasterAllDiffMaxProd;
+    }
+
+    @Override
+    public void setFasterAllDiffMaxProd(boolean fasterAllDiffMaxProd) {
+        MiniCP.fasterAllDiffMaxProd = fasterAllDiffMaxProd;
     }
 
     /**
