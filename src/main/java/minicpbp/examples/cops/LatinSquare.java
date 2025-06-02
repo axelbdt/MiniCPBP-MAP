@@ -495,6 +495,10 @@ public class LatinSquare {
         System.out.println("n : " + n);
         System.out.println("nbHoles : " + nbHoles);
         System.out.println("nbFile : " + nbFile);
+
+        String filename = String.format("latin-square-%d-holes%d-%d.pls", n, nbHoles, nbFile);
+        String filepath = Paths.get("data", "latin-square", filename).toString();
+        System.out.println("input file: " + filepath);
         // Run the model
         if (mode.equals("SOLVE")) {
             // get all solutions
@@ -512,14 +516,15 @@ public class LatinSquare {
             ls.propagate();
         } else {
             System.out.println("objective : " + objective);
-            System.out.println("search: " + searchType);
-            System.out.println("bp : " + bp);
-            System.out.println("branchingScheme : " + branching);
-            System.out.println("entropyBranchingThreshold : " + entropyBranchingThreshold);
-            System.out.println("propagationShortcut : " + propagationShortcut);
-            System.out.println("oracle : " + oracle);
-            System.out.println("maxIter : " + maxIter);
-            System.out.println("truncateRate : " + truncateRate);
+            System.out.println("search type: " + searchType);
+            System.out.println("BP algorithm: " + bp);
+            System.out.println("branching strategy: " + branching);
+            System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
+            System.out.println("propagation shortcut: " + propagationShortcut);
+            System.out.println("oracle on objective: " + oracle);
+            System.out.println("max iterations: " + maxIter);
+            System.out.println("truncateRate: " + truncateRate);
+
 
             System.out.println("START SEARCH");
             SearchStatistics stats = ls.optimize();

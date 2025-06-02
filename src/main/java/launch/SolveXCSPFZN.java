@@ -97,6 +97,9 @@ public class SolveXCSPFZN {
         String quotedValidPropagationShortcut = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
+        String quotedValidSkipUniformMaxProd = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
@@ -112,9 +115,6 @@ public class SolveXCSPFZN {
         Option oracleOnObjectiveOpt = Option.builder().longOpt("oracle-on-objective").argName("ORACLE").hasArg().type(Float.class)
                 .desc("oracle on objective.\nValid oracle on objective are floats").build();
 
-        Option switchToSumProductAfterSolutionOpt = Option.builder().longOpt("switch-to-sum-product-after-solution").argName("BOOL").hasArg()
-                .desc("switch to sum product after solution.\nValid switch to sum product after solution are:\n" + quotedValidSwitchToSumProductAfterSolution).build();
-
         Option branchingOpt = Option.builder().longOpt("branching").argName("STRATEGY").required().hasArg()
                 .desc("branching strategy.\nValid branching strategies are:\n" + quotedValidBranchings).build();
 
@@ -123,6 +123,9 @@ public class SolveXCSPFZN {
 
         Option propagationShortcutOpt = Option.builder().longOpt("propagation-shortcut").argName("BOOL").hasArg()
                 .desc("propagation shortcut.\nValid propagation shortcut are:\n" + quotedValidPropagationShortcut).build();
+
+        Option skipUniformMaxProdOpt = Option.builder().longOpt("skip-uniform-max-prod").argName("BOOL").hasArg()
+                .desc("skip uniform max product.\nValid skip uniform max prod are:\n" + quotedValidSkipUniformMaxProd).build();
 
         Option searchOpt = Option.builder().longOpt("search-type").argName("SEARCH").required().hasArg()
                 .desc("search type.\nValid search types are:\n" + quotedValidSearchTypes).build();
@@ -200,8 +203,9 @@ public class SolveXCSPFZN {
         options.addOption(dynamicStopBPOpt);
         options.addOption(traceNbIterOpt);
         options.addOption(traceEntropyOpt);
-        options.addOption(switchToSumProductAfterSolutionOpt);
         options.addOption(entropyBranchingThresholdOpt);
+        options.addOption(propagationShortcutOpt);
+        options.addOption(skipUniformMaxProdOpt);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -223,12 +227,6 @@ public class SolveXCSPFZN {
         checkOracleOnObjectiveOption(oracleOnObjectiveStr);
         float oracleOnObjective = Float.parseFloat(oracleOnObjectiveStr);
 
-        String switchToSumProductAfterSolutionStr = cmd.getOptionValue("switch-to-sum-product-after-solution");
-        boolean switchToSumProductAfterSolution = false;
-        if (switchToSumProductAfterSolutionStr != null) {
-            checkSwitchToSumProductAfterSolutionOption(switchToSumProductAfterSolutionStr);
-            switchToSumProductAfterSolution = BoolMap.get(switchToSumProductAfterSolutionStr);
-        }
 
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
@@ -243,6 +241,13 @@ public class SolveXCSPFZN {
         if (bpShortcutStr != null) {
             checkPropagationShortcutOption(bpShortcutStr);
             propagationShortcut = BoolMap.get(bpShortcutStr);
+        }
+
+        String skipUniformMaxProdStr = cmd.getOptionValue("skip-uniform-max-prod");
+        boolean skipUniformMaxProd = true;
+        if (skipUniformMaxProdStr != null) {
+            checkPropagationShortcutOption(bpShortcutStr);
+            skipUniformMaxProd = BoolMap.get(bpShortcutStr);
         }
 
         String searchTypeStr = cmd.getOptionValue("search-type");
@@ -327,9 +332,9 @@ public class SolveXCSPFZN {
                 System.out.println("branching strategy: " + branchingStr);
                 System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
                 System.out.println("propagation shortcut: " + propagationShortcut);
+                System.out.println("skip uniform max product: " + skipUniformMaxProd);
                 System.out.println("search type: " + searchTypeStr);
-                System.out.println("maxIter: " + maxIter);
-                System.out.println("switch to sum product after solution: " + switchToSumProductAfterSolution);
+                System.out.println("max iterations: " + maxIter);
 
                 XCSP xcsp = new XCSP(inputStr);
                 xcsp.searchType(searchType);
@@ -351,7 +356,7 @@ public class SolveXCSPFZN {
                 xcsp.oracleOnObjective(oracleOnObjective);
                 xcsp.entropyBranchingThreshold(entropyBranchingThreshold);
                 xcsp.propagationShortcut(propagationShortcut);
-                xcsp.switchToSumProductAfterSolution(switchToSumProductAfterSolution);
+                xcsp.skipUniformMaxProd(skipUniformMaxProd);
 
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
             }
@@ -384,16 +389,6 @@ public class SolveXCSPFZN {
         if (Float.isNaN(Float.parseFloat(entropyBranchingThresholdStr))) {
             System.out.println("invalid entropy branching threshold " + entropyBranchingThresholdStr);
             System.out.println("entropy branching threshold should be a float number");
-            System.exit(1);
-        }
-    }
-
-    private static void checkSwitchToSumProductAfterSolutionOption(String switchToSumProductAfterSolutionStr) {
-        if (!BoolMap.containsKey(switchToSumProductAfterSolutionStr)) {
-            System.out.println("invalid switch to sum product after solution " + switchToSumProductAfterSolutionStr);
-            System.out.println("switch to sum product after solution should be one of the following: ");
-            for (String switchToSumProductAfterSolution : BoolMap.keySet())
-                System.out.println(switchToSumProductAfterSolution);
             System.exit(1);
         }
     }

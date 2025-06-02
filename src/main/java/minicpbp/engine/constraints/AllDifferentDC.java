@@ -40,7 +40,6 @@ import java.util.TreeSet;
  */
 public class AllDifferentDC extends AbstractConstraint {
 
-    private double largestDiff;
     private IntVar[] x;
 
     private final MaximumMatching maximumMatching;
@@ -108,6 +107,11 @@ public class AllDifferentDC extends AbstractConstraint {
     private int[] optimalRow4Col;
     private double[] optimalU;
     private double[] optimalV;
+
+    // Fields for comparing algorithm results
+    private double[][] exactBeliefs;    // Store exact algorithm results
+    private double[][] fastBeliefs;     // Store fast algorithm results
+    private double maxBeliefDifference; // Track maximum difference found
 
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
@@ -194,6 +198,11 @@ public class AllDifferentDC extends AbstractConstraint {
         optimalRow4Col = new int[freeVals.size()];
         optimalU = new double[freeVars.size()];
         optimalV = new double[freeVals.size()];
+
+        // Allocations for comparing algorithm results
+        exactBeliefs = new double[freeVars.size()][freeVals.size()];
+        fastBeliefs = new double[freeVars.size()][freeVals.size()];
+        maxBeliefDifference = 0.0;
     }
 
     @Override
@@ -413,16 +422,157 @@ public class AllDifferentDC extends AbstractConstraint {
 
         // Choose algorithm based on flag
         Solver.FasterAllDiffMaxProd flag = cp.fasterAllDiffMaxProd();
-        if ((flag == Solver.FasterAllDiffMaxProd.YES) ||
+
+        if (flag == Solver.FasterAllDiffMaxProd.NO) {
+            // Use only exact algorithm
+            updateBeliefMaxProductExact(nbVar, nbVal, true); // true = call setLocalBelief
+        } else if ((flag == Solver.FasterAllDiffMaxProd.YES) ||
                 (flag == Solver.FasterAllDiffMaxProd.SQUARE && nbVar == nbVal)) {
-            updateBeliefMaxProductFast(nbVar, nbVal);
-        } else {
-            updateBeliefMaxProductExact(nbVar, nbVal);
+            // Use only fast algorithm
+            updateBeliefMaxProductFast(nbVar, nbVal, true); // true = call setLocalBelief
+        }
+        // Note: To enable comparison mode, add FasterAllDiffMaxProd.COMPARE to your enum
+        // and uncomment the following:
+        else if (flag == Solver.FasterAllDiffMaxProd.COMPARE) {
+            compareAlgorithms(nbVar, nbVal);
         }
     }
 
-    private void updateBeliefMaxProductExact(int nbVar, int nbVal) {
+    private void compareAlgorithms(int nbVar, int nbVal) {
+        // Run both algorithms and store results without calling setLocalBelief
+        updateBeliefMaxProductExact(nbVar, nbVal, false);
+        updateBeliefMaxProductFast(nbVar, nbVal, false);
+
+        // Compare normalized results and track maximum difference
+        maxBeliefDifference = 0.0;
+        double totalDifference = 0.0;
+        int comparisonCount = 0;
+
+        // Temporary arrays for normalized beliefs
+        double[] exactNormalized = new double[nbVal];
+        double[] fastNormalized = new double[nbVal];
+
+        for (int i = 0; i < nbVar; i++) {
+            int var = varIndices[i];
+
+            // Clear normalization arrays
+            Arrays.fill(exactNormalized, 0.0);
+            Arrays.fill(fastNormalized, 0.0);
+
+            // Calculate sums for normalization (only over valid values for this variable)
+            double exactSum = 0.0;
+            double fastSum = 0.0;
+            int validValueCount = 0;
+
+            for (int j = 0; j < nbVal; j++) {
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    // Convert from belief representation to standard representation for normalization
+                    double exactStd = beliefRep.rep2std(exactBeliefs[i][j]);
+                    double fastStd = beliefRep.rep2std(fastBeliefs[i][j]);
+
+                    exactNormalized[j] = exactStd;
+                    fastNormalized[j] = fastStd;
+                    exactSum += exactStd;
+                    fastSum += fastStd;
+                    validValueCount++;
+                }
+            }
+
+            // Normalize beliefs for this variable (handle zero sum cases)
+            if (exactSum > 1e-15 && fastSum > 1e-15) {
+                for (int j = 0; j < nbVal; j++) {
+                    int val = vals[j];
+                    if (x[var].contains(val)) {
+                        exactNormalized[j] /= exactSum;
+                        fastNormalized[j] /= fastSum;
+
+                        // Compare normalized beliefs
+                        double difference = Math.abs(exactNormalized[j] - fastNormalized[j]);
+
+                        if (difference > maxBeliefDifference) {
+                            maxBeliefDifference = difference;
+                        }
+                        totalDifference += difference;
+                        comparisonCount++;
+                    }
+                }
+            } else {
+                // Handle degenerate cases where one or both sums are zero
+                for (int j = 0; j < nbVal; j++) {
+                    int val = vals[j];
+                    if (x[var].contains(val)) {
+                        // If both sums are zero, normalized beliefs are equal (0/0 = uniform)
+                        // If only one sum is zero, there's a significant difference
+                        double difference;
+                        if (exactSum <= 1e-15 && fastSum <= 1e-15) {
+                            difference = 0.0; // Both algorithms predict zero probability
+                        } else if (exactSum <= 1e-15) {
+                            difference = 1.0 / validValueCount; // Exact is zero, fast is non-zero
+                        } else {
+                            difference = 1.0 / validValueCount; // Fast is zero, exact is non-zero
+                        }
+
+                        if (difference > maxBeliefDifference) {
+                            maxBeliefDifference = difference;
+                        }
+                        totalDifference += difference;
+                        comparisonCount++;
+                    }
+                }
+            }
+
+            // Set local beliefs using original unnormalized exact algorithm results
+            for (int j = 0; j < nbVal; j++) {
+                int val = vals[j];
+                if (x[var].contains(val)) {
+                    setLocalBelief(var, val, exactBeliefs[i][j]);
+                }
+            }
+        }
+
+        // Optional: Store statistics or log comparison results
+        double avgDifference = comparisonCount > 0 ? totalDifference / comparisonCount : 0.0;
+        System.out.println("Max difference: " + maxBeliefDifference +
+                ", Avg difference: " + avgDifference +
+                ", Comparisons: " + comparisonCount +
+                ", Variables: " + nbVar +
+                ", Values: " + nbVal);
+    }
+
+    /**
+     * Get the maximum belief difference found during algorithm comparison
+     *
+     * @return Maximum absolute difference between exact and fast algorithm results
+     */
+    public double getMaxBeliefDifference() {
+        return maxBeliefDifference;
+    }
+
+    /**
+     * Reset the maximum belief difference tracker
+     */
+    public void resetMaxBeliefDifference() {
+        maxBeliefDifference = 0.0;
+    }
+
+    /**
+     * Update global maximum difference if needed (call this after constraint propagation)
+     * You could add this to your CP interface to track across all AllDifferent constraints
+     */
+    public void updateGlobalMaxDifference() {
+        // Example: cp.updateGlobalMaxBeliefDifference(maxBeliefDifference);
+    }
+
+    private void updateBeliefMaxProductExact(int nbVar, int nbVal, boolean setBeliefs) {
         // Original exact algorithm
+        // Initialize belief storage if needed
+        if (!setBeliefs) {
+            for (int i = 0; i < nbVar; i++) {
+                Arrays.fill(exactBeliefs[i], 0, nbVal, beliefRep.zero());
+            }
+        }
+
         for (int i = 0; i < nbVar; i++) {
             int var = varIndices[i];
             swapRow(i, nbVar);
@@ -461,7 +611,12 @@ public class AllDifferentDC extends AbstractConstraint {
 
                     double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                             : beliefRep.log2rep(-matchingCost);
-                    setLocalBelief(var, val, newBelief);
+
+                    if (setBeliefs) {
+                        setLocalBelief(var, val, newBelief);
+                    } else {
+                        exactBeliefs[i][j] = newBelief;
+                    }
 
                     // compareHungarianAlgorithms(i, j, nbVar, nbVal, newBelief);
                 }
@@ -470,8 +625,15 @@ public class AllDifferentDC extends AbstractConstraint {
         }
     }
 
-    private void updateBeliefMaxProductFast(int nbVar, int nbVal) {
+    private void updateBeliefMaxProductFast(int nbVar, int nbVal, boolean setBeliefs) {
         // Faster algorithm using forced edge matching
+        // Initialize belief storage if needed
+        if (!setBeliefs) {
+            for (int i = 0; i < nbVar; i++) {
+                Arrays.fill(fastBeliefs[i], 0, nbVal, beliefRep.zero());
+            }
+        }
+
         // Compute initial optimal matching for all variables
         lsap(nbVar, nbVal);
 
@@ -490,7 +652,12 @@ public class AllDifferentDC extends AbstractConstraint {
                     double matchingCost = computeMatchingCostWithForcedEdge(i, j, nbVar, nbVal);
                     double newBelief = matchingCost == Double.MAX_VALUE ? beliefRep.zero()
                             : beliefRep.log2rep(-matchingCost);
-                    setLocalBelief(var, val, newBelief);
+
+                    if (setBeliefs) {
+                        setLocalBelief(var, val, newBelief);
+                    } else {
+                        fastBeliefs[i][j] = newBelief;
+                    }
                 }
             }
         }

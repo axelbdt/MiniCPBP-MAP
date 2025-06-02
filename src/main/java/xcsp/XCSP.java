@@ -2182,6 +2182,12 @@ public class XCSP implements XCallbacks2 {
         XCSP.propagationShortcut = propagationShortcut;
     }
 
+    private static boolean skipUniformMaxProd = false;
+
+    public void skipUniformMaxProd(boolean skipUniformMaxProd) {
+        XCSP.skipUniformMaxProd = skipUniformMaxProd;
+    }
+
     private static float oracleOnObjective = 0;
 
     public void oracleOnObjective(float oracleOnObjective) {
@@ -2235,6 +2241,7 @@ public class XCSP implements XCallbacks2 {
         }
         minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
         minicp.setPropagationShortcut(propagationShortcut);
+        minicp.setSkipUniformMaxProd(skipUniformMaxProd);
 
         if (hasFailed) {
             if (!competitionOutput) {

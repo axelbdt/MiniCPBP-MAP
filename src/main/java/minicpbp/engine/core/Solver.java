@@ -47,7 +47,8 @@ public interface Solver {
     public enum FasterAllDiffMaxProd {
         NO,
         SQUARE,
-        YES
+        YES,
+        COMPARE
     }
 
     public void setMaxBeliefDiff(double beliefDiff, int nbVar, int nbVal);
