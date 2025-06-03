@@ -112,6 +112,10 @@ public class AllDifferentDC extends AbstractConstraint {
     private double[][] exactBeliefs;    // Store exact algorithm results
     private double[][] fastBeliefs;     // Store fast algorithm results
     private double maxBeliefDifference; // Track maximum difference found
+    private long totalDurationExact;
+    private long totalDurationFast;
+    private int timesCompared;
+    private int timesFaster;
 
     public AllDifferentDC(IntVar... x) {
         super(x[0].getSolver(), x);
@@ -203,6 +207,10 @@ public class AllDifferentDC extends AbstractConstraint {
         exactBeliefs = new double[freeVars.size()][freeVals.size()];
         fastBeliefs = new double[freeVars.size()][freeVals.size()];
         maxBeliefDifference = 0.0;
+        totalDurationExact = 0;
+        totalDurationFast = 0;
+        timesCompared = 0;
+        timesFaster = 0;
     }
 
     @Override
@@ -440,13 +448,28 @@ public class AllDifferentDC extends AbstractConstraint {
 
     private void compareAlgorithms(int nbVar, int nbVal) {
         // Run both algorithms and store results without calling setLocalBelief
+        long startTimeExact = System.currentTimeMillis();
         updateBeliefMaxProductExact(nbVar, nbVal, false);
+        long endTimeExact = System.currentTimeMillis();
+        long durationExact = endTimeExact - startTimeExact;
+
+        long startTimeFast = System.currentTimeMillis();
         updateBeliefMaxProductFast(nbVar, nbVal, false);
+        long endTimeFast = System.currentTimeMillis();
+        long durationFast = endTimeFast - startTimeFast;
+
+        // Update local statistics
+        timesCompared += 1;
+        totalDurationExact += durationExact;
+        totalDurationFast += durationFast;
+        if (durationExact > durationFast) {
+            timesFaster += 1;
+        }
 
         // Compare normalized results and track maximum difference
-        maxBeliefDifference = 0.0;
-        double totalDifference = 0.0;
-        int comparisonCount = 0;
+        double localMaxBeliefDifference = 0.0;
+        double localTotalDifference = 0.0;
+        int localComparisonCount = 0;
 
         // Temporary arrays for normalized beliefs
         double[] exactNormalized = new double[nbVal];
@@ -490,11 +513,11 @@ public class AllDifferentDC extends AbstractConstraint {
                         // Compare normalized beliefs
                         double difference = Math.abs(exactNormalized[j] - fastNormalized[j]);
 
-                        if (difference > maxBeliefDifference) {
-                            maxBeliefDifference = difference;
+                        if (difference > localMaxBeliefDifference) {
+                            localMaxBeliefDifference = difference;
                         }
-                        totalDifference += difference;
-                        comparisonCount++;
+                        localTotalDifference += difference;
+                        localComparisonCount++;
                     }
                 }
             } else {
@@ -513,16 +536,16 @@ public class AllDifferentDC extends AbstractConstraint {
                             difference = 1.0 / validValueCount; // Fast is zero, exact is non-zero
                         }
 
-                        if (difference > maxBeliefDifference) {
-                            maxBeliefDifference = difference;
+                        if (difference > localMaxBeliefDifference) {
+                            localMaxBeliefDifference = difference;
                         }
-                        totalDifference += difference;
-                        comparisonCount++;
+                        localTotalDifference += difference;
+                        localComparisonCount++;
                     }
                 }
             }
 
-            // Set local beliefs using original unnormalized exact algorithm results
+            // Set local beliefs using fast algorithm results
             for (int j = 0; j < nbVal; j++) {
                 int val = vals[j];
                 if (x[var].contains(val)) {
@@ -531,13 +554,21 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
-        // Optional: Store statistics or log comparison results
-        double avgDifference = comparisonCount > 0 ? totalDifference / comparisonCount : 0.0;
-        System.out.println("Max difference: " + maxBeliefDifference +
-                ", Avg difference: " + avgDifference +
-                ", Comparisons: " + comparisonCount +
-                ", Variables: " + nbVar +
-                ", Values: " + nbVal);
+        // Update global statistics in the solver
+        getSolver().updateAlgorithmComparison(
+                durationExact,
+                durationFast,
+                localMaxBeliefDifference,
+                localTotalDifference,
+                localComparisonCount,
+                nbVar,
+                nbVal
+        );
+
+        // Update local maximum if needed
+        if (localMaxBeliefDifference > maxBeliefDifference) {
+            maxBeliefDifference = localMaxBeliefDifference;
+        }
     }
 
     /**

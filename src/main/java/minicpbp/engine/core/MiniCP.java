@@ -112,6 +112,33 @@ public class MiniCP implements Solver {
     private int maxNbVar = 0;
     private int maxNbVal = 0;
 
+    /**
+     * ADDED TO TRACK PERFORMANCE OF FASTER ALLDIFF
+     */
+    // Algorithm comparison statistics
+    private long totalExactDuration = 0;
+    private long totalFastDuration = 0;
+    private int totalComparisons = 0;
+    private int timesFasterWon = 0;
+
+    // Belief difference statistics
+    private double globalMaxBeliefDifference = 0.0;
+    private double totalBeliefDifference = 0.0;
+    private int beliefComparisonCount = 0;
+
+    // Constraint-level statistics
+    private int constraintsCompared = 0;
+    private int totalVariableCount = 0;
+    private int totalValueCount = 0;
+
+    // Distribution of problem sizes
+    private Map<String, Integer> problemSizeDistribution = new HashMap<>();
+
+    // Performance by problem size
+    private Map<String, Long> exactTimeBySize = new HashMap<>();
+    private Map<String, Long> fastTimeBySize = new HashMap<>();
+    private Map<String, Integer> countBySize = new HashMap<>();
+
     public void setMaxBeliefDiff(double beliefDiff, int nbVar, int nbVal) {
         if (beliefDiff > this.maxBeliefDiff) {
             this.maxBeliefDiff = beliefDiff;
@@ -920,5 +947,184 @@ public class MiniCP implements Solver {
             return factors;
         else
             return new LinkedList<>(); // n could not be factorized (in at most m factors)
+    }
+
+    /**
+     * ADDED TO TRACK PERFORMANCE OF FASTER ALLDIFF
+     */
+    /**
+     * Update algorithm comparison statistics from AllDifferentDC constraints
+     */
+    public void updateAlgorithmComparison(long exactDuration, long fastDuration,
+                                          double maxBeliefDiff, double totalBeliefDiff,
+                                          int beliefComparisons, int nbVar, int nbVal) {
+        // Timing statistics
+        totalExactDuration += exactDuration;
+        totalFastDuration += fastDuration;
+        totalComparisons++;
+        if (fastDuration < exactDuration) {
+            timesFasterWon++;
+        }
+
+        // Belief difference statistics
+        if (maxBeliefDiff > globalMaxBeliefDifference) {
+            globalMaxBeliefDifference = maxBeliefDiff;
+        }
+        totalBeliefDifference += totalBeliefDiff;
+        beliefComparisonCount += beliefComparisons;
+
+        // Constraint-level statistics
+        constraintsCompared++;
+        totalVariableCount += nbVar;
+        totalValueCount += nbVal;
+
+        // Problem size distribution
+        String sizeKey = nbVar + "x" + nbVal;
+        problemSizeDistribution.put(sizeKey, problemSizeDistribution.getOrDefault(sizeKey, 0) + 1);
+        exactTimeBySize.put(sizeKey, exactTimeBySize.getOrDefault(sizeKey, 0L) + exactDuration);
+        fastTimeBySize.put(sizeKey, fastTimeBySize.getOrDefault(sizeKey, 0L) + fastDuration);
+        countBySize.put(sizeKey, countBySize.getOrDefault(sizeKey, 0) + 1);
+    }
+
+
+    /**
+     * Generate comprehensive algorithm comparison report
+     */
+    public void printAlgorithmComparisonReport() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("ALLDIFFERENT ALGORITHM COMPARISON REPORT");
+        System.out.println("=".repeat(80));
+
+        if (totalComparisons == 0) {
+            System.out.println("No algorithm comparisons were performed.");
+            return;
+        }
+
+        // Overall Performance Summary
+        System.out.println("\nOVERALL PERFORMANCE SUMMARY:");
+        System.out.println("-".repeat(40));
+        System.out.printf("Total constraints compared: %d%n", constraintsCompared);
+        System.out.printf("Total constraint evaluations: %d%n", totalComparisons);
+        System.out.printf("Average variables per constraint: %.1f%n",
+                (double) totalVariableCount / constraintsCompared);
+        System.out.printf("Average values per constraint: %.1f%n",
+                (double) totalValueCount / constraintsCompared);
+
+        // Timing Analysis
+        System.out.println("\nTIMING ANALYSIS:");
+        System.out.println("-".repeat(40));
+        System.out.printf("Total exact algorithm time: %d ms%n", totalExactDuration);
+        System.out.printf("Total fast algorithm time: %d ms%n", totalFastDuration);
+
+        double speedupRatio = totalExactDuration > 0 ?
+                (double) totalExactDuration / totalFastDuration : 0.0;
+        System.out.printf("Overall speedup ratio: %.2fx%n", speedupRatio);
+
+        double fasterWinRate = (double) timesFasterWon / totalComparisons * 100;
+        System.out.printf("Fast algorithm won: %d/%d (%.1f%%)%n",
+                timesFasterWon, totalComparisons, fasterWinRate);
+
+        if (totalComparisons > 0) {
+            System.out.printf("Average exact time per evaluation: %.2f ms%n",
+                    (double) totalExactDuration / totalComparisons);
+            System.out.printf("Average fast time per evaluation: %.2f ms%n",
+                    (double) totalFastDuration / totalComparisons);
+        }
+
+        // Accuracy Analysis
+        System.out.println("\nACCURACY ANALYSIS:");
+        System.out.println("-".repeat(40));
+        System.out.printf("Global maximum belief difference: %.6f%n", globalMaxBeliefDifference);
+
+        if (beliefComparisonCount > 0) {
+            double avgBeliefDiff = totalBeliefDifference / beliefComparisonCount;
+            System.out.printf("Average belief difference: %.6f%n", avgBeliefDiff);
+            System.out.printf("Total belief comparisons: %d%n", beliefComparisonCount);
+        }
+
+        // Accuracy assessment
+        if (globalMaxBeliefDifference < 1e-10) {
+            System.out.println("Accuracy: EXCELLENT (differences < 1e-10)");
+        } else if (globalMaxBeliefDifference < 1e-6) {
+            System.out.println("Accuracy: GOOD (differences < 1e-6)");
+        } else if (globalMaxBeliefDifference < 1e-3) {
+            System.out.println("Accuracy: ACCEPTABLE (differences < 1e-3)");
+        } else {
+            System.out.println("Accuracy: POOR (differences >= 1e-3)");
+        }
+
+        // Problem Size Analysis
+        System.out.println("\nPERFORMANCE BY PROBLEM SIZE:");
+        System.out.println("-".repeat(40));
+        System.out.printf("%-12s %-8s %-12s %-12s %-10s%n",
+                "Size", "Count", "Exact(ms)", "Fast(ms)", "Speedup");
+        System.out.println("-".repeat(60));
+
+        problemSizeDistribution.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByKey())
+                .forEach(entry -> {
+                    String size = entry.getKey();
+                    int count = entry.getValue();
+                    long exactTime = exactTimeBySize.getOrDefault(size, 0L);
+                    long fastTime = fastTimeBySize.getOrDefault(size, 0L);
+                    double speedup = fastTime > 0 ? (double) exactTime / fastTime : 0.0;
+
+                    System.out.printf("%-12s %-8d %-12d %-12d %-10.2fx%n",
+                            size, count, exactTime, fastTime, speedup);
+                });
+
+        // Recommendations
+        System.out.println("\nRECOMMENDATIONS:");
+        System.out.println("-".repeat(40));
+
+        if (speedupRatio > 2.0 && globalMaxBeliefDifference < 1e-6) {
+            System.out.println("✓ RECOMMENDED: Use fast algorithm - significant speedup with high accuracy");
+        } else if (speedupRatio > 1.5 && globalMaxBeliefDifference < 1e-3) {
+            System.out.println("⚠ CONDITIONAL: Fast algorithm provides speedup but with reduced accuracy");
+        } else if (globalMaxBeliefDifference > 1e-3) {
+            System.out.println("✗ NOT RECOMMENDED: Fast algorithm has accuracy issues");
+        } else {
+            System.out.println("→ NEUTRAL: Marginal performance difference, use based on accuracy requirements");
+        }
+
+        if (fasterWinRate < 80) {
+            System.out.println("⚠ NOTE: Fast algorithm doesn't consistently outperform exact algorithm");
+        }
+
+        System.out.println("\n" + "=".repeat(80));
+    }
+
+    /**
+     * Reset all comparison statistics
+     */
+    public void resetComparisonStatistics() {
+        totalExactDuration = 0;
+        totalFastDuration = 0;
+        totalComparisons = 0;
+        timesFasterWon = 0;
+        globalMaxBeliefDifference = 0.0;
+        totalBeliefDifference = 0.0;
+        beliefComparisonCount = 0;
+        constraintsCompared = 0;
+        totalVariableCount = 0;
+        totalValueCount = 0;
+        problemSizeDistribution.clear();
+        exactTimeBySize.clear();
+        fastTimeBySize.clear();
+        countBySize.clear();
+    }
+
+    /**
+     * Get current speedup ratio
+     */
+    public double getCurrentSpeedupRatio() {
+        return totalFastDuration > 0 ? (double) totalExactDuration / totalFastDuration : 0.0;
+    }
+
+    /**
+     * Get current maximum belief difference
+     */
+    public double getCurrentMaxBeliefDifference() {
+        return globalMaxBeliefDifference;
     }
 }

@@ -337,5 +337,9 @@ public interface Solver {
     public boolean skipUniformMaxProd();
 
     public void setSkipUniformMaxProd(boolean skipUniformMaxProd);
+
+    public void printAlgorithmComparisonReport();
+
+    public void updateAlgorithmComparison(long exactDuration, long fastDuration, double maxBeliefDiff, double totalBeliefDiff, int beliefComparisons, int nbVar, int nbVal);
 }
 

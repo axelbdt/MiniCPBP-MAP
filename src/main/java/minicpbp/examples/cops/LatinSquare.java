@@ -100,7 +100,7 @@ public class LatinSquare {
     private Search search;
     private Objective obj;
 
-    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int truncateRate, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
+    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
         // Create solver and square variables
         cp = makeSolver();
 
@@ -183,7 +183,7 @@ public class LatinSquare {
         }
 
         int maxObj = objective.nbVars * (n - 1); // var from 0 to n-1
-        int minObj = Math.max(n, truncateRate * maxObj / 100);
+        int minObj = n;
         IntVar z = makeIntVar(cp, minObj, maxObj);
         z.setName("score");
         cp.post(new SumDC(objectiveVars, z));
@@ -312,6 +312,10 @@ public class LatinSquare {
         }
     }
 
+    public void printAlgorithmComparisonReport() {
+        cp.printAlgorithmComparisonReport();
+    }
+
     /**
      * Max value selection.
      * It selects the largest value in all the objective variables.
@@ -430,7 +434,6 @@ public class LatinSquare {
         // var nbHolesArray = new int[]{200, 250, 300};
         // var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
         // var nbFileArray = IntStream.rangeClosed(1, 10).toArray();
-        // var truncateRateArray = new int[]{0};
 
         HashMap<String, String> arguments = parseArgs(args);
         String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
@@ -439,7 +442,6 @@ public class LatinSquare {
         String nbFileArg = arguments.get("nbFile");
         String objectiveString = arguments.get("objective");
         String searchTypeArg = arguments.get("searchType");
-        String truncateRateArg = arguments.get("truncateRate");
         String oracleArg = arguments.get("oracle");
         String maxIterArg = arguments.get("maxIter");
         String bpArg = arguments.get("bp");
@@ -450,7 +452,6 @@ public class LatinSquare {
         int nbHoles = Integer.parseInt(nbHolesArg);
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
         int nbFile = Integer.parseInt(nbFileArg);
-        int truncateRate = Integer.parseInt(truncateRateArg);
         float oracle = Float.parseFloat(oracleArg);
         int maxIter = Integer.parseInt(maxIterArg);
         BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.toUpperCase());
@@ -485,7 +486,6 @@ public class LatinSquare {
                 branching,
                 objective,
                 oracle,
-                truncateRate,
                 maxIter,
                 entropyBranchingThreshold,
                 propagationShortcut
@@ -523,14 +523,16 @@ public class LatinSquare {
             System.out.println("propagation shortcut: " + propagationShortcut);
             System.out.println("oracle on objective: " + oracle);
             System.out.println("max iterations: " + maxIter);
-            System.out.println("truncateRate: " + truncateRate);
 
 
             System.out.println("START SEARCH");
             SearchStatistics stats = ls.optimize();
             System.out.println("END OF SEARCH");
             System.out.println(stats);
+
+            // ls.printAlgorithmComparisonReport();
         }
     }
+
 }
 
