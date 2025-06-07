@@ -2471,6 +2471,7 @@ public class XCSP implements XCallbacks2 {
         out.println("nodes: " + stats.numberOfNodes());
         out.println("runtime (ms): " + runtime);
         out.println("complete:" + stats.isCompleted());
+        out.println("damping factor: " + minicp.dampingFactor());
         out.close();
 
     }

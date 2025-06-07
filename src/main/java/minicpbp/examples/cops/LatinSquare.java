@@ -93,7 +93,7 @@ public class LatinSquare {
     }
 
 
-    private Solver cp;
+    public Solver cp;
     private IntVar[][] x;
     private IntVar[] xFlat;
     private IntVar[] objectiveVars;
@@ -426,15 +426,6 @@ public class LatinSquare {
     }
 
     public static void main(String[] args) {
-        // var objectivePatternArray = new ObjectivePattern[]{
-        //         new ObjectivePattern(20),
-        //         new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 0),
-        //         new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, 20, 5, 5),
-        // };
-        // var nbHolesArray = new int[]{200, 250, 300};
-        // var searchTypeArray = new SearchType[]{SearchType.DFS, SearchType.LDS};
-        // var nbFileArray = IntStream.rangeClosed(1, 10).toArray();
-
         HashMap<String, String> arguments = parseArgs(args);
         String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
         int n = Integer.parseInt(arguments.getOrDefault("n", "20"));
@@ -448,6 +439,9 @@ public class LatinSquare {
         String branchingArg = arguments.get("branching");
         String entropyBranchingThresholdArg = arguments.get("entropyBranchingThreshold");
         String propagationShortcutArg = arguments.get("propagationShortcut");
+        // TODO reset marginals before BP
+        // TODO skip uniform max product
+        // TODO faster alldiff max prod
 
         int nbHoles = Integer.parseInt(nbHolesArg);
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
@@ -529,6 +523,7 @@ public class LatinSquare {
             SearchStatistics stats = ls.optimize();
             System.out.println("END OF SEARCH");
             System.out.println(stats);
+            System.out.println("damping factor: " + ls.cp.dampingFactor());
 
             // ls.printAlgorithmComparisonReport();
         }

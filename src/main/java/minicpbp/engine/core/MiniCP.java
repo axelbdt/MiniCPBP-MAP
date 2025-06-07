@@ -60,10 +60,10 @@ public class MiniCP implements Solver {
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
     // apply damping to variable-to-constraint messages
+    private static boolean damping = true;
     private static boolean propagationShortcut = true;
     private static boolean skipUniformMaxProd = true;
     private static FasterAllDiffMaxProd fasterAllDiffMaxProd = FasterAllDiffMaxProd.COMPARE;
-    private static boolean damping = true;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
     private static double dampingFactor = 0.75;
     // entropy threshold for a variable; below it we should consider that its value
