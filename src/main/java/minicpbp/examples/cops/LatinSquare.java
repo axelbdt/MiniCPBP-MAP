@@ -1,6 +1,5 @@
 package minicpbp.examples.cops;
 
-import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.AllDifferentDC;
 import minicpbp.engine.constraints.SumDC;
 import minicpbp.engine.core.IntVar;
@@ -38,38 +37,6 @@ public class LatinSquare {
         }
     }
 
-    public enum ObjectivePatternType {
-        DIAGONAL,
-        PSEUDODIAGONAL;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase();
-        }
-    }
-
-    public record ObjectivePattern(ObjectivePatternType type, int nbVars, int rowLength, int overlap) {
-        public ObjectivePattern(int n) {
-            this(ObjectivePatternType.DIAGONAL, n, 1, 0);
-        }
-
-        public ObjectivePattern {
-            if (nbVars % rowLength != 0) {
-                throw new IllegalArgumentException("nbVars must be a multiple of rowLength");
-            }
-            if (overlap < 0 || overlap > rowLength) {
-                throw new IllegalArgumentException("overlap must be between 0 and rowLength");
-            }
-        }
-
-        public String toString() {
-            return switch (type) {
-                case DIAGONAL -> "diagonal";
-                case PSEUDODIAGONAL -> String.format("pseudodiagonal_%d_%d_%d", nbVars, rowLength, overlap);
-            };
-        }
-    }
-
     public enum BPAlgorithm {
         NO_BP,
         SUM_PRODUCT,
@@ -92,25 +59,20 @@ public class LatinSquare {
     }
 
     public Solver cp;
-    private IntVar[][] x;
-    private IntVar[] xFlat;
-    private IntVar[] objectiveVars;
-    private Search search;
-    private Objective obj;
-    private String fileName;
-    private int n;
-    private int nbHoles;
+    public IntVar[][] x;
+    public IntVar[] xFlat;
+    public IntVar[] objectiveVars;
+    public Search search;
+    public Objective obj;
+    public String fileName;
+    public int n;
+    public int nbHoles;
 
-    public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
+    public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
         this.fileName = fileName;
 
         // Extract instance information from file
-        parseInstanceFile();
-
-        // Update objective pattern if it uses the size
-        if (objective.type == ObjectivePatternType.DIAGONAL && objective.nbVars != n) {
-            objective = new ObjectivePattern(n);
-        }
+        this.n = getInstanceSize(fileName);
 
         // Create solver and square variables
         cp = makeSolver();
@@ -157,43 +119,20 @@ public class LatinSquare {
             cp.post(colConstraint);
         }
 
-        // create objective and bind it to the variables
-        objectiveVars = new IntVar[objective.nbVars];
-        assert objective.nbVars <= n * n;
-        switch (objective.type) {
-            case DIAGONAL:
-                for (int i = 0; i < n; i++) {
-                    objectiveVars[i] = x[i][i];
-                }
-                break;
-            case PSEUDODIAGONAL:
-                int rowLength = objective.rowLength;
-                if (rowLength > n) {
-                    throw new IllegalArgumentException("rowLength must be less than n");
-                }
-                int nbVars = objective.nbVars;
-                int overlap = objective.overlap;
-                int nbRows = nbVars / rowLength;
-                if (nbRows > n) {
-                    throw new IllegalArgumentException("nbRows must be less than n");
-                }
-                if (n < rowLength + (nbRows - 1) * (rowLength - overlap)) {
-                    throw new IllegalArgumentException("pattern won't fit into square");
-                }
-                int col = 0;
-                for (int i = 0; i < nbRows; i++) {
-                    for (int j = 0; j < rowLength; j++) {
-                        objectiveVars[rowLength * i + j] = x[i][col];
-                        col++;
-                    }
-                    col -= overlap;
-                }
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown objective: " + objective);
+        // create objective - square of side length ceil(sqrt(n))
+        int sideLength = (int) Math.ceil(Math.sqrt(n));
+        int numObjectiveVars = sideLength * sideLength;
+        objectiveVars = new IntVar[numObjectiveVars];
+
+        // Fill objective vars in row-major order
+        int idx = 0;
+        for (int i = 0; i < sideLength && idx < numObjectiveVars; i++) {
+            for (int j = 0; j < sideLength && idx < numObjectiveVars; j++) {
+                objectiveVars[idx++] = x[i][j];
+            }
         }
 
-        int maxObj = objective.nbVars * (n - 1); // var from 0 to n-1
+        int maxObj = numObjectiveVars * (n - 1); // var from 0 to n-1
         int minObj = n;
         IntVar z = makeIntVar(cp, minObj, maxObj);
         z.setName("score");
@@ -264,42 +203,34 @@ public class LatinSquare {
                 throw new IllegalArgumentException("Unknown search type: " + searchType);
         }
         search.onSolution(() -> {
-            // sum of objectiveVars
             int sum = z.min();
             System.out.println("NEW SOLUTION FOUND");
             System.out.println("solution score : " + sum);
         });
     }
 
-    private void parseInstanceFile() {
+    private static int getInstanceSize(String fileName) {
         try {
             Scanner scanner = new Scanner(new FileReader(fileName));
-
-            // Skip the first line
-            scanner.nextLine();
-
-            // Count lines to determine size
+            scanner.nextLine(); // skip the first line
             int lineCount = 0;
             while (scanner.hasNextLine()) {
                 scanner.nextLine();
                 lineCount++;
             }
             scanner.close();
-
-            this.n = lineCount;
-
+            return lineCount;
         } catch (Exception e) {
             System.err.println("Error parsing instance file: " + e.getMessage());
             System.exit(2);
+            return 0;
         }
     }
 
     private void loadInstanceValues() {
         try {
             Scanner scanner = new Scanner(new FileReader(fileName));
-
             scanner.nextLine(); // skip the first line
-
             this.nbHoles = 0;
             for (int i = 0; i < n; i++) {
                 String[] line = scanner.nextLine().trim().split("\\s+");
@@ -313,7 +244,6 @@ public class LatinSquare {
                 }
             }
             scanner.close();
-
         } catch (Exception e) {
             System.err.println("Error loading instance values: " + e.getMessage());
             System.exit(2);
@@ -328,14 +258,7 @@ public class LatinSquare {
 
     public SearchStatistics optimize() {
         int timeLimit = 1 * 3600000; // 1 hour
-        // int timeLimit = 4 * 3600000; // 4 hours
-        // int timeLimit = 10 * 60000; // 10 minutes
         return search.optimize(obj, stat -> stat.isCompleted() || stat.timeElapsed() > timeLimit);
-    }
-
-    public SearchStatistics solve() {
-        onSolution(this::printSolution);
-        return search.solve(stat -> stat.isCompleted());
     }
 
     public void onSolution(Procedure listener) {
@@ -351,29 +274,6 @@ public class LatinSquare {
         }
     }
 
-    public void printAlgorithmComparisonReport() {
-        cp.printAlgorithmComparisonReport();
-    }
-
-    public int getSize() {
-        return n;
-    }
-
-    public int getNbHoles() {
-        return nbHoles;
-    }
-
-    /**
-     * Max value selection.
-     * It selects the largest value in all the objective variables.
-     * If all objective variables, we do the rest in lexicographic order.
-     * Then it creates two branches:
-     * the left branch assigning the variable to its maximum value;
-     * the right branch removing this maximum value from the domain.
-     *
-     * @return a lexicographic branching strategy
-     * @see Factory#makeDfs(Solver, Supplier)
-     */
     public Supplier<Procedure[]> maxValue() {
         boolean tracing = x[0][0].getSolver().tracingSearch();
         return () -> {
@@ -417,16 +317,6 @@ public class LatinSquare {
         };
     }
 
-    /**
-     * DomWDeg variable selection and best value selection
-     * It selects the largest value in all the variables.
-     * Then it creates two branches:
-     * the left branch assigning the variable to its maximum value;
-     * the right branch removing this maximum value from the domain.
-     *
-     * @return a lexicographic branching strategy
-     * @see Factory#makeDfs(Solver, Supplier)
-     */
     public Supplier<Procedure[]> domWdegBestValue() {
         boolean tracing = cp.tracingSearch();
         for (IntVar a : xFlat)
@@ -474,9 +364,7 @@ public class LatinSquare {
 
     public static void main(String[] args) {
         HashMap<String, String> arguments = parseArgs(args);
-        String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
         String inputFile = arguments.get("input");
-        String objectiveString = arguments.get("objective");
         String searchTypeArg = arguments.get("searchType");
         String oracleArg = arguments.get("oracle");
         String maxIterArg = arguments.get("maxIter");
@@ -498,34 +386,11 @@ public class LatinSquare {
         float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdArg);
         boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
 
-        // Create temporary instance to get size for default diagonal objective
-        LatinSquare tempLs = new LatinSquare(inputFile, searchType, bp, branching, new ObjectivePattern(1), oracle, maxIter, entropyBranchingThreshold, propagationShortcut);
-        int n = tempLs.getSize();
-
-        ObjectivePattern objective;
-        String[] parts = objectiveString.toUpperCase().split("_");
-        if (parts[0].equals("DIAGONAL")) {
-            objective = new ObjectivePattern(n);
-        } else if (parts[0].equals("PSEUDODIAGONAL") && parts.length == 4) {
-            try {
-                int numVars = Integer.parseInt(parts[1]);
-                int numPerRow = Integer.parseInt(parts[2]);
-                int overlap = Integer.parseInt(parts[3]);
-                objective = new ObjectivePattern(ObjectivePatternType.PSEUDODIAGONAL, numVars, numPerRow, overlap);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid pseudodiagonal parameters: " + objectiveString);
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
-        }
-
-        // Create the actual model
         LatinSquare ls = new LatinSquare(
                 inputFile,
                 searchType,
                 bp,
                 branching,
-                objective,
                 oracle,
                 maxIter,
                 entropyBranchingThreshold,
@@ -534,36 +399,20 @@ public class LatinSquare {
 
         System.out.println("INFO");
         System.out.println("input file: " + inputFile);
-        System.out.println("n : " + ls.getSize());
-        System.out.println("nbHoles : " + ls.getNbHoles());
+        System.out.println("n : " + ls.n);
+        System.out.println("nbHoles : " + ls.nbHoles);
+        System.out.println("search type: " + searchType);
+        System.out.println("BP algorithm: " + bp);
+        System.out.println("branching strategy: " + branching);
+        System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
+        System.out.println("propagation shortcut: " + propagationShortcut);
+        System.out.println("oracle on objective: " + oracle);
+        System.out.println("max iterations: " + maxIter);
 
-        // Run the model
-        if (mode.equals("SOLVE")) {
-            // get all solutions
-            System.out.println("START SEARCH");
-            SearchStatistics stats = ls.solve();
-            System.out.println("END OF SEARCH");
-            System.out.println(stats);
-        } else if (mode.equals("PROPAGATE")) {
-            System.out.println("bp : " + bp);
-            ls.propagate();
-        } else {
-            System.out.println("objective : " + objective);
-            System.out.println("search type: " + searchType);
-            System.out.println("BP algorithm: " + bp);
-            System.out.println("branching strategy: " + branching);
-            System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
-            System.out.println("propagation shortcut: " + propagationShortcut);
-            System.out.println("oracle on objective: " + oracle);
-            System.out.println("max iterations: " + maxIter);
-
-            System.out.println("START SEARCH");
-            SearchStatistics stats = ls.optimize();
-            System.out.println("END OF SEARCH");
-            System.out.println(stats);
-            System.out.println("damping factor: " + ls.cp.dampingFactor());
-
-            // ls.printAlgorithmComparisonReport();
-        }
+        System.out.println("START SEARCH");
+        SearchStatistics stats = ls.optimize();
+        System.out.println("END OF SEARCH");
+        System.out.println(stats);
+        System.out.println("damping factor: " + ls.cp.dampingFactor());
     }
 }
