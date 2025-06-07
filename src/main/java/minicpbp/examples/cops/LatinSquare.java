@@ -11,7 +11,6 @@ import minicpbp.search.SearchStatistics;
 import minicpbp.util.Procedure;
 
 import java.io.FileReader;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -92,15 +91,27 @@ public class LatinSquare {
         }
     }
 
-
     public Solver cp;
     private IntVar[][] x;
     private IntVar[] xFlat;
     private IntVar[] objectiveVars;
     private Search search;
     private Objective obj;
+    private String fileName;
+    private int n;
+    private int nbHoles;
 
-    public LatinSquare(int n, int nbHoles, int nbFile, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
+    public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching, ObjectivePattern objective, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
+        this.fileName = fileName;
+
+        // Extract instance information from file
+        parseInstanceFile();
+
+        // Update objective pattern if it uses the size
+        if (objective.type == ObjectivePatternType.DIAGONAL && objective.nbVars != n) {
+            objective = new ObjectivePattern(n);
+        }
+
         // Create solver and square variables
         cp = makeSolver();
 
@@ -196,29 +207,8 @@ public class LatinSquare {
 
         obj = cp.maximize(z);
 
-        try {
-            String filename = String.format("latin-square-%d-holes%d-%d.pls", n, nbHoles, nbFile);
-            String filepath = Paths.get("data", "latin-square", filename).toString();
-            Scanner scanner = new Scanner(new FileReader(filepath));
-
-            scanner.nextLine(); // skip the first line
-
-            for (int i = 0; i < n; i++) {
-                String[] line = scanner.nextLine().trim().split("\\s+");
-                for (int j = 0; j < n; j++) {
-                    int value = Integer.parseInt(line[j]);
-                    if (value != -1) {
-                        // System.out.println(String.format("x[%d][%d] = %d", i, j, value));
-                        x[i][j].assign(value);
-                    }
-                }
-            }
-            scanner.close();
-
-        } catch (Exception e) {
-            System.err.println("Error : " + e.getMessage());
-            System.exit(2);
-        }
+        // Load instance values
+        loadInstanceValues();
 
         // add search
         xFlat = new IntVar[n * n];
@@ -281,6 +271,55 @@ public class LatinSquare {
         });
     }
 
+    private void parseInstanceFile() {
+        try {
+            Scanner scanner = new Scanner(new FileReader(fileName));
+
+            // Skip the first line
+            scanner.nextLine();
+
+            // Count lines to determine size
+            int lineCount = 0;
+            while (scanner.hasNextLine()) {
+                scanner.nextLine();
+                lineCount++;
+            }
+            scanner.close();
+
+            this.n = lineCount;
+
+        } catch (Exception e) {
+            System.err.println("Error parsing instance file: " + e.getMessage());
+            System.exit(2);
+        }
+    }
+
+    private void loadInstanceValues() {
+        try {
+            Scanner scanner = new Scanner(new FileReader(fileName));
+
+            scanner.nextLine(); // skip the first line
+
+            this.nbHoles = 0;
+            for (int i = 0; i < n; i++) {
+                String[] line = scanner.nextLine().trim().split("\\s+");
+                for (int j = 0; j < n; j++) {
+                    int value = Integer.parseInt(line[j]);
+                    if (value != -1) {
+                        x[i][j].assign(value);
+                    } else {
+                        nbHoles++;
+                    }
+                }
+            }
+            scanner.close();
+
+        } catch (Exception e) {
+            System.err.println("Error loading instance values: " + e.getMessage());
+            System.exit(2);
+        }
+    }
+
     public void propagate() {
         cp.setTraceSearchFlag(true);
         cp.setTraceBPFlag(true);
@@ -314,6 +353,14 @@ public class LatinSquare {
 
     public void printAlgorithmComparisonReport() {
         cp.printAlgorithmComparisonReport();
+    }
+
+    public int getSize() {
+        return n;
+    }
+
+    public int getNbHoles() {
+        return nbHoles;
     }
 
     /**
@@ -428,9 +475,7 @@ public class LatinSquare {
     public static void main(String[] args) {
         HashMap<String, String> arguments = parseArgs(args);
         String mode = arguments.getOrDefault("mode", "OPTIMIZE").toUpperCase();
-        int n = Integer.parseInt(arguments.getOrDefault("n", "20"));
-        String nbHolesArg = arguments.get("nbHoles");
-        String nbFileArg = arguments.get("nbFile");
+        String inputFile = arguments.get("input");
         String objectiveString = arguments.get("objective");
         String searchTypeArg = arguments.get("searchType");
         String oracleArg = arguments.get("oracle");
@@ -439,19 +484,23 @@ public class LatinSquare {
         String branchingArg = arguments.get("branching");
         String entropyBranchingThresholdArg = arguments.get("entropyBranchingThreshold");
         String propagationShortcutArg = arguments.get("propagationShortcut");
-        // TODO reset marginals before BP
-        // TODO skip uniform max product
-        // TODO faster alldiff max prod
 
-        int nbHoles = Integer.parseInt(nbHolesArg);
+        if (inputFile == null) {
+            System.err.println("Error: input file must be specified with --input=filename");
+            System.exit(1);
+        }
+
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
-        int nbFile = Integer.parseInt(nbFileArg);
         float oracle = Float.parseFloat(oracleArg);
         int maxIter = Integer.parseInt(maxIterArg);
         BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.toUpperCase());
         Branching branching = Branching.valueOf(branchingArg.toUpperCase());
         float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdArg);
         boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
+
+        // Create temporary instance to get size for default diagonal objective
+        LatinSquare tempLs = new LatinSquare(inputFile, searchType, bp, branching, new ObjectivePattern(1), oracle, maxIter, entropyBranchingThreshold, propagationShortcut);
+        int n = tempLs.getSize();
 
         ObjectivePattern objective;
         String[] parts = objectiveString.toUpperCase().split("_");
@@ -470,11 +519,9 @@ public class LatinSquare {
             throw new IllegalArgumentException("Invalid objective pattern: " + objectiveString);
         }
 
-        // Create the model
+        // Create the actual model
         LatinSquare ls = new LatinSquare(
-                n,
-                nbHoles,
-                nbFile,
+                inputFile,
                 searchType,
                 bp,
                 branching,
@@ -486,13 +533,10 @@ public class LatinSquare {
         );
 
         System.out.println("INFO");
-        System.out.println("n : " + n);
-        System.out.println("nbHoles : " + nbHoles);
-        System.out.println("nbFile : " + nbFile);
+        System.out.println("input file: " + inputFile);
+        System.out.println("n : " + ls.getSize());
+        System.out.println("nbHoles : " + ls.getNbHoles());
 
-        String filename = String.format("latin-square-%d-holes%d-%d.pls", n, nbHoles, nbFile);
-        String filepath = Paths.get("data", "latin-square", filename).toString();
-        System.out.println("input file: " + filepath);
         // Run the model
         if (mode.equals("SOLVE")) {
             // get all solutions
@@ -501,12 +545,7 @@ public class LatinSquare {
             System.out.println("END OF SEARCH");
             System.out.println(stats);
         } else if (mode.equals("PROPAGATE")) {
-            System.out.println("INFO");
-            System.out.println("n : " + n);
-            System.out.println("nbHoles : " + nbHoles);
-            System.out.println("nbFile : " + nbFile);
             System.out.println("bp : " + bp);
-
             ls.propagate();
         } else {
             System.out.println("objective : " + objective);
@@ -518,7 +557,6 @@ public class LatinSquare {
             System.out.println("oracle on objective: " + oracle);
             System.out.println("max iterations: " + maxIter);
 
-
             System.out.println("START SEARCH");
             SearchStatistics stats = ls.optimize();
             System.out.println("END OF SEARCH");
@@ -528,6 +566,4 @@ public class LatinSquare {
             // ls.printAlgorithmComparisonReport();
         }
     }
-
 }
-
