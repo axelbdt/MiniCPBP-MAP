@@ -71,6 +71,19 @@ public class XCSP implements XCallbacks2 {
 
     private boolean hasFailed;
 
+
+    private static boolean resetMarginalsBeforeBP = true;
+
+    public void resetMarginalsBeforeBP(boolean resetMarginalsBeforeBP) {
+        XCSP.resetMarginalsBeforeBP = resetMarginalsBeforeBP;
+    }
+
+    private static boolean fasterAllDiff = false;
+
+    public void fasterAllDiff(boolean fasterAllDiff) {
+        XCSP.fasterAllDiff = fasterAllDiff;
+    }
+
     @Override
     public Implem implem() {
         return implem;
@@ -2242,6 +2255,8 @@ public class XCSP implements XCallbacks2 {
         minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
         minicp.setPropagationShortcut(propagationShortcut);
         minicp.setSkipUniformMaxProd(skipUniformMaxProd);
+        minicp.setResetMarginalsBeforeBP(resetMarginalsBeforeBP);
+        minicp.setFasterAllDiffMaxProd(fasterAllDiff);
 
         if (hasFailed) {
             if (!competitionOutput) {

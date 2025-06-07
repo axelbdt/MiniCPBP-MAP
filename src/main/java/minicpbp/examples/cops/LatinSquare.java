@@ -68,7 +68,10 @@ public class LatinSquare {
     public int n;
     public int nbHoles;
 
-    public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching, float oracle, int maxIter, float entropyBranchingThreshold, boolean propagationShortcut) {
+    public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching,
+                       float oracle, int maxIter, float entropyBranchingThreshold,
+                       boolean propagationShortcut, boolean resetMarginalsBeforeBP,
+                       boolean skipUniformMaxProduct, boolean fasterAllDiff) {
         this.fileName = fileName;
 
         // Extract instance information from file
@@ -77,7 +80,11 @@ public class LatinSquare {
         // Create solver and square variables
         cp = makeSolver();
 
+        // Set optimization parameters
         cp.setPropagationShortcut(propagationShortcut);
+        cp.setResetMarginalsBeforeBP(resetMarginalsBeforeBP);
+        cp.setSkipUniformMaxProd(skipUniformMaxProduct);
+        cp.setFasterAllDiffMaxProd(fasterAllDiff);
 
         switch (bp) {
             case NO_BP:
@@ -372,6 +379,9 @@ public class LatinSquare {
         String branchingArg = arguments.get("branching");
         String entropyBranchingThresholdArg = arguments.get("entropyBranchingThreshold");
         String propagationShortcutArg = arguments.get("propagationShortcut");
+        String resetMarginalsBeforeBPArg = arguments.get("resetMarginalsBeforeBP");
+        String skipUniformMaxProductArg = arguments.get("skipUniformMaxProduct");
+        String fasterAllDiffArg = arguments.get("fasterAllDiff");
 
         if (inputFile == null) {
             System.err.println("Error: input file must be specified with --input=filename");
@@ -385,6 +395,9 @@ public class LatinSquare {
         Branching branching = Branching.valueOf(branchingArg.toUpperCase());
         float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdArg);
         boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
+        boolean resetMarginalsBeforeBP = Boolean.valueOf(resetMarginalsBeforeBPArg);
+        boolean skipUniformMaxProduct = Boolean.valueOf(skipUniformMaxProductArg);
+        boolean fasterAllDiff = Boolean.valueOf(fasterAllDiffArg);
 
         LatinSquare ls = new LatinSquare(
                 inputFile,
@@ -394,7 +407,10 @@ public class LatinSquare {
                 oracle,
                 maxIter,
                 entropyBranchingThreshold,
-                propagationShortcut
+                propagationShortcut,
+                resetMarginalsBeforeBP,
+                skipUniformMaxProduct,
+                fasterAllDiff
         );
 
         System.out.println("INFO");
@@ -406,6 +422,9 @@ public class LatinSquare {
         System.out.println("branching strategy: " + branching);
         System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
         System.out.println("propagation shortcut: " + propagationShortcut);
+        System.out.println("reset marginals before BP: " + resetMarginalsBeforeBP);
+        System.out.println("skip uniform max product: " + skipUniformMaxProduct);
+        System.out.println("faster all diff: " + fasterAllDiff);
         System.out.println("oracle on objective: " + oracle);
         System.out.println("max iterations: " + maxIter);
 

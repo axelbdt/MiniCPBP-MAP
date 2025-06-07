@@ -100,6 +100,12 @@ public class SolveXCSPFZN {
         String quotedValidSkipUniformMaxProd = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
+        String quotedValidResetMarginalsBeforeBP = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
+        String quotedValidFasterAllDiff = BoolMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
+                .collect(Collectors.joining(",\n"));
+
         String quotedValidBranchings = branchingMap.keySet().stream().sorted().map(x -> "\"" + x + "\"")
                 .collect(Collectors.joining(",\n"));
 
@@ -126,6 +132,12 @@ public class SolveXCSPFZN {
 
         Option skipUniformMaxProdOpt = Option.builder().longOpt("skip-uniform-max-prod").argName("BOOL").hasArg()
                 .desc("skip uniform max product.\nValid skip uniform max prod are:\n" + quotedValidSkipUniformMaxProd).build();
+
+        Option resetMarginalsBeforeBPOpt = Option.builder().longOpt("reset-marginals-before-bp").argName("BOOL").hasArg()
+                .desc("reset marginals before BP.\nValid reset marginals before BP are:\n" + quotedValidResetMarginalsBeforeBP).build();
+
+        Option fasterAllDiffOpt = Option.builder().longOpt("faster-all-diff").argName("BOOL").hasArg()
+                .desc("faster all different algorithm.\nValid faster all diff are:\n" + quotedValidFasterAllDiff).build();
 
         Option searchOpt = Option.builder().longOpt("search-type").argName("SEARCH").required().hasArg()
                 .desc("search type.\nValid search types are:\n" + quotedValidSearchTypes).build();
@@ -206,6 +218,8 @@ public class SolveXCSPFZN {
         options.addOption(entropyBranchingThresholdOpt);
         options.addOption(propagationShortcutOpt);
         options.addOption(skipUniformMaxProdOpt);
+        options.addOption(resetMarginalsBeforeBPOpt);
+        options.addOption(fasterAllDiffOpt);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -245,8 +259,22 @@ public class SolveXCSPFZN {
         String skipUniformMaxProdStr = cmd.getOptionValue("skip-uniform-max-prod");
         boolean skipUniformMaxProd = true;
         if (skipUniformMaxProdStr != null) {
-            checkPropagationShortcutOption(bpShortcutStr);
-            skipUniformMaxProd = BoolMap.get(bpShortcutStr);
+            checkSkipUniformMaxProdOption(skipUniformMaxProdStr);
+            skipUniformMaxProd = BoolMap.get(skipUniformMaxProdStr);
+        }
+
+        String resetMarginalsBeforeBPStr = cmd.getOptionValue("reset-marginals-before-bp");
+        boolean resetMarginalsBeforeBP = true;
+        if (resetMarginalsBeforeBPStr != null) {
+            checkResetMarginalsBeforeBPOption(resetMarginalsBeforeBPStr);
+            resetMarginalsBeforeBP = BoolMap.get(resetMarginalsBeforeBPStr);
+        }
+
+        String fasterAllDiffStr = cmd.getOptionValue("faster-all-diff");
+        boolean fasterAllDiff = false;
+        if (fasterAllDiffStr != null) {
+            checkFasterAllDiffOption(fasterAllDiffStr);
+            fasterAllDiff = BoolMap.get(fasterAllDiffStr);
         }
 
         String searchTypeStr = cmd.getOptionValue("search-type");
@@ -332,6 +360,8 @@ public class SolveXCSPFZN {
                 System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
                 System.out.println("propagation shortcut: " + propagationShortcut);
                 System.out.println("skip uniform max product: " + skipUniformMaxProd);
+                System.out.println("reset marginals before BP: " + resetMarginalsBeforeBP);
+                System.out.println("faster all diff: " + fasterAllDiff);
                 System.out.println("search type: " + searchTypeStr);
                 System.out.println("max iterations: " + maxIter);
 
@@ -356,6 +386,8 @@ public class SolveXCSPFZN {
                 xcsp.entropyBranchingThreshold(entropyBranchingThreshold);
                 xcsp.propagationShortcut(propagationShortcut);
                 xcsp.skipUniformMaxProd(skipUniformMaxProd);
+                xcsp.resetMarginalsBeforeBP(resetMarginalsBeforeBP);
+                xcsp.fasterAllDiff(fasterAllDiff);
 
                 xcsp.solve(heuristic, timeout, statsFileStr, solFileStr);
             }
@@ -405,6 +437,36 @@ public class SolveXCSPFZN {
             System.out.println("propagation shortcut should be one of the following: ");
             for (String propagationShortcut : BoolMap.keySet())
                 System.out.println(propagationShortcut);
+            System.exit(1);
+        }
+    }
+
+    private static void checkSkipUniformMaxProdOption(String skipUniformMaxProdStr) {
+        if (!BoolMap.containsKey(skipUniformMaxProdStr)) {
+            System.out.println("invalid skip uniform max prod " + skipUniformMaxProdStr);
+            System.out.println("skip uniform max prod should be one of the following: ");
+            for (String skipUniformMaxProd : BoolMap.keySet())
+                System.out.println(skipUniformMaxProd);
+            System.exit(1);
+        }
+    }
+
+    private static void checkResetMarginalsBeforeBPOption(String resetMarginalsBeforeBPStr) {
+        if (!BoolMap.containsKey(resetMarginalsBeforeBPStr)) {
+            System.out.println("invalid reset marginals before BP " + resetMarginalsBeforeBPStr);
+            System.out.println("reset marginals before BP should be one of the following: ");
+            for (String resetMarginalsBeforeBP : BoolMap.keySet())
+                System.out.println(resetMarginalsBeforeBP);
+            System.exit(1);
+        }
+    }
+
+    private static void checkFasterAllDiffOption(String fasterAllDiffStr) {
+        if (!BoolMap.containsKey(fasterAllDiffStr)) {
+            System.out.println("invalid faster all diff " + fasterAllDiffStr);
+            System.out.println("faster all diff should be one of the following: ");
+            for (String fasterAllDiff : BoolMap.keySet())
+                System.out.println(fasterAllDiff);
             System.exit(1);
         }
     }
@@ -474,4 +536,3 @@ public class SolveXCSPFZN {
     }
 
 }
-

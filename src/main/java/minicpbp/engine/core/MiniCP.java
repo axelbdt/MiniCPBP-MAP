@@ -74,7 +74,7 @@ public class MiniCP implements Solver {
     private final double ENTROPY_TOLERANCE = 0.01;
     // reset marginals, local beliefs, and previous outside belief before applying
     // BP at each search-tree node
-    private static final boolean resetMarginalsBeforeBP = true;
+    private static boolean resetMarginalsBeforeBP = true;
     // take action upon zero/one beliefs: remove/assign the corresponding value
     private static final boolean actOnZeroOneBelief = false;
     // relative decrease of metric to trigger BP; in interval [0,1] where 0 means
@@ -1127,5 +1127,15 @@ public class MiniCP implements Solver {
      */
     public double getCurrentMaxBeliefDifference() {
         return globalMaxBeliefDifference;
+    }
+
+    @Override
+    public boolean resetMarginalsBeforeBP() {
+        return MiniCP.resetMarginalsBeforeBP;
+    }
+
+    @Override
+    public void setResetMarginalsBeforeBP(boolean resetMarginalsBeforeBP) {
+        MiniCP.resetMarginalsBeforeBP = resetMarginalsBeforeBP;
     }
 }

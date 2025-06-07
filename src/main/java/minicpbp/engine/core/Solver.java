@@ -334,4 +334,8 @@ public interface Solver {
     public void printAlgorithmComparisonReport();
 
     public void updateAlgorithmComparison(long exactDuration, long fastDuration, double maxBeliefDiff, double totalBeliefDiff, int beliefComparisons, int nbVar, int nbVal);
+
+    public boolean resetMarginalsBeforeBP();
+
+    public void setResetMarginalsBeforeBP(boolean resetMarginalsBeforeBP);
 }
