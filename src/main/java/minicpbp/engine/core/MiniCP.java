@@ -63,9 +63,10 @@ public class MiniCP implements Solver {
     private static boolean damping = true;
     private static boolean propagationShortcut = true;
     private static boolean skipUniformMaxProd = true;
-    private static FasterAllDiffMaxProd fasterAllDiffMaxProd = FasterAllDiffMaxProd.COMPARE;
+    private static boolean fasterAllDiffMaxProd = false;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
     private static double dampingFactor = 0.75;
+
     // entropy threshold for a variable; below it we should consider that its value
     // is almost certain
     private final double MIN_VAR_ENTROPY = 1.0E-3;
@@ -689,12 +690,12 @@ public class MiniCP implements Solver {
     }
 
     @Override
-    public FasterAllDiffMaxProd fasterAllDiffMaxProd() {
+    public boolean fasterAllDiffMaxProd() {
         return MiniCP.fasterAllDiffMaxProd;
     }
 
     @Override
-    public void setFasterAllDiffMaxProd(FasterAllDiffMaxProd fasterAllDiffMaxProd) {
+    public void setFasterAllDiffMaxProd(boolean fasterAllDiffMaxProd) {
         MiniCP.fasterAllDiffMaxProd = fasterAllDiffMaxProd;
     }
 

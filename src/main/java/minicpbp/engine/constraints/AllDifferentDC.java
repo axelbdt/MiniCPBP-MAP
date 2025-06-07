@@ -20,7 +20,6 @@ package minicpbp.engine.constraints;
 
 import minicpbp.engine.core.AbstractConstraint;
 import minicpbp.engine.core.IntVar;
-import minicpbp.engine.core.Solver;
 import minicpbp.state.StateSparseSet;
 import minicpbp.util.GraphUtil;
 import minicpbp.util.GraphUtil.Graph;
@@ -203,7 +202,7 @@ public class AllDifferentDC extends AbstractConstraint {
         optimalU = new double[freeVars.size()];
         optimalV = new double[freeVals.size()];
 
-        // Allocations for comparing algorithm results
+        // Allocations for comparing algorithm results (optional, for debugging)
         exactBeliefs = new double[freeVars.size()][freeVals.size()];
         fastBeliefs = new double[freeVars.size()][freeVals.size()];
         maxBeliefDifference = 0.0;
@@ -428,21 +427,11 @@ public class AllDifferentDC extends AbstractConstraint {
             }
         }
 
-        // Choose algorithm based on flag
-        Solver.FasterAllDiffMaxProd flag = cp.fasterAllDiffMaxProd();
-
-        if (flag == Solver.FasterAllDiffMaxProd.NO) {
-            // Use only exact algorithm
-            updateBeliefMaxProductExact(nbVar, nbVal, true); // true = call setLocalBelief
-        } else if ((flag == Solver.FasterAllDiffMaxProd.YES) ||
-                (flag == Solver.FasterAllDiffMaxProd.SQUARE && nbVar == nbVal)) {
-            // Use only fast algorithm
-            updateBeliefMaxProductFast(nbVar, nbVal, true); // true = call setLocalBelief
-        }
-        // Note: To enable comparison mode, add FasterAllDiffMaxProd.COMPARE to your enum
-        // and uncomment the following:
-        else if (flag == Solver.FasterAllDiffMaxProd.COMPARE) {
-            compareAlgorithms(nbVar, nbVal);
+        // Choose algorithm based on boolean flag
+        if (cp.fasterAllDiffMaxProd()) {
+            updateBeliefMaxProductFast(nbVar, nbVal, true);
+        } else {
+            updateBeliefMaxProductExact(nbVar, nbVal, true);
         }
     }
 
