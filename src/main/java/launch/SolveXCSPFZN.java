@@ -136,7 +136,7 @@ public class SolveXCSPFZN {
         Option resetMarginalsBeforeBPOpt = Option.builder().longOpt("reset-marginals-before-bp").argName("BOOL").hasArg()
                 .desc("reset marginals before BP.\nValid reset marginals before BP are:\n" + quotedValidResetMarginalsBeforeBP).build();
 
-        Option fasterAllDiffOpt = Option.builder().longOpt("faster-all-diff").argName("BOOL").hasArg()
+        Option fasterAllDiffOpt = Option.builder().longOpt("faster-all-diff-max-prod").argName("BOOL").hasArg()
                 .desc("faster all different algorithm.\nValid faster all diff are:\n" + quotedValidFasterAllDiff).build();
 
         Option searchOpt = Option.builder().longOpt("search-type").argName("SEARCH").required().hasArg()

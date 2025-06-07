@@ -372,16 +372,16 @@ public class LatinSquare {
     public static void main(String[] args) {
         HashMap<String, String> arguments = parseArgs(args);
         String inputFile = arguments.get("input");
-        String searchTypeArg = arguments.get("searchType");
-        String oracleArg = arguments.get("oracle");
-        String maxIterArg = arguments.get("maxIter");
-        String bpArg = arguments.get("bp");
+        String searchTypeArg = arguments.get("search-type");
+        String oracleArg = arguments.get("oracle-on-objective");
+        String maxIterArg = arguments.get("max-iter");
+        String bpArg = arguments.get("bp-algorithm");
         String branchingArg = arguments.get("branching");
-        String entropyBranchingThresholdArg = arguments.get("entropyBranchingThreshold");
-        String propagationShortcutArg = arguments.get("propagationShortcut");
-        String resetMarginalsBeforeBPArg = arguments.get("resetMarginalsBeforeBP");
-        String skipUniformMaxProductArg = arguments.get("skipUniformMaxProduct");
-        String fasterAllDiffArg = arguments.get("fasterAllDiff");
+        String entropyBranchingThresholdArg = arguments.get("entropy-branching-threshold");
+        String propagationShortcutArg = arguments.get("propagation-shortcut");
+        String resetMarginalsBeforeBPArg = arguments.get("reset-marginals-before-bp");
+        String skipUniformMaxProductArg = arguments.get("skip-uniform-max-prod");
+        String fasterAllDiffArg = arguments.get("faster-all-diff-max-prod");
 
         if (inputFile == null) {
             System.err.println("Error: input file must be specified with --input=filename");
