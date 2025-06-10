@@ -23,6 +23,7 @@ import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.IntOverFlowException;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -315,5 +316,12 @@ public class IntVarViewOffset implements IntVar {
     public void setMarginalWithDefault(int v, double m) {
         // TODO Auto-generated method stub
 
+    }
+
+    @Override
+    public Set<IntVar> neighbors() {
+        Set<IntVar> neighbors = new HashSet<IntVar>();
+        neighbors.add(x);
+        return neighbors;
     }
 }

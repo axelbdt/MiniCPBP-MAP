@@ -24,6 +24,8 @@ import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 
 import java.security.InvalidParameterException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -389,5 +391,17 @@ public class IntVarImpl implements IntVar {
     @Override
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public Set<IntVar> neighbors() {
+        Set<IntVar> neighbors = new HashSet<IntVar>();
+        int nbConstraints = constraints.size();
+        for (int i = 0; i < nbConstraints; i++) {
+            Constraint c = constraints.get(i);
+            if (c.isActive())
+                neighbors.addAll(Arrays.asList(c.getScope()));
+        }
+        return neighbors;
     }
 }

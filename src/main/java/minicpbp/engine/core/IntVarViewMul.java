@@ -23,6 +23,7 @@ import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.IntOverFlowException;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -362,4 +363,10 @@ public class IntVarViewMul implements IntVar {
 
     }
 
+    @Override
+    public Set<IntVar> neighbors() {
+        Set<IntVar> neighbors = new HashSet<IntVar>();
+        neighbors.add(x);
+        return neighbors;
+    }
 }

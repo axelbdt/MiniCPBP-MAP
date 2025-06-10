@@ -337,4 +337,6 @@ public interface IntVar {
     public void setName(String name);
 
     public void registerConstraint(Constraint c);
+
+    public Set<IntVar> neighbors();
 }

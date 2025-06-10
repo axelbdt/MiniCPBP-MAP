@@ -1155,8 +1155,6 @@ public class MiniCP implements Solver {
      * @return map of reachable variables to their distances
      */
     private Map<IntVar, Integer> computeDistancesFromVariable(IntVar source) {
-        Map<IntVar, Set<Constraint>> varToConstraints = buildVariableConstraintMap();
-
         Map<IntVar, Integer> distances = new HashMap<>();
         Queue<IntVar> queue = new LinkedList<>();
         Set<IntVar> visited = new HashSet<>();
@@ -1169,37 +1167,16 @@ public class MiniCP implements Solver {
             IntVar current = queue.poll();
             int currentDist = distances.get(current);
 
-            Set<Constraint> constraints = varToConstraints.get(current);
-            if (constraints != null) {
-                for (Constraint c : constraints) {
-                    for (IntVar neighbor : c.getScope()) {
-                        if (!visited.contains(neighbor)) {
-                            visited.add(neighbor);
-                            distances.put(neighbor, currentDist + 1);
-                            queue.add(neighbor);
-                        }
-                    }
+            Set<IntVar> neighbors = current.neighbors();
+            for (IntVar neighbor : neighbors) {
+                if (!visited.contains(neighbor)) {
+                    visited.add(neighbor);
+                    distances.put(neighbor, currentDist + 1);
+                    queue.add(neighbor);
                 }
             }
         }
 
         return distances;
-    }
-
-    /**
-     * Builds a mapping from variables to the constraints they appear in.
-     *
-     * @return map from variables to their constraints
-     */
-    private Map<IntVar, Set<Constraint>> buildVariableConstraintMap() {
-        Map<IntVar, Set<Constraint>> varToConstraints = new HashMap<>();
-        int nbConstraints = constraints.size();
-        for (int i = 0; i < nbConstraints; i++) {
-            Constraint c = constraints.get(i);
-            for (IntVar var : c.getScope()) {
-                varToConstraints.computeIfAbsent(var, k -> new HashSet<>()).add(c);
-            }
-        }
-        return varToConstraints;
     }
 }
