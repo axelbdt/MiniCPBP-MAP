@@ -247,7 +247,7 @@ public class SolveXCSPFZN {
         BranchingHeuristic heuristic = branchingMap.get(branchingStr);
 
         String entropyBranchingThresholdStr = cmd.getOptionValue("entropy-branching-threshold", "2.0");
-        Float entropyBranchingThreshold = parseEntropyBranchingThresholdOption(entropyBranchingThresholdStr);
+        Double entropyBranchingThreshold = parseEntropyBranchingThresholdOption(entropyBranchingThresholdStr);
 
         String bpShortcutStr = cmd.getOptionValue("propagation-shortcut");
         boolean propagationShortcut = true;
@@ -416,17 +416,19 @@ public class SolveXCSPFZN {
         }
     }
 
-    private static Float parseEntropyBranchingThresholdOption(String entropyBranchingThresholdStr) {
+    private static Double parseEntropyBranchingThresholdOption(String entropyBranchingThresholdStr) {
         if (entropyBranchingThresholdStr.equals("null") || entropyBranchingThresholdStr.equals("None")) {
             return null;
         }
-        if (Float.isNaN(Float.parseFloat(entropyBranchingThresholdStr))) {
+        Double entropyBranchingThreshold = null;
+        entropyBranchingThreshold = Double.parseDouble(entropyBranchingThresholdStr);
+        if (Double.isNaN(entropyBranchingThreshold)) {
             System.out.println("invalid entropy branching threshold " + entropyBranchingThresholdStr);
             System.out.println("entropy branching threshold should be a float number");
             System.exit(1);
             return null;
         } else {
-            return Float.parseFloat(entropyBranchingThresholdStr);
+            return entropyBranchingThreshold;
         }
     }
 

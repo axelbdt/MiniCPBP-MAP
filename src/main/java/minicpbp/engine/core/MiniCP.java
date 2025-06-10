@@ -53,9 +53,9 @@ public class MiniCP implements Solver {
     // SBP /* first apply support propagation, then belief propagation */
     private static PropaMode mode = PropaMode.SBP;
     private static BPAlgorithm bpAlgorithm = BPAlgorithm.MAX_PRODUCT;
-    private static boolean switchToSumProductAfterSolution = false;
     private static boolean oracleOnObjective = false;
     private static double oracleWeight = 1;
+    private IntVar objectiveVar;
     private Constraint objectiveOracle;
     // nb of BP iterations performed
     private static int beliefPropaMaxIter = 10;
@@ -235,23 +235,6 @@ public class MiniCP implements Solver {
     public void setBPAlgorithm(BPAlgorithm bpAlgorithm) {
         MiniCP.bpAlgorithm = bpAlgorithm;
     }
-
-    public void switchToSumProductNoOracle() {
-        if (objectiveOracle != null) {
-            objectiveOracle.setActive(false);
-        }
-        setBPAlgorithm(Solver.BPAlgorithm.SUM_PRODUCT);
-        MiniCP.oracleOnObjective = false;
-    }
-
-    public boolean shouldSwitchToSumProductAfterSolution() {
-        return switchToSumProductAfterSolution;
-    }
-
-    public void setSwitchToSumProductAfterSolution(boolean switchToSumProductAfterSolution) {
-        MiniCP.switchToSumProductAfterSolution = switchToSumProductAfterSolution;
-    }
-
 
     public ConstraintWeighingScheme getWeighingScheme() {
         return Wscheme;
@@ -766,6 +749,7 @@ public class MiniCP implements Solver {
             post(oracle);
             objectiveOracle = oracle;
         }
+        objectiveVar = x;
         return new Minimize(x);
     }
 
@@ -779,6 +763,7 @@ public class MiniCP implements Solver {
             oracle.setWeight(MiniCP.oracleWeight);
             objectiveOracle = oracle;
         }
+        objectiveVar = x;
         return minimize(Factory.minus(x));
     }
 
@@ -1137,5 +1122,84 @@ public class MiniCP implements Solver {
     @Override
     public void setResetMarginalsBeforeBP(boolean resetMarginalsBeforeBP) {
         MiniCP.resetMarginalsBeforeBP = resetMarginalsBeforeBP;
+    }
+
+    /**
+     * Computes the mean distance from the objective variable to the given decision variables.
+     * Distance is defined as the minimum number of constraints that must be traversed.
+     *
+     * @param decisionVars the decision variables to measure distance to
+     * @return mean distance, or Double.POSITIVE_INFINITY if no objective or no reachable variables
+     */
+    public double meanDistanceToObjective(IntVar[] decisionVars) {
+        Map<IntVar, Integer> distances = computeDistancesFromVariable(objectiveVar);
+
+        double sum = 0;
+        int count = 0;
+        for (IntVar decVar : decisionVars) {
+            Integer dist = distances.get(decVar);
+            if (dist != null) {
+                sum += dist;
+                count++;
+            }
+        }
+
+        return count > 0 ? sum / count : Double.POSITIVE_INFINITY;
+    }
+
+    /**
+     * Computes distances from a source variable to all reachable variables using BFS.
+     * Two variables are neighbors if they appear in the same constraint.
+     *
+     * @param source the starting variable
+     * @return map of reachable variables to their distances
+     */
+    private Map<IntVar, Integer> computeDistancesFromVariable(IntVar source) {
+        Map<IntVar, Set<Constraint>> varToConstraints = buildVariableConstraintMap();
+
+        Map<IntVar, Integer> distances = new HashMap<>();
+        Queue<IntVar> queue = new LinkedList<>();
+        Set<IntVar> visited = new HashSet<>();
+
+        queue.add(source);
+        distances.put(source, 0);
+        visited.add(source);
+
+        while (!queue.isEmpty()) {
+            IntVar current = queue.poll();
+            int currentDist = distances.get(current);
+
+            Set<Constraint> constraints = varToConstraints.get(current);
+            if (constraints != null) {
+                for (Constraint c : constraints) {
+                    for (IntVar neighbor : c.getScope()) {
+                        if (!visited.contains(neighbor)) {
+                            visited.add(neighbor);
+                            distances.put(neighbor, currentDist + 1);
+                            queue.add(neighbor);
+                        }
+                    }
+                }
+            }
+        }
+
+        return distances;
+    }
+
+    /**
+     * Builds a mapping from variables to the constraints they appear in.
+     *
+     * @return map from variables to their constraints
+     */
+    private Map<IntVar, Set<Constraint>> buildVariableConstraintMap() {
+        Map<IntVar, Set<Constraint>> varToConstraints = new HashMap<>();
+        int nbConstraints = constraints.size();
+        for (int i = 0; i < nbConstraints; i++) {
+            Constraint c = constraints.get(i);
+            for (IntVar var : c.getScope()) {
+                varToConstraints.computeIfAbsent(var, k -> new HashSet<>()).add(c);
+            }
+        }
+        return varToConstraints;
     }
 }

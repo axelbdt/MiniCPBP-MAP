@@ -63,7 +63,6 @@ public class Example13 {
         cp.post(lessOrEqualC);
 
         // configure search
-        cp.setSwitchToSumProductAfterSolution(false);
         cp.setTraceBPFlag(true);
         cp.setTraceSearchFlag(true);
         Supplier<Procedure[]> branchingProcedure = maxMarginalRegret(allVars);

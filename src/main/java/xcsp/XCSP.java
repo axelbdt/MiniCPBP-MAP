@@ -2182,10 +2182,10 @@ public class XCSP implements XCallbacks2 {
         XCSP.bpAlgorithm = bpAlgorithm;
     }
 
-    private static float entropyBranchingThreshold = 1.0f;
+    private static Double entropyBranchingThreshold = 1.0;
 
 
-    public void entropyBranchingThreshold(float entropyBranchingThreshold) {
+    public void entropyBranchingThreshold(Double entropyBranchingThreshold) {
         XCSP.entropyBranchingThreshold = entropyBranchingThreshold;
     }
 
@@ -2252,7 +2252,6 @@ public class XCSP implements XCallbacks2 {
             minicp.setOracleOnObjective(true);
             minicp.setOracleWeight(oracleOnObjective);
         }
-        minicp.setSwitchToSumProductAfterSolution(switchToSumProductAfterSolution);
         minicp.setPropagationShortcut(propagationShortcut);
         minicp.setSkipUniformMaxProd(skipUniformMaxProd);
         minicp.setResetMarginalsBeforeBP(resetMarginalsBeforeBP);
@@ -2289,8 +2288,12 @@ public class XCSP implements XCallbacks2 {
 		}
 		*/
         Objective objective = null;
-        if (isCOP())
+        if (isCOP()) {
             objective = minicp.minimize(objectiveMinimize.get());
+
+            double meanDistance = minicp.meanDistanceToObjective(vars);
+            System.out.println("mean distance to objective: " + meanDistance);
+        }
 
         Search search = null;
         switch (heuristic) {

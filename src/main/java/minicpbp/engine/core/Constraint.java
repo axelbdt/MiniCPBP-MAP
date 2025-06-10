@@ -12,7 +12,7 @@
  *
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  *
- * mini-cpbp, replacing classic propagation by belief propagation 
+ * mini-cpbp, replacing classic propagation by belief propagation
  * Copyright (c)  2019. by Gilles Pesant
  */
 
@@ -22,6 +22,7 @@ import minicpbp.state.StateManager;
 
 /**
  * Interface implemented by every Constraint
+ *
  * @see AbstractConstraint
  */
 public interface Constraint {
@@ -52,6 +53,7 @@ public interface Constraint {
 
     /**
      * Returns the schedule status in the fix-point.
+     *
      * @return the last {@link #setScheduled(boolean)} given to setScheduled
      */
     boolean isScheduled();
@@ -61,21 +63,23 @@ public interface Constraint {
      * <p>Typically called by the Constraint to let the solver know
      * it should not be scheduled any more when it is subsumed.
      * <p>By default the constraint is active.
+     *
      * @param active the status to be set,
      *               this state is reversible and unset
      *               on state restoration {@link StateManager#restoreState()}
-     *
      */
     void setActive(boolean active);
 
     /**
      * Returns the active status of the constraint.
+     *
      * @return the last setValue passed to {{@link #setActive(boolean)}
-     *         in this state frame {@link StateManager#restoreState()}.
+     * in this state frame {@link StateManager#restoreState()}.
      */
     boolean isActive();
 
     String getName();
+
     void setName(String name);
 
     /************* BP services *************/
@@ -86,7 +90,7 @@ public interface Constraint {
     void receiveMessages();
 
     /**
-     * Updates its local belief (given the outside beliefs) and sends it 
+     * Updates its local belief (given the outside beliefs) and sends it
      * as messages to the variables in its scope.
      */
     void sendMessages();
@@ -117,12 +121,14 @@ public interface Constraint {
      * @return the constraint's arity
      */
     int arity();
+
     /**
      * @return the constraint's dynamic arity, i.e. the number of unbound variables in its scope
      */
     int dynamicArity();
 
     int getFailureCount();
+
     void incrementFailureCount();
 
     /**
@@ -141,4 +147,6 @@ public interface Constraint {
      * !!!IMPORTANT NOTE!!!: the computation may rely on the fact that variables have all their beliefs initialized to beliefRep.one() upon creation (in StateSparseWeightedSet)
      */
     double weightedCounting();
+
+    IntVar[] getScope();
 }

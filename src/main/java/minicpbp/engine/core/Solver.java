@@ -98,12 +98,6 @@ public interface Solver {
 
     void setBPAlgorithm(BPAlgorithm bpAlgorithm);
 
-    boolean shouldSwitchToSumProductAfterSolution();
-
-    void switchToSumProductNoOracle();
-
-    void setSwitchToSumProductAfterSolution(boolean switchToSumProductAfterSolution);
-
     /**
      * @return whether to put oracle on the objective
      */
@@ -338,4 +332,6 @@ public interface Solver {
     public boolean resetMarginalsBeforeBP();
 
     public void setResetMarginalsBeforeBP(boolean resetMarginalsBeforeBP);
+
+    public double meanDistanceToObjective(IntVar[] decisionVars);
 }
