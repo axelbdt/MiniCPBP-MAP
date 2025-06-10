@@ -1179,4 +1179,22 @@ public class MiniCP implements Solver {
 
         return distances;
     }
+
+    public double meanConstraintScopeRatio() {
+        if (constraints.size() == 0 || variables.size() == 0) {
+            return 0;
+        }
+        double sum = 0;
+        for (int i = 0; i < constraints.size(); i++) {
+            Constraint c = constraints.get(i);
+            if (c.isActive())
+                sum += c.getScope().length;
+
+        }
+
+        double ratio = sum / variables.size();
+
+        return ratio / constraints.size();
+    }
+
 }

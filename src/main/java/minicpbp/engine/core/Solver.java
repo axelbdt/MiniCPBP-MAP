@@ -334,4 +334,6 @@ public interface Solver {
     public void setResetMarginalsBeforeBP(boolean resetMarginalsBeforeBP);
 
     public double meanDistanceToObjective(IntVar[] decisionVars);
+
+    public double meanConstraintScopeRatio();
 }

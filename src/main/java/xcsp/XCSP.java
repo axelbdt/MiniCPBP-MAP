@@ -2293,6 +2293,9 @@ public class XCSP implements XCallbacks2 {
 
             double meanDistance = minicp.meanDistanceToObjective(vars);
             System.out.println("mean distance to objective: " + meanDistance);
+
+            double meanConstraintScopeRatio = minicp.meanConstraintScopeRatio();
+            System.out.println("mean constraint scope ratio: " + meanConstraintScopeRatio);
         }
 
         Search search = null;
