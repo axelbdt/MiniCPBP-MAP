@@ -453,26 +453,28 @@ public class MiniCP implements Solver {
                 if (currentEntropy == 0) { // either all branching vars are bound or BP says there's no solution
                     break;
                 }
-                if (smallEntropy <= MIN_VAR_ENTROPY) { // at least one variable with low uncertainty about the value it
-                    // should /take
-                    break;
-                }
-                if ((iter > 1) /* give it a chance to kick in */ && (currentEntropy == previousEntropy)) { // marginals
-                    // probably
-                    // did not
-                    // change
-                    // either
-                    // (and
-                    // won't in
-                    // the
-                    // future)
-                    break;
-                }
-                if ((iter > 2)
-                        /* give it a chance to stabilize */ && (currentEntropy - previousEntropy > ENTROPY_TOLERANCE)) { // entropy
-                    // actually
-                    // increased
-                    break;
+                if (propagationShortcut) {
+                    if (smallEntropy <= MIN_VAR_ENTROPY) { // at least one variable with low uncertainty about the value it
+                        // should /take
+                        break;
+                    }
+                    if ((iter > 1) /* give it a chance to kick in */ && (currentEntropy == previousEntropy)) { // marginals
+                        // probably
+                        // did not
+                        // change
+                        // either
+                        // (and
+                        // won't in
+                        // the
+                        // future)
+                        break;
+                    }
+                    if ((iter > 2)
+                            /* give it a chance to stabilize */ && (currentEntropy - previousEntropy > ENTROPY_TOLERANCE)) { // entropy
+                        // actually
+                        // increased
+                        break;
+                    }
                 }
             }
         } catch (InconsistencyException e) {
@@ -602,6 +604,7 @@ public class MiniCP implements Solver {
         if (dampingFactor() == 1.0) {
             setDamp(false);
         }
+        System.out.println("damping factor: " + dampingFactor());
     }
 
     /**
@@ -1124,6 +1127,23 @@ public class MiniCP implements Solver {
         MiniCP.resetMarginalsBeforeBP = resetMarginalsBeforeBP;
     }
 
+    public double meanConstraintScopeRatio() {
+        if (constraints.size() == 0 || variables.size() == 0) {
+            return 0;
+        }
+        double sum = 0;
+        for (int i = 0; i < constraints.size(); i++) {
+            Constraint c = constraints.get(i);
+            if (c.isActive())
+                sum += c.getScope().length;
+
+        }
+
+        double ratio = sum / variables.size();
+
+        return ratio / constraints.size();
+    }
+
     /**
      * Computes the mean distance from the objective variable to the given decision variables.
      * Distance is defined as the minimum number of constraints that must be traversed.
@@ -1149,7 +1169,7 @@ public class MiniCP implements Solver {
 
     /**
      * Computes distances from a source variable to all reachable variables using BFS.
-     * Two variables are neighbors if they appear in the same constraint.
+     * Two variables are neighbors if they appear in the same constraint, or if one is a view of the other.
      *
      * @param source the starting variable
      * @return map of reachable variables to their distances
@@ -1167,11 +1187,14 @@ public class MiniCP implements Solver {
             IntVar current = queue.poll();
             int currentDist = distances.get(current);
 
-            Set<IntVar> neighbors = current.neighbors();
-            for (IntVar neighbor : neighbors) {
+            Map<IntVar, Integer> neighbors = current.neighbors();
+            for (Map.Entry<IntVar, Integer> entry : neighbors.entrySet()) {
+                IntVar neighbor = entry.getKey();
+                int edgeDistance = entry.getValue();
+
                 if (!visited.contains(neighbor)) {
                     visited.add(neighbor);
-                    distances.put(neighbor, currentDist + 1);
+                    distances.put(neighbor, currentDist + edgeDistance);
                     queue.add(neighbor);
                 }
             }
@@ -1179,22 +1202,4 @@ public class MiniCP implements Solver {
 
         return distances;
     }
-
-    public double meanConstraintScopeRatio() {
-        if (constraints.size() == 0 || variables.size() == 0) {
-            return 0;
-        }
-        double sum = 0;
-        for (int i = 0; i < constraints.size(); i++) {
-            Constraint c = constraints.get(i);
-            if (c.isActive())
-                sum += c.getScope().length;
-
-        }
-
-        double ratio = sum / variables.size();
-
-        return ratio / constraints.size();
-    }
-
 }

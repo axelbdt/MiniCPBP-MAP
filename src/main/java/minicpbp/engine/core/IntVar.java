@@ -21,6 +21,7 @@ package minicpbp.engine.core;
 import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface IntVar {
@@ -338,5 +339,5 @@ public interface IntVar {
 
     public void registerConstraint(Constraint c);
 
-    public Set<IntVar> neighbors();
+    public Map<IntVar, Integer> neighbors();
 }

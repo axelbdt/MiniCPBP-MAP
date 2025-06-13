@@ -413,16 +413,19 @@ public class LatinSquare {
                 fasterAllDiff
         );
 
-        System.out.println("INFO");
+        double meanDistance = ls.cp.meanDistanceToObjective(ls.xFlat);
+        System.out.println("mean distance to objective: " + meanDistance);
+        double meanConstraintScopeRatio = ls.cp.meanConstraintScopeRatio();
+        System.out.println("mean constraint scope ratio: " + meanConstraintScopeRatio);
         System.out.println("input file: " + inputFile);
-        System.out.println("n : " + ls.n);
-        System.out.println("nbHoles : " + ls.nbHoles);
+        System.out.println("size : " + ls.n);
+        System.out.println("holes : " + ls.nbHoles);
         System.out.println("search type: " + searchType);
         System.out.println("BP algorithm: " + bp);
         System.out.println("branching strategy: " + branching);
         System.out.println("entropy branching threshold: " + entropyBranchingThreshold);
         System.out.println("propagation shortcut: " + propagationShortcut);
-        System.out.println("reset marginals before BP: " + resetMarginalsBeforeBP);
+        System.out.println("reuse marginals : " + resetMarginalsBeforeBP);
         System.out.println("skip uniform max product: " + skipUniformMaxProduct);
         System.out.println("faster all diff: " + fasterAllDiff);
         System.out.println("oracle on objective: " + oracle);
