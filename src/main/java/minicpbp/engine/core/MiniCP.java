@@ -582,18 +582,16 @@ public class MiniCP implements Solver {
                 if (currentEntropy == 0) { // either all branching vars are bound or BP says there's no solution
                     break;
                 }
-                if (propagationShortcut) {
-                    if (previousDeltaEntropy <= 0 && currentDeltaEntropy > ENTROPY_TOLERANCE) {
+                if (previousDeltaEntropy <= 0 && currentDeltaEntropy > ENTROPY_TOLERANCE) {
 //                    System.out.println("valley");
-                        valleyCount++;
-                        if (valleyCount >= 2) {
-                            // System.out.println("two valleys ==> oscillation");
-                            if (dampingFactor() - DAMPING_FACTOR_DELTA >= MIN_DAMPING_FACTOR) {
-                                setDampingFactor(dampingFactor() - DAMPING_FACTOR_DELTA); // increase damping
-                                dampingFactorDetermined = false;
-                            }
-                            break;
+                    valleyCount++;
+                    if (valleyCount >= 2) {
+                        // System.out.println("two valleys ==> oscillation");
+                        if (dampingFactor() - DAMPING_FACTOR_DELTA >= MIN_DAMPING_FACTOR) {
+                            setDampingFactor(dampingFactor() - DAMPING_FACTOR_DELTA); // increase damping
+                            dampingFactorDetermined = false;
                         }
+                        break;
                     }
                 }
             }
