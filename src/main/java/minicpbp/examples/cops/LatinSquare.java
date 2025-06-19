@@ -71,7 +71,7 @@ public class LatinSquare {
     public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching,
                        float oracle, int maxIter, float entropyBranchingThreshold,
                        boolean propagationShortcut, boolean resetMarginalsBeforeBP,
-                       boolean skipUniformMaxProduct, boolean fasterAllDiff) {
+                       boolean skipUniformMaxProduct) {
         this.fileName = fileName;
 
         // Extract instance information from file
@@ -84,7 +84,6 @@ public class LatinSquare {
         cp.setPropagationShortcut(propagationShortcut);
         cp.setResetMarginalsBeforeBP(resetMarginalsBeforeBP);
         cp.setSkipUniformMaxProd(skipUniformMaxProduct);
-        cp.setFasterAllDiffMaxProd(fasterAllDiff);
 
         switch (bp) {
             case NO_BP:
@@ -381,7 +380,6 @@ public class LatinSquare {
         String propagationShortcutArg = arguments.get("propagation-shortcut");
         String resetMarginalsBeforeBPArg = arguments.get("reset-marginals-before-bp");
         String skipUniformMaxProductArg = arguments.get("skip-uniform-max-prod");
-        String fasterAllDiffArg = arguments.get("faster-all-diff-max-prod");
 
         if (inputFile == null) {
             System.err.println("Error: input file must be specified with --input=filename");
@@ -397,7 +395,6 @@ public class LatinSquare {
         boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
         boolean resetMarginalsBeforeBP = Boolean.valueOf(resetMarginalsBeforeBPArg);
         boolean skipUniformMaxProduct = Boolean.valueOf(skipUniformMaxProductArg);
-        boolean fasterAllDiff = Boolean.valueOf(fasterAllDiffArg);
 
         LatinSquare ls = new LatinSquare(
                 inputFile,
@@ -409,10 +406,12 @@ public class LatinSquare {
                 entropyBranchingThreshold,
                 propagationShortcut,
                 resetMarginalsBeforeBP,
-                skipUniformMaxProduct,
-                fasterAllDiff
+                skipUniformMaxProduct
         );
 
+        System.out.println("decision variables number:" + ls.xFlat.length);
+        System.out.println("variables number:" + ls.cp.getVariables().size());
+        System.out.println("constraints number:" + ls.cp.getConstraints().size());
         double meanDistance = ls.cp.meanDistanceToObjective(ls.xFlat);
         System.out.println("mean distance to objective: " + meanDistance);
         double meanConstraintScopeRatio = ls.cp.meanConstraintScopeRatio();
@@ -427,7 +426,6 @@ public class LatinSquare {
         System.out.println("propagation shortcut: " + propagationShortcut);
         System.out.println("reuse marginals : " + resetMarginalsBeforeBP);
         System.out.println("skip uniform max product: " + skipUniformMaxProduct);
-        System.out.println("faster all diff: " + fasterAllDiff);
         System.out.println("oracle on objective: " + oracle);
         System.out.println("max iterations: " + maxIter);
 

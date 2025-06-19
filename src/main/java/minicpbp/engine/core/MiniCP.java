@@ -63,7 +63,6 @@ public class MiniCP implements Solver {
     private static boolean damping = true;
     private static boolean propagationShortcut = true;
     private static boolean skipUniformMaxProd = true;
-    private static boolean fasterAllDiffMaxProd = false;
     // damping factor in interval [0,1] where 1 is equivalent to no damping
     private static double dampingFactor = 0.75;
 
@@ -671,16 +670,6 @@ public class MiniCP implements Solver {
     @Override
     public void setSkipUniformMaxProd(boolean skipUniformMaxProd) {
         MiniCP.skipUniformMaxProd = skipUniformMaxProd;
-    }
-
-    @Override
-    public boolean fasterAllDiffMaxProd() {
-        return MiniCP.fasterAllDiffMaxProd;
-    }
-
-    @Override
-    public void setFasterAllDiffMaxProd(boolean fasterAllDiffMaxProd) {
-        MiniCP.fasterAllDiffMaxProd = fasterAllDiffMaxProd;
     }
 
     /**

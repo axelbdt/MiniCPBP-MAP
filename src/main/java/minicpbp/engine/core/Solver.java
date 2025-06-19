@@ -317,10 +317,6 @@ public interface Solver {
 
     public void setPropagationShortcut(boolean propagationShortcut);
 
-    public boolean fasterAllDiffMaxProd();
-
-    public void setFasterAllDiffMaxProd(boolean fasterAllDiffMaxProd);
-
     public boolean skipUniformMaxProd();
 
     public void setSkipUniformMaxProd(boolean skipUniformMaxProd);

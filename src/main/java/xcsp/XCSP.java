@@ -78,12 +78,6 @@ public class XCSP implements XCallbacks2 {
         XCSP.resetMarginalsBeforeBP = resetMarginalsBeforeBP;
     }
 
-    private static boolean fasterAllDiff = false;
-
-    public void fasterAllDiff(boolean fasterAllDiff) {
-        XCSP.fasterAllDiff = fasterAllDiff;
-    }
-
     @Override
     public Implem implem() {
         return implem;
@@ -2255,7 +2249,6 @@ public class XCSP implements XCallbacks2 {
         minicp.setPropagationShortcut(propagationShortcut);
         minicp.setSkipUniformMaxProd(skipUniformMaxProd);
         minicp.setResetMarginalsBeforeBP(resetMarginalsBeforeBP);
-        minicp.setFasterAllDiffMaxProd(fasterAllDiff);
 
         if (hasFailed) {
             if (!competitionOutput) {
@@ -2287,6 +2280,10 @@ public class XCSP implements XCallbacks2 {
 			vars[i] = minicp.getVariables().get(i);
 		}
 		*/
+        System.out.println("decision variables number:" + vars.length);
+        System.out.println("variables number:" + minicp.getVariables().size());
+        System.out.println("constraints number:" + minicp.getConstraints().size());
+
         Objective objective = null;
         if (isCOP()) {
             objective = minicp.minimize(objectiveMinimize.get());
