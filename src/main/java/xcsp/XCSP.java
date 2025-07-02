@@ -2176,7 +2176,7 @@ public class XCSP implements XCallbacks2 {
         XCSP.bpAlgorithm = bpAlgorithm;
     }
 
-    private static Double entropyBranchingThreshold = 1.0;
+    private static Double entropyBranchingThreshold = null;
 
 
     public void entropyBranchingThreshold(Double entropyBranchingThreshold) {
@@ -2195,9 +2195,9 @@ public class XCSP implements XCallbacks2 {
         XCSP.skipUniformMaxProd = skipUniformMaxProd;
     }
 
-    private static float oracleOnObjective = 0;
+    private static Double oracleOnObjective = null;
 
-    public void oracleOnObjective(float oracleOnObjective) {
+    public void oracleOnObjective(Double oracleOnObjective) {
         XCSP.oracleOnObjective = oracleOnObjective;
     }
 
@@ -2242,7 +2242,7 @@ public class XCSP implements XCallbacks2 {
         else
             minicp.setMode(PropaMode.SP);
 
-        if (oracleOnObjective > 0) {
+        if (oracleOnObjective != null && oracleOnObjective > 0) {
             minicp.setOracleOnObjective(true);
             minicp.setOracleWeight(oracleOnObjective);
         }

@@ -233,17 +233,25 @@ public class SolveXCSPFZN {
         if (bpAlgorithmStr != "no-bp")
             bpAlgorithm = algorithmMap.get(bpAlgorithmStr);
 
-        String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective", "0");
-        checkOracleOnObjectiveOption(oracleOnObjectiveStr);
-        float oracleOnObjective = Float.parseFloat(oracleOnObjectiveStr);
+        String oracleOnObjectiveStr = cmd.getOptionValue("oracle-on-objective", null);
+        Double oracleOnObjective = null;
+        if (oracleOnObjectiveStr != null) {
+            checkOracleOnObjectiveOption(oracleOnObjectiveStr);
+            oracleOnObjective = Double.parseDouble(oracleOnObjectiveStr);
+        }
 
 
         String branchingStr = cmd.getOptionValue("branching");
         checkBranchingOption(branchingStr);
         BranchingHeuristic heuristic = branchingMap.get(branchingStr);
 
-        String entropyBranchingThresholdStr = cmd.getOptionValue("entropy-branching-threshold", "2.0");
-        Double entropyBranchingThreshold = parseEntropyBranchingThresholdOption(entropyBranchingThresholdStr);
+
+        Double entropyBranchingThreshold = null;
+        String entropyBranchingThresholdStr = cmd.getOptionValue("entropy-branching-threshold", null);
+        if (entropyBranchingThresholdStr != null) {
+            entropyBranchingThreshold = parseEntropyBranchingThresholdOption(entropyBranchingThresholdStr);
+        }
+
 
         String bpShortcutStr = cmd.getOptionValue("propagation-shortcut");
         boolean propagationShortcut = true;
@@ -396,7 +404,7 @@ public class SolveXCSPFZN {
     }
 
     private static void checkOracleOnObjectiveOption(String oracleOnObjectiveStr) {
-        if (Float.isNaN(Float.parseFloat(oracleOnObjectiveStr))) {
+        if (Double.isNaN(Double.parseDouble(oracleOnObjectiveStr))) {
             System.out.println("invalid oracle on objective " + oracleOnObjectiveStr);
             System.out.println("oracle on objective should be a float number");
             System.exit(1);

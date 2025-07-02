@@ -664,7 +664,7 @@ public final class BranchingScheme {
      * @return minEntropy branching strategy
      * @see Factory#makeDfs(Solver, Supplier)
      */
-    public static Supplier<Procedure[]> minEntropyOrDomWDeg(IntVar[] x, double threshold) {
+    public static Supplier<Procedure[]> minEntropyOrDomWDeg(IntVar[] x, Double threshold) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         for (IntVar a : x)
@@ -678,7 +678,7 @@ public final class BranchingScheme {
             if (xs0 == null)
                 return EMPTY;
             else {
-                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                IntVar xs = threshold == null || xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
                         xi -> xi.size() > 1,
                         xi -> ((double) xi.size()) / ((double) xi.wDeg()));
                 if (xs == null)
@@ -712,7 +712,7 @@ public final class BranchingScheme {
      * @return minEntropy branching strategy
      * @see Factory#makeDfs(Solver, Supplier)
      */
-    public static Supplier<Procedure[]> minNormalizedEntropyOrDomWDeg(IntVar[] x, double threshold) {
+    public static Supplier<Procedure[]> minNormalizedEntropyOrDomWDeg(IntVar[] x, Double threshold) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         for (IntVar a : x)
@@ -726,7 +726,7 @@ public final class BranchingScheme {
             if (xs0 == null)
                 return EMPTY;
             else {
-                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                IntVar xs = threshold == null || xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
                         xi -> xi.size() > 1,
                         xi -> ((double) xi.size()) / ((double) xi.wDeg()));
                 if (xs == null)
@@ -978,7 +978,7 @@ public final class BranchingScheme {
         };
     }
 
-    public static Supplier<Procedure[]> maxMarginalStrengthOrDomWDeg(IntVar[] x, double threshold) {
+    public static Supplier<Procedure[]> maxMarginalStrengthOrDomWDeg(IntVar[] x, Double threshold) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         for (IntVar a : x)
@@ -992,7 +992,7 @@ public final class BranchingScheme {
             if (xs0 == null)
                 return EMPTY;
             else {
-                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                IntVar xs = threshold == null || xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
                         xi -> xi.size() > 1,
                         xi -> ((double) xi.size()) / ((double) xi.wDeg()));
                 if (xs == null)
@@ -1102,7 +1102,7 @@ public final class BranchingScheme {
     }
 
 
-    public static Supplier<Procedure[]> maxMarginalRegretOrDomWDeg(IntVar[] x, double threshold) {
+    public static Supplier<Procedure[]> maxMarginalRegretOrDomWDeg(IntVar[] x, Double threshold) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         for (IntVar a : x)
@@ -1117,7 +1117,7 @@ public final class BranchingScheme {
             if (xs0 == null)
                 return EMPTY;
             else {
-                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                IntVar xs = threshold == null || xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
                         xi -> xi.size() > 1,
                         xi -> ((double) xi.size()) / ((double) xi.wDeg()));
                 if (xs == null)
@@ -1342,7 +1342,7 @@ public final class BranchingScheme {
         };
     }
 
-    public static Supplier<Procedure[]> maxMarginalOrDomWDeg(IntVar[] x, double threshold) {
+    public static Supplier<Procedure[]> maxMarginalOrDomWDeg(IntVar[] x, Double threshold) {
         boolean tracing = x[0].getSolver().tracingSearch();
         Belief beliefRep = x[0].getSolver().getBeliefRep();
         for (IntVar a : x)
@@ -1356,7 +1356,7 @@ public final class BranchingScheme {
             if (xs0 == null)
                 return EMPTY;
             else {
-                IntVar xs = xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
+                IntVar xs = threshold == null || xs0.normalizedEntropy() < threshold ? xs0 : selectMin(x,
                         xi -> xi.size() > 1,
                         xi -> ((double) xi.size()) / ((double) xi.wDeg()));
                 if (xs == null)

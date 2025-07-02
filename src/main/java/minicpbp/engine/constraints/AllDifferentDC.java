@@ -468,6 +468,8 @@ public class AllDifferentDC extends AbstractConstraint {
         int numRemaining = nbVal;
 
         int sink = -1;
+        // if we forced an assignment
+        // we start the augmenting path with this edge
         if (assignedIndex != -1) {
             SR[currentRow] = true;
 

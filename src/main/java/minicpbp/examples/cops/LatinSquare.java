@@ -26,6 +26,7 @@ public class LatinSquare {
         FIRST_FAIL,
         LEXICO,
         MAX_VALUE,
+        DOM_WDEG,
         DOM_WDEG_BEST_VALUE,
         DOM_WDEG_MAX_MARGINAL,
         MIN_ENTROPY,
@@ -69,9 +70,9 @@ public class LatinSquare {
     public int nbHoles;
 
     public LatinSquare(String fileName, SearchType searchType, BPAlgorithm bp, Branching branching,
-                       float oracle, int maxIter, float entropyBranchingThreshold,
-                       boolean propagationShortcut, boolean resetMarginalsBeforeBP,
-                       boolean skipUniformMaxProduct) {
+                       Double oracle, Integer maxIter, Double entropyBranchingThreshold,
+                       Boolean propagationShortcut, Boolean resetMarginalsBeforeBP,
+                       Boolean skipUniformMaxProduct) {
         this.fileName = fileName;
 
         // Extract instance information from file
@@ -145,7 +146,7 @@ public class LatinSquare {
         cp.post(new SumDC(objectiveVars, z));
 
         // add preference for larger values
-        if (oracle > 0) {
+        if (oracle != null && oracle > 0) {
             cp.setOracleOnObjective(true);
             cp.setOracleWeight(oracle);
         }
@@ -387,14 +388,15 @@ public class LatinSquare {
         }
 
         SearchType searchType = SearchType.valueOf(searchTypeArg.toUpperCase());
-        float oracle = Float.parseFloat(oracleArg);
-        int maxIter = Integer.parseInt(maxIterArg);
-        BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.toUpperCase());
-        Branching branching = Branching.valueOf(branchingArg.toUpperCase());
-        float entropyBranchingThreshold = Float.parseFloat(entropyBranchingThresholdArg);
-        boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
-        boolean resetMarginalsBeforeBP = Boolean.valueOf(resetMarginalsBeforeBPArg);
-        boolean skipUniformMaxProduct = Boolean.valueOf(skipUniformMaxProductArg);
+
+        Double oracle = oracleArg == null ? null : Double.parseDouble(oracleArg);
+        Double entropyBranchingThreshold = entropyBranchingThresholdArg == null ? null : Double.parseDouble(entropyBranchingThresholdArg);
+        Integer maxIter = maxIterArg == null ? null : Integer.parseInt(maxIterArg);
+        BPAlgorithm bp = BPAlgorithm.valueOf(bpArg.replace("-", "_").toUpperCase());
+        Branching branching = Branching.valueOf(branchingArg.replace("-", "_").toUpperCase());
+        Boolean propagationShortcut = Boolean.valueOf(propagationShortcutArg);
+        Boolean resetMarginalsBeforeBP = Boolean.valueOf(resetMarginalsBeforeBPArg);
+        Boolean skipUniformMaxProduct = Boolean.valueOf(skipUniformMaxProductArg);
 
         LatinSquare ls = new LatinSquare(
                 inputFile,

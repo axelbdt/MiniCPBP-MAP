@@ -283,20 +283,29 @@ public abstract class AbstractConstraint implements Constraint {
 
     public void sendMessages() {
         // early termination for MAX_PRODUCT, if variables are bound or have uniform marginals
+        boolean skipAndSendUniform = false;
         if (cp.skipUniformMaxProd() && cp.getBPAlgorithm() == Solver.BPAlgorithm.MAX_PRODUCT) {
-            boolean shouldTerminate = true;
+            skipAndSendUniform = true; // skip unless a non-uniform variable is found
             for (int i = 0; i < vars.length; i++) {
                 if (!(vars[i].isBound() || vars[i].normalizedEntropy() == 1.0)) {
-                    shouldTerminate = false;
+                    // found a variable that is neither bound nor uniform
+                    skipAndSendUniform = false;
                     break;
                 }
             }
-            if (shouldTerminate) {
-                return;
-            }
         }
 
-        updateBelief();
+        if (skipAndSendUniform) {
+            // set to uniform belief if all variables are bound or uniform
+            for (int i = 0; i < vars.length; i++) {
+                for (int j = 0; j < localBelief[i].length; j++) {
+                    localBelief[i][j].setValue(beliefRep.one()); // will be normalized
+                }
+            }
+        } else {
+            // otherwise, update beliefs normally
+            updateBelief();
+        }
         //       System.out.println(getName()+".sendMessages()");
 
         for (int i = 0; i < vars.length; i++) {
