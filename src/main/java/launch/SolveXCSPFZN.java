@@ -151,6 +151,12 @@ public class SolveXCSPFZN {
         Option maxIterOpt = Option.builder().longOpt("max-iter").argName("ITERATIONS").hasArg()
                 .desc("maximum number of belief propagation iterations").build();
 
+        Option upperBoundOpt = Option.builder().longOpt("upper-bound").argName("UPPERBOUND").hasArg()
+                .desc("upper bound to set on objective").build();
+
+        Option partialAssignmentOpt = Option.builder().longOpt("partial-assignment").argName("PARTIALASS").hasArg()
+                .desc("string of partial assignment").build();
+
         Option dFactorOpt = Option.builder().longOpt("damping-factor").argName("LAMBDA").hasArg()
                 .desc("the damping factor used for damping the messages").build();
 
@@ -199,6 +205,8 @@ public class SolveXCSPFZN {
         options.addOption(statsFileOpt);
         options.addOption(solFileOpt);
         options.addOption(maxIterOpt);
+        options.addOption(upperBoundOpt);
+        options.addOption(partialAssignmentOpt);
         options.addOption(checkOpt);
         options.addOption(traceBPOpt);
         options.addOption(traceSearchOpt);
@@ -301,6 +309,12 @@ public class SolveXCSPFZN {
         if (cmd.hasOption("max-iter"))
             maxIter = Integer.parseInt(cmd.getOptionValue("max-iter"));
 
+        Integer upperBound = null;
+        if (cmd.hasOption("upper-bound"))
+            upperBound = Integer.parseInt((cmd.getOptionValue("upper-bound")));
+
+        String partialAssignment = cmd.getOptionValue("partial-assignment");
+
         double dampingFactor = 0.5;
         if (cmd.hasOption("damping-factor"))
             dampingFactor = Double.parseDouble(cmd.getOptionValue("damping-factor"));
@@ -367,6 +381,8 @@ public class SolveXCSPFZN {
                 xcsp.traceBP(traceBP);
                 xcsp.traceSearch(traceSearch);
                 xcsp.maxIter(maxIter);
+                xcsp.upperBound(upperBound);
+                xcsp.partialAssignment(partialAssignment);
                 xcsp.damp(damp);
                 xcsp.dampingFactor(dampingFactor);
                 xcsp.restart(restart);

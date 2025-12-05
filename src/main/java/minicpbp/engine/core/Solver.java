@@ -332,4 +332,10 @@ public interface Solver {
     public double meanDistanceToObjective(IntVar[] decisionVars);
 
     public double meanConstraintScopeRatio();
+
+    public void setUpperBound(int bound);
+
+    public void updateVariableByName(String name, IntVar variable);
+
+    public void applyPartialAssignment(String partialAssignment);
 }

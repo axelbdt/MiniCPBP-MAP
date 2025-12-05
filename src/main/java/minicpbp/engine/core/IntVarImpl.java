@@ -391,6 +391,7 @@ public class IntVarImpl implements IntVar {
     @Override
     public void setName(String name) {
         this.name = name;
+        this.cp.updateVariableByName(name, this);
     }
 
     @Override

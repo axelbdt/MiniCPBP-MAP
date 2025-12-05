@@ -12,7 +12,7 @@
  *
  * Copyright (c)  2017. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  *
- * mini-cpbp, replacing classic propagation by belief propagation 
+ * mini-cpbp, replacing classic propagation by belief propagation
  * Copyright (c)  2019. by Gilles Pesant
  */
 
@@ -22,15 +22,14 @@ package minicpbp.examples;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
 import minicpbp.search.DFSearch;
-import minicpbp.search.LDSearch;
 import minicpbp.search.SearchStatistics;
-import static minicpbp.cp.Factory.*;
-import static minicpbp.cp.BranchingScheme.*;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Scanner;
+
+import static minicpbp.cp.BranchingScheme.maxMarginal;
+import static minicpbp.cp.Factory.*;
 
 /**
  * The Magic Square Completion problem.
@@ -40,116 +39,116 @@ public class MagicSquare {
 
     public static void main(String[] args) {
 
-	int n = Integer.parseInt(args[0]);
-	int nbFilled = Integer.parseInt(args[1]);
-	int nbFile = Integer.parseInt(args[2]);
+        int n = Integer.parseInt(args[0]);
+        int nbFilled = Integer.parseInt(args[1]);
+        int nbFile = Integer.parseInt(args[2]);
 
-	boolean notEqual = false;
+        boolean notEqual = false;
 
-	Solver cp = makeSolver();
+        Solver cp = makeSolver();
+        cp.setTraceSearchFlag(true);
 
-	IntVar[] xFlat = makeMagicSquare(cp,n,notEqual,nbFilled,nbFile);
+        IntVar[] xFlat = makeMagicSquare(cp, n, notEqual, nbFilled, nbFile);
 
-	IntVar[][] x = new IntVar[n][n];
-	for(int i = 0; i<n; i++){
-	    for(int j = 0; j<n; j++){
-		x[i][j] = xFlat[i*n+j];
-	    }
-	}
+        IntVar[][] x = new IntVar[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                x[i][j] = xFlat[i * n + j];
+            }
+        }
 
-//    	DFSearch dfs = makeDfs(cp, firstFailRandomVal(xFlat));
+        // DFSearch dfs = makeDfs(cp, firstFailRandomVal(xFlat));
 //		DFSearch dfs = makeDfs(cp, maxMarginalStrength(xFlat));
-//		DFSearch dfs = makeDfs(cp, maxMarginal(xFlat));
+        DFSearch dfs = makeDfs(cp, maxMarginal(xFlat));
 //		LDSearch dfs = makeLds(cp, maxMarginal(xFlat));
-		DFSearch dfs = makeDfs(cp, minEntropy(xFlat));
+//      DFSearch dfs = makeDfs(cp, minEntropy(xFlat));
 //		DFSearch dfs = makeDfs(cp, minEntropyBiasedWheelSelectVal(xFlat));
 //		LDSearch dfs = makeLds(cp, minEntropy(xFlat));
 
         dfs.onSolution(() -> {
-                    for (int i = 0; i < n; i++) {
-						System.out.println(Arrays.toString(x[i]));
-                    }
+                    System.out.println("SAT");
+                    // for (int i = 0; i < n; i++) {
+                    //     System.out.println(Arrays.toString(x[i]));
+                    // }
                 }
         );
 
         SearchStatistics stats = new SearchStatistics();
-
-		stats = dfs.solve(stat -> stat.numberOfSolutions() >= 1); // stop on first solution
+        stats = dfs.solve(stat -> stat.numberOfSolutions() >= 1); // stop on first solution
 //		stats = dfs.solveRestarts(stat -> stat.numberOfSolutions() >= 1); // stop on first solution
 
         System.out.println(stats);
 
     }
 
-	public static void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile){
-	    try {
-		Scanner scanner = new Scanner(new FileReader("./src/main/java/minicpbp/examples/data/MagicSquare/magicSquare" +n+"-filled"+nbFilled+"-"+nbFile+".dat"));
-		
-		scanner.nextInt();
-		scanner.nextInt();
-		
-		while(scanner.hasNextInt()){
-		    int row = scanner.nextInt()-1;
-		    int column = scanner.nextInt()-1;
-		    int value = scanner.nextInt();
-		    vars[row][column].assign(value);
-		}
-		scanner.close();
-	    }
-	    catch (IOException e) {
-		System.err.println("Error : " + e.getMessage()) ;
-		System.exit(2) ;
-	    }
-	}
+    public static void partialAssignments(IntVar[][] vars, int n, int nbFilled, int nbFile) {
+        try {
+            Scanner scanner = new Scanner(new FileReader("./src/main/java/minicpbp/examples/data/MagicSquare/magicSquare" + n + "-filled" + nbFilled + "-" + nbFile + ".dat"));
 
-	public static IntVar[] makeMagicSquare(Solver cp, int n, boolean notEqual, int nbFilled, int nbFile) {
-		int M = n*(n*n+1)/2;
-		IntVar[][] x = new IntVar[n][n];
+            scanner.nextInt();
+            scanner.nextInt();
 
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				x[i][j] = makeIntVar(cp, 1, n*n);
-				x[i][j].setName("x"+"["+(i+1)+","+(j+1)+"]");
-			}
-		}
+            while (scanner.hasNextInt()) {
+                int row = scanner.nextInt() - 1;
+                int column = scanner.nextInt() - 1;
+                int value = scanner.nextInt();
+                vars[row][column].assign(value);
+            }
+            scanner.close();
+        } catch (IOException e) {
+            System.err.println("Error : " + e.getMessage());
+            System.exit(2);
+        }
+    }
 
-		IntVar[] xFlat = new IntVar[x.length * x.length];
-		for (int i = 0; i < x.length; i++) {
-			System.arraycopy(x[i],0,xFlat,i * x.length,x.length);
-		}
+    public static IntVar[] makeMagicSquare(Solver cp, int n, boolean notEqual, int nbFilled, int nbFile) {
+        int M = n * (n * n + 1) / 2;
+        IntVar[][] x = new IntVar[n][n];
 
-		partialAssignments(x,n,nbFilled,nbFile);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                x[i][j] = makeIntVar(cp, 1, n * n);
+                x[i][j].setName("x" + "[" + (i + 1) + "," + (j + 1) + "]");
+            }
+        }
 
-		// Sum on lines
-		for (int i = 0; i < n; i++) {
-			cp.post(sum(x[i],M));
-		}
+        IntVar[] xFlat = new IntVar[x.length * x.length];
+        for (int i = 0; i < x.length; i++) {
+            System.arraycopy(x[i], 0, xFlat, i * x.length, x.length);
+        }
 
-		// Sum on columns
-		for (int j = 0; j < x.length; j++) {
-			IntVar[] column = new IntVar[n];
-			for (int i = 0; i < x.length; i++)
-				column[i] = x[i][j];
-			cp.post(sum(column,M));
-		}
+        partialAssignments(x, n, nbFilled, nbFile);
 
-		// Sum on diagonals
-		IntVar[] diagonalLeft = new IntVar[n];
-		IntVar[] diagonalRight = new IntVar[n];
-		for (int i = 0; i < x.length; i++){
-			diagonalLeft[i] = x[i][i];
-			diagonalRight[i] = x[n-i-1][i];
-		}
-		cp.post(sum(diagonalLeft, M));
-		cp.post(sum(diagonalRight, M));
+        // Sum on lines
+        for (int i = 0; i < n; i++) {
+            cp.post(sum(x[i], M));
+        }
 
-		// AllDifferent
-		if(notEqual)
- 		    cp.post(allDifferentBinary(xFlat));
-		else
-		    cp.post(allDifferent(xFlat));
+        // Sum on columns
+        for (int j = 0; j < x.length; j++) {
+            IntVar[] column = new IntVar[n];
+            for (int i = 0; i < x.length; i++)
+                column[i] = x[i][j];
+            cp.post(sum(column, M));
+        }
 
-		return xFlat;
-	}
+        // Sum on diagonals
+        IntVar[] diagonalLeft = new IntVar[n];
+        IntVar[] diagonalRight = new IntVar[n];
+        for (int i = 0; i < x.length; i++) {
+            diagonalLeft[i] = x[i][i];
+            diagonalRight[i] = x[n - i - 1][i];
+        }
+        cp.post(sum(diagonalLeft, M));
+        cp.post(sum(diagonalRight, M));
+
+        // AllDifferent
+        if (notEqual)
+            cp.post(allDifferentBinary(xFlat));
+        else
+            cp.post(allDifferent(xFlat));
+
+        return xFlat;
+    }
 
 }

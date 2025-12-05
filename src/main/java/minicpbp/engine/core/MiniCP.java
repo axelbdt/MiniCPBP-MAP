@@ -34,7 +34,11 @@ import minicpbp.util.exception.InconsistencyException;
 import java.text.DecimalFormat;
 import java.util.*;
 
+import static minicpbp.cp.Factory.isLessOrEqual;
+
 public class MiniCP implements Solver {
+
+    private HashMap<String, IntVar> variablesByName = new HashMap<>();
 
     private Queue<Constraint> propagationQueue = new ArrayDeque<>();
     private List<Procedure> fixPointListeners = new LinkedList<>();
@@ -1188,5 +1192,48 @@ public class MiniCP implements Solver {
         }
 
         return distances;
+    }
+
+    @Override
+    public void setUpperBound(int bound) {
+        if (objectiveVar != null) {
+            post(isLessOrEqual(objectiveVar, bound));
+        }
+    }
+
+    public void updateVariableByName(String name, IntVar variable) {
+        variablesByName.put(name, variable);
+    }
+
+    public void applyPartialAssignment(String partialAssignment) {
+        if (partialAssignment == null || partialAssignment.trim().isEmpty()) {
+            return;
+        }
+
+        String[] assignments = partialAssignment.split(";");
+
+        for (String assignment : assignments) {
+            assignment = assignment.trim();
+
+            // Parse "x[i][j]=v" or "x[i][j]!=v"
+            int eqPos = assignment.indexOf('=');
+            if (eqPos == -1) continue;
+
+            boolean isNegation = (eqPos > 0 && assignment.charAt(eqPos - 1) == '!');
+            int nameEnd = isNegation ? eqPos - 1 : eqPos;
+
+            String name = assignment.substring(0, nameEnd).trim();
+            String valueStr = assignment.substring(eqPos + 1).trim();
+
+            // Skip negations - only process positive assignments
+            if (isNegation) continue;
+
+            int value = Integer.parseInt(valueStr);
+            IntVar x = variablesByName.get(name);
+
+            if (x != null) {
+                x.assign(value);
+            }
+        }
     }
 }

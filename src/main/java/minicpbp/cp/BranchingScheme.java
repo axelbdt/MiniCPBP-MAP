@@ -28,6 +28,7 @@ import minicpbp.util.Procedure;
 import minicpbp.util.exception.NotImplementedException;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -63,6 +64,23 @@ import static minicpbp.cp.Factory.*;
  * @see Factory#makeDfs(Solver, Supplier)
  */
 public final class BranchingScheme {
+
+    private static final AtomicInteger counter = new AtomicInteger(0);
+
+    public static Procedure[] branchingBinary(IntVar xs, Integer v, Boolean tracing) {
+        var choiceId = counter.getAndIncrement();
+        return branch(
+                () -> {
+                    if (tracing)
+                        System.out.println("### choiceId=" + choiceId + "; branching on " + xs.getName() + "=" + v + "; nb of ties=" + nbTied);
+                    branchEqual(xs, v);
+                },
+                () -> {
+                    if (tracing)
+                        System.out.println("### choiceId=" + choiceId + "; branching on " + xs.getName() + "!=" + v);
+                    branchNotEqual(xs, v);
+                });
+    }
 
     // TODO
     static int nbTied;
@@ -236,17 +254,7 @@ public final class BranchingScheme {
                 return EMPTY;
             else {
                 int v = xs.valueWithMaxMarginal();
-                return branch(
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "=" + v);
-                            branchEqual(xs, v);
-                        },
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "!=" + v);
-                            branchNotEqual(xs, v);
-                        });
+                return branchingBinary(xs, v, tracing);
             }
         };
     }
@@ -1327,17 +1335,18 @@ public final class BranchingScheme {
                 return EMPTY;
             else {
                 int v = xs.valueWithMaxMarginal();
-                return branch(
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "=" + v + " marginal=" + beliefRep.rep2std(xs.maxMarginal()));
-                            branchEqual(xs, v);
-                        },
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "!=" + v);
-                            branchNotEqual(xs, v);
-                        });
+                return branchingBinary(xs, v, tracing);
+                // return branch(
+                //         () -> {
+                //             if (tracing)
+                //                 System.out.println("### branching on " + xs.getName() + "=" + v + " marginal=" + beliefRep.rep2std(xs.maxMarginal()));
+                //             branchEqual(xs, v);
+                //         },
+                //         () -> {
+                //             if (tracing)
+                //                 System.out.println("### branching on " + xs.getName() + "!=" + v);
+                //             branchNotEqual(xs, v);
+                //         });
             }
         };
     }
@@ -1362,17 +1371,18 @@ public final class BranchingScheme {
                 if (xs == null)
                     return EMPTY;
                 int v = xs.valueWithMaxMarginal();
-                return branch(
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "=" + v + " marginal=" + beliefRep.rep2std(xs.maxMarginal()));
-                            branchEqual(xs, v);
-                        },
-                        () -> {
-                            if (tracing)
-                                System.out.println("### branching on " + xs.getName() + "!=" + v);
-                            branchNotEqual(xs, v);
-                        });
+                return branchingBinary(xs, v, tracing);
+                // return branch(
+                //         () -> {
+                //             if (tracing)
+                //                 System.out.println("### branching on " + xs.getName() + "=" + v + " marginal=" + beliefRep.rep2std(xs.maxMarginal()));
+                //             branchEqual(xs, v);
+                //         },
+                //         () -> {
+                //             if (tracing)
+                //                 System.out.println("### branching on " + xs.getName() + "!=" + v);
+                //             branchNotEqual(xs, v);
+                //         });
             }
         };
     }

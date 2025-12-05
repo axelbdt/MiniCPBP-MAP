@@ -101,7 +101,8 @@ public class LatinSquare {
             default:
                 throw new IllegalArgumentException("Unknown BP algorithm: " + bp);
         }
-        cp.setMaxIter(maxIter);
+        if (maxIter != null)
+            cp.setMaxIter(maxIter);
 
         x = new IntVar[n][n];
         for (int i = 0; i < n; i++) {
@@ -209,11 +210,11 @@ public class LatinSquare {
             default:
                 throw new IllegalArgumentException("Unknown search type: " + searchType);
         }
-        search.onSolution(() -> {
-            int sum = z.min();
-            System.out.println("NEW SOLUTION FOUND");
-            System.out.println("solution score : " + sum);
-        });
+        // search.onSolution(() -> {
+        //     int sum = z.min();
+        //     System.out.println("NEW SOLUTION FOUND");
+        //     System.out.println("solution score : " + sum);
+        // });
     }
 
     private static int getInstanceSize(String fileName) {

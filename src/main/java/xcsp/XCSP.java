@@ -2104,6 +2104,18 @@ public class XCSP implements XCallbacks2 {
         XCSP.maxIter = maxIter;
     }
 
+    private static Integer upperBound;
+
+    public void upperBound(Integer bound) {
+        XCSP.upperBound = bound;
+    }
+
+    private static String partialAssignment;
+
+    public void partialAssignment(String partialAssignment) {
+        XCSP.partialAssignment = partialAssignment;
+    }
+
     private static boolean damp = false;
 
     public void damp(boolean damp) {
@@ -2293,6 +2305,14 @@ public class XCSP implements XCallbacks2 {
 
             double meanConstraintScopeRatio = minicp.meanConstraintScopeRatio();
             System.out.println("mean constraint scope ratio: " + meanConstraintScopeRatio);
+
+            if (upperBound != null) {
+                minicp.setUpperBound(upperBound);
+            }
+
+            if (partialAssignment != null) {
+                minicp.applyPartialAssignment(partialAssignment);
+            }
         }
 
         Search search = null;
@@ -2390,7 +2410,7 @@ public class XCSP implements XCallbacks2 {
             System.out.println("optimizing...");
 
             stats = search.optimize(objective, ss -> {
-                return (System.currentTimeMillis() - t0 >= timeout * 1000 || ss.isCompleted());
+                return (System.currentTimeMillis() - t0 >= timeout * 1000 || ss.numberOfSolutions() >= 1);
             });
         } else {
             if (!restart) {
@@ -2497,7 +2517,7 @@ public class XCSP implements XCallbacks2 {
     public static void main(String[] args) {
         try {
             XCSP xcsp = new XCSP(args[0]);
-            String solution = xcsp.solve(Integer.MAX_VALUE, 100);
+            String solution = xcsp.solve(1, 100);
             List<String> violatedCtrs = xcsp.getViolatedCtrs(solution);
             System.out.println(violatedCtrs);
         } catch (Exception e) {
