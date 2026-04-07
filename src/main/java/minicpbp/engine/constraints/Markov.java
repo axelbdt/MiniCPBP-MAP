@@ -156,38 +156,40 @@ public class Markov extends AbstractConstraint {
         ip[0][initialState] = 1;
         iminp[0][initialState] = 0;
         imaxp[0][initialState] = 0;
-        // i = 0
-        s = actions[0].fillArray(domainValues);
-        size2 = states[0].fillArray(stateDomainValues2);
-        for (int j = 0; j < s; j++) {
-            int v = domainValues[j];
-            for (int l = 0; l < size2; l++) {
-                int sl = stateDomainValues2[l];
-                if (proba[initialState][v][sl] > 0) {
-                    ip[1][sl] = 1;
-                    iminp[1][sl] = Math.min(iminp[1][sl], iminp[0][initialState] + reward[initialState][v][sl]);
-                    imaxp[1][sl] = Math.max(imaxp[1][sl], imaxp[0][initialState] + reward[initialState][v][sl]);
-                }
-            }
-        }
-        // i > 0
-        for (int i = 1; i < n - 1; i++) {
-            s = actions[i].fillArray(domainValues);
-            size1 = states[i-1].fillArray(stateDomainValues1);
-            size2 = states[i].fillArray(stateDomainValues2);
+        if (n>1) { // if there is only 1 step then there is nothing else to do
+            // i = 0
+            s = actions[0].fillArray(domainValues);
+            size2 = states[0].fillArray(stateDomainValues2);
             for (int j = 0; j < s; j++) {
                 int v = domainValues[j];
-                for (int k = 0; k < size1; k++) {
-                    int sk = stateDomainValues1[k];
-                    if (ip[i][sk] > 0) {
-                        for (int l = 0; l < size2; l++) {
-                            int sl = stateDomainValues2[l];
-                            if (proba[sk][v][sl] > 0) {
-                              ip[i + 1][sl] = 1;
-                              iminp[i + 1][sl] = Math.min(iminp[i + 1][sl], iminp[i][sk] + reward[sk][v][sl]);
-                              imaxp[i + 1][sl] = Math.max(imaxp[i + 1][sl], imaxp[i][sk] + reward[sk][v][sl]);
-                    	   }
-                       }
+                for (int l = 0; l < size2; l++) {
+                    int sl = stateDomainValues2[l];
+                    if (proba[initialState][v][sl] > 0) {
+                        ip[1][sl] = 1;
+                        iminp[1][sl] = Math.min(iminp[1][sl], iminp[0][initialState] + reward[initialState][v][sl]);
+                        imaxp[1][sl] = Math.max(imaxp[1][sl], imaxp[0][initialState] + reward[initialState][v][sl]);
+                    }
+                }
+            }
+            // i > 0
+            for (int i = 1; i < n - 1; i++) {
+                s = actions[i].fillArray(domainValues);
+                size1 = states[i - 1].fillArray(stateDomainValues1);
+                size2 = states[i].fillArray(stateDomainValues2);
+                for (int j = 0; j < s; j++) {
+                    int v = domainValues[j];
+                    for (int k = 0; k < size1; k++) {
+                        int sk = stateDomainValues1[k];
+                        if (ip[i][sk] > 0) {
+                            for (int l = 0; l < size2; l++) {
+                                int sl = stateDomainValues2[l];
+                                if (proba[sk][v][sl] > 0) {
+                                    ip[i + 1][sl] = 1;
+                                    iminp[i + 1][sl] = Math.min(iminp[i + 1][sl], iminp[i][sk] + reward[sk][v][sl]);
+                                    imaxp[i + 1][sl] = Math.max(imaxp[i + 1][sl], imaxp[i][sk] + reward[sk][v][sl]);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -288,42 +290,45 @@ public class Markov extends AbstractConstraint {
         ip[0][initialState] = beliefRep.one();
         iminp[0][initialState] = 0;
         imaxp[0][initialState] = 0;
-        // i = 0
-        s = actions[0].fillArray(domainValues);
-        size2 = states[0].fillArray(stateDomainValues2);
-        for (int j = 0; j < s; j++) {
-            int v = domainValues[j];
-            for (int l = 0; l < size2; l++) {
-                int sl = stateDomainValues2[l];
-                if (proba[initialState][v][sl] > 0) {
-                    ip[1][sl] = beliefRep.add(ip[1][sl], beliefRep.multiply(ip[0][initialState], beliefRep.multiply(beliefRep.std2rep(proba[initialState][v][sl]), outsideBelief(0, v))));
-                    iminp[1][sl] = Math.min(iminp[1][sl], iminp[0][initialState] + reward[initialState][v][sl]);
-                    imaxp[1][sl] = Math.max(imaxp[1][sl], imaxp[0][initialState] + reward[initialState][v][sl]);
-                }
-            }
-        }
-        // i > 0
-        for (int i = 1; i < n - 1; i++) {
-            s = actions[i].fillArray(domainValues);
-            size1 = states[i-1].fillArray(stateDomainValues1);
-            size2 = states[i].fillArray(stateDomainValues2);
+        if (n>1) { // if there is only 1 step then there is nothing else to do
+            // i = 0
+            s = actions[0].fillArray(domainValues);
+            size2 = states[0].fillArray(stateDomainValues2);
             for (int j = 0; j < s; j++) {
                 int v = domainValues[j];
-                for (int k = 0; k < size1; k++) {
-                    int sk = stateDomainValues1[k];
-                    if (!beliefRep.isZero(ip[i][sk])) {
-                        for (int l = 0; l < size2; l++) {
-                            int sl = stateDomainValues2[l];
-			                if (proba[sk][v][sl] > 0) {
-                               ip[i + 1][sl] = beliefRep.add(ip[i + 1][sl], beliefRep.multiply(ip[i][sk], beliefRep.multiply(beliefRep.std2rep(proba[sk][v][sl]), outsideBelief(i, v))));
-                               iminp[i + 1][sl] = Math.min(iminp[i + 1][sl], iminp[i][sk] + reward[sk][v][sl]);
-                               imaxp[i + 1][sl] = Math.max(imaxp[i + 1][sl], imaxp[i][sk] + reward[sk][v][sl]);
-                           }
-                       }
+                for (int l = 0; l < size2; l++) {
+                    int sl = stateDomainValues2[l];
+                    if (proba[initialState][v][sl] > 0) {
+                        ip[1][sl] = beliefRep.add(ip[1][sl], beliefRep.multiply(ip[0][initialState], beliefRep.multiply(beliefRep.std2rep(proba[initialState][v][sl]), outsideBelief(0, v))));
+                        iminp[1][sl] = Math.min(iminp[1][sl], iminp[0][initialState] + reward[initialState][v][sl]);
+                        imaxp[1][sl] = Math.max(imaxp[1][sl], imaxp[0][initialState] + reward[initialState][v][sl]);
+                    }
+                }
+            }
+            // i > 0
+            for (int i = 1; i < n - 1; i++) {
+                s = actions[i].fillArray(domainValues);
+                size1 = states[i - 1].fillArray(stateDomainValues1);
+                size2 = states[i].fillArray(stateDomainValues2);
+                for (int j = 0; j < s; j++) {
+                    int v = domainValues[j];
+                    for (int k = 0; k < size1; k++) {
+                        int sk = stateDomainValues1[k];
+                        if (!beliefRep.isZero(ip[i][sk])) {
+                            for (int l = 0; l < size2; l++) {
+                                int sl = stateDomainValues2[l];
+                                if (proba[sk][v][sl] > 0) {
+                                    ip[i + 1][sl] = beliefRep.add(ip[i + 1][sl], beliefRep.multiply(ip[i][sk], beliefRep.multiply(beliefRep.std2rep(proba[sk][v][sl]), outsideBelief(i, v))));
+                                    iminp[i + 1][sl] = Math.min(iminp[i + 1][sl], iminp[i][sk] + reward[sk][v][sl]);
+                                    imaxp[i + 1][sl] = Math.max(imaxp[i + 1][sl], imaxp[i][sk] + reward[sk][v][sl]);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+
         for (int i = 0; i < n; i++) {
             Arrays.fill(op[i], beliefRep.zero());
             Arrays.fill(ominp[i], Integer.MAX_VALUE);
