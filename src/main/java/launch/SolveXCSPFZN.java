@@ -11,7 +11,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -22,6 +21,7 @@ import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
 import minicpbp.util.Procedure;
 import minicpbp.util.SolutionDistribution;
+import minicpbp.util.exception.InconsistencyException;
 import model.ModelFormatFrontend;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -148,8 +148,17 @@ public class SolveXCSPFZN {
 //      minicp.setTraceNbIterFlag(traceNbIter);
 //		minicp.setVariationThreshold(variationThreshold);
 
+		Runnable earlyReturnSummary = () -> {
+			SearchStatistics stats = new SearchStatistics();
+			stats.setCompleted();
+			frontend.onNoSolutionFound(stats);
+			frontend.printStats(stats, statsFileStr, 0L, -1, "");
+		};
+
 		if (frontend.hasFailed()) {
 			frontend.onPreInitFail();
+			earlyReturnSummary.run();
+			return;
 		}
 		frontend.initModel();
 
@@ -166,94 +175,100 @@ public class SolveXCSPFZN {
 		}
 
 		Search search = null;
-		switch (heuristic) {
-			case FFRV:
-				minicp.setMode(Solver.PropaMode.SP);
-				search = makeSearch(firstFailRandomVal(decisionsVars));
-				break;
-			case MXMS:
-				search = makeSearch(maxMarginalStrength(decisionsVars));
-				break;
-			case MXM:
-				search = makeSearch(maxMarginal(decisionsVars));
-				break;
-			case MNMS:
-				search = makeSearch(minMarginalStrength(decisionsVars));
-				break;
-			case MNM:
-				search = makeSearch(minMarginal(decisionsVars));
-				break;
-			case MNE:
-				search = makeSearch(minEntropy(decisionsVars));
-				break;
-			case MNERTB:
-				// probe N (BP_PROBE_PROTOCOL amendments 10/10a): min entropy with a
-				// uniform random tie-break among variables whose entropy agrees to
-				// 2 decimals. Seed it with -Dminicpbp.seed; absent that property the
-				// solver RNG is new Random() and the run is unreproducible.
-				// NOTE: minEntropyRandomTieBreak does not call setBranchingOrder, so
-				// stopRule=decision would sample the deterministic heuristic's
-				// decision. Ship-stop arms only until that is fixed.
-				search = makeSearch(minEntropyRandomTieBreak(decisionsVars));
-				break;
-			case IE:
-				search = makeSearch(impactEntropy(decisionsVars));
-				if(initImpact)
-					search.initializeImpact(decisionsVars);
-				break;
-			case IBS:
-				minicp.setMode(Solver.PropaMode.SP);
-				search = makeSearch(impactBasedSearch(decisionsVars));
-				search.initializeImpactDomains(decisionsVars);
-				nbFailCutof = nbFailCutof*decisionsVars.length;
-				break;
-			case MIE:
-				search = makeDfs(minicp, minEntropyRegisterImpact(decisionsVars),impactEntropy(decisionsVars));
-				if(initImpact)
-					search.initializeImpact(decisionsVars);
-				break;
-			case MNEBW:
-				search = makeSearch(minEntropyBiasedWheelSelectVal(decisionsVars));
-				break;
-			case WDEG:
-				// -Dexp.forceSBP=true keeps belief propagation ON under the
-				// deterministic dom/wdeg tree (BP_COST_PROFILE.md Part 0). BP never
-				// removes a value (MiniCP.actOnZeroOneBelief=false), so SP and SBP
-				// explore a byte-identical tree and the wall-clock difference is
-				// exactly the price of BP. Default unchanged (SP).
-				minicp.setMode(Boolean.getBoolean("exp.forceSBP") ? Solver.PropaMode.SBP : Solver.PropaMode.SP);
-				search = makeSearch(domWdeg(decisionsVars));
-				nbFailCutof = nbFailCutof*decisionsVars.length;
-				break;
-			case WDEGCNT:
-				// amendment A5 (MDD_COUNTING_PLAN.md §6.3): SP mode, no BP; the value
-				// comes from the incident ValueCounter constraints (Cumulative)
-				minicp.setMode(Solver.PropaMode.SP);
-				search = makeSearch(domWdegCountValue(decisionsVars));
-				nbFailCutof = nbFailCutof*decisionsVars.length;
-				break;
-			case WDEGRV:
-				// N7 (VALUE_ISOLATION_EXPERIMENT.md, W4): the unbiased value-rule
-				// control. Same variable rule as WDEG and WDEGMXM, same PropaMode.SP
-				// and the same nbFailCutof scaling as WDEG, so the ONLY difference
-				// from the dom-wdeg baseline is xs.randomValue() in place of
-				// xs.min(). Seeded: pass -Dminicpbp.seed or the run is
-				// unreproducible.
-				minicp.setMode(Solver.PropaMode.SP);
-				search = makeSearch(domWdegRandomValue(decisionsVars));
-				nbFailCutof = nbFailCutof*decisionsVars.length;
-				break;
-			case WDEGMXM:
-				// probe O (BP_PROBE_PROTOCOL amendment 11): dom/wdeg variable
-				// selection with max-marginal value selection. BP mode is left ON
-				// deliberately — BP's only job here is the branched variable's
-				// marginal (value selection); variable selection needs no BP.
-				// No nbFailCutof scaling: LDS/DFS only, no restart path uses it.
-				search = makeSearch(domWdegMaxMarginalValue(decisionsVars));
-				break;
-			default:
-				Log.info("unknown search strategy");
-				System.exit(1);
+		try {
+			switch (heuristic) {
+				case FFRV:
+					minicp.setMode(Solver.PropaMode.SP);
+					search = makeSearch(firstFailRandomVal(decisionsVars));
+					break;
+				case MXMS:
+					search = makeSearch(maxMarginalStrength(decisionsVars));
+					break;
+				case MXM:
+					search = makeSearch(maxMarginal(decisionsVars));
+					break;
+				case MNMS:
+					search = makeSearch(minMarginalStrength(decisionsVars));
+					break;
+				case MNM:
+					search = makeSearch(minMarginal(decisionsVars));
+					break;
+				case MNE:
+					search = makeSearch(minEntropy(decisionsVars));
+					break;
+				case MNERTB:
+					// probe N (BP_PROBE_PROTOCOL amendments 10/10a): min entropy with a
+					// uniform random tie-break among variables whose entropy agrees to
+					// 2 decimals. Seed it with -Dminicpbp.seed; absent that property the
+					// solver RNG is new Random() and the run is unreproducible.
+					// NOTE: minEntropyRandomTieBreak does not call setBranchingOrder, so
+					// stopRule=decision would sample the deterministic heuristic's
+					// decision. Ship-stop arms only until that is fixed.
+					search = makeSearch(minEntropyRandomTieBreak(decisionsVars));
+					break;
+				case IE:
+					search = makeSearch(impactEntropy(decisionsVars));
+					if (initImpact)
+						search.initializeImpact(decisionsVars);
+					break;
+				case IBS:
+					minicp.setMode(Solver.PropaMode.SP);
+					search = makeSearch(impactBasedSearch(decisionsVars));
+					search.initializeImpactDomains(decisionsVars);
+					nbFailCutof = nbFailCutof * decisionsVars.length;
+					break;
+				case MIE:
+					search = makeDfs(minicp, minEntropyRegisterImpact(decisionsVars), impactEntropy(decisionsVars));
+					if (initImpact)
+						search.initializeImpact(decisionsVars);
+					break;
+				case MNEBW:
+					search = makeSearch(minEntropyBiasedWheelSelectVal(decisionsVars));
+					break;
+				case WDEG:
+					// -Dexp.forceSBP=true keeps belief propagation ON under the
+					// deterministic dom/wdeg tree (BP_COST_PROFILE.md Part 0). BP never
+					// removes a value (MiniCP.actOnZeroOneBelief=false), so SP and SBP
+					// explore a byte-identical tree and the wall-clock difference is
+					// exactly the price of BP. Default unchanged (SP).
+					minicp.setMode(Boolean.getBoolean("exp.forceSBP") ? Solver.PropaMode.SBP : Solver.PropaMode.SP);
+					search = makeSearch(domWdeg(decisionsVars));
+					nbFailCutof = nbFailCutof * decisionsVars.length;
+					break;
+				case WDEGCNT:
+					// amendment A5 (MDD_COUNTING_PLAN.md §6.3): SP mode, no BP; the value
+					// comes from the incident ValueCounter constraints (Cumulative)
+					minicp.setMode(Solver.PropaMode.SP);
+					search = makeSearch(domWdegCountValue(decisionsVars));
+					nbFailCutof = nbFailCutof * decisionsVars.length;
+					break;
+				case WDEGRV:
+					// N7 (VALUE_ISOLATION_EXPERIMENT.md, W4): the unbiased value-rule
+					// control. Same variable rule as WDEG and WDEGMXM, same PropaMode.SP
+					// and the same nbFailCutof scaling as WDEG, so the ONLY difference
+					// from the dom-wdeg baseline is xs.randomValue() in place of
+					// xs.min(). Seeded: pass -Dminicpbp.seed or the run is
+					// unreproducible.
+					minicp.setMode(Solver.PropaMode.SP);
+					search = makeSearch(domWdegRandomValue(decisionsVars));
+					nbFailCutof = nbFailCutof * decisionsVars.length;
+					break;
+				case WDEGMXM:
+					// probe O (BP_PROBE_PROTOCOL amendment 11): dom/wdeg variable
+					// selection with max-marginal value selection. BP mode is left ON
+					// deliberately — BP's only job here is the branched variable's
+					// marginal (value selection); variable selection needs no BP.
+					// No nbFailCutof scaling: LDS/DFS only, no restart path uses it.
+					search = makeSearch(domWdegMaxMarginalValue(decisionsVars));
+					break;
+				default:
+					Log.info("unknown search strategy");
+					System.exit(1);
+			}
+		} catch (InconsistencyException ignored) {
+			// Do we consider this a pre init fail?
+			earlyReturnSummary.run();
+			return;
 		}
 
 		boolean extractSolutionStr = checkSolution || (!Objects.equals(solFileStr, ""));

@@ -37,7 +37,6 @@ public abstract class ModelFormatFrontend {
 
     public void onPreInitFail() {
         System.out.println("problem failed before initiating the search");
-        throw InconsistencyException.INCONSISTENCY;
     }
 
     public boolean hasFailed() {
