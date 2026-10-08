@@ -15,24 +15,18 @@
 
 package xcsp;
 
+import minicpbp.engine.core.Solver;
+import model.ModelFormatFrontend;
+import model.ModelGoal;
 import minicpbp.cp.Factory;
 import minicpbp.engine.constraints.Intension;
 import minicpbp.engine.core.BoolVar;
 import minicpbp.engine.core.Constraint;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.IntVarViewOffset;
-import minicpbp.engine.core.Solver;
-import minicpbp.engine.core.Solver.PropaMode;
-import minicpbp.search.DovetailSearch;
-import minicpbp.search.LDSearch;
-import minicpbp.search.Search;
 import minicpbp.search.SearchStatistics;
-import minicpbp.util.Procedure;
 import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.NotImplementedException;
-
-import launch.SolveXCSPFZN.BranchingHeuristic;
-import launch.SolveXCSPFZN.TreeSearchType;
 
 import org.xcsp.common.structures.Transition;
 import org.xcsp.parser.callbacks.SolutionChecker;
@@ -43,6 +37,7 @@ import org.xcsp.common.predicates.XNode;
 import org.xcsp.common.predicates.XNodeLeaf;
 import org.xcsp.common.predicates.XNodeParent;
 import org.xcsp.parser.callbacks.XCallbacks2;
+import org.xcsp.parser.entries.XVariables;
 import org.xcsp.parser.entries.XVariables.XVarInteger;
 import org.xcsp.parser.entries.XVariables.XVarSymbolic;
 
@@ -50,25 +45,19 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.security.InvalidParameterException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static minicpbp.cp.BranchingScheme.*;
 import static minicpbp.cp.Factory.*;
 import static java.lang.reflect.Array.newInstance;
 import minicpbp.util.Log;
 
-public class XCSP implements XCallbacks2 {
+public class XCSP extends ModelFormatFrontend implements XCallbacks2 {
 
-	private Implem implem = new Implem(this);
+	private final Implem implem = new Implem(this);
 
-	private String fileName;
+	private final String fileName;
 	private final Map<XVarInteger, IntVar> mapVar = new HashMap<>();
 	private final List<XVarInteger> xVars = new LinkedList<>();
 	private final List<IntVar> minicpVars = new LinkedList<>();
@@ -98,25 +87,14 @@ public class XCSP implements XCallbacks2 {
 			new IntensionCompiler<>(minicp, x -> mapVar.get(x));
 
 	private Optional<IntVar> objectiveMinimize = Optional.empty();
-	private Optional<IntVar> realObjective = Optional.empty();
-
-	private boolean hasFailed;
 
 	@Override
 	public Implem implem() {
 		return implem;
 	}
 
-	/**
-	 * The solver holding the model, so that a probe can run propagation or
-	 * belief propagation on it directly instead of through a search
-	 * (experiment/java/exp/SchedBench.java).
-	 */
-	public Solver getSolver() {
-		return minicp;
-	}
-
-	public XCSP(String fileName) throws Exception {
+	public XCSP(Solver minicp, String fileName) throws Exception {
+		super(minicp);
 		this.fileName = fileName;
 		hasFailed = false;
 
@@ -140,8 +118,78 @@ public class XCSP implements XCallbacks2 {
 		loadInstance(fileName);
 	}
 
-	public boolean isCOP() {
-		return objectiveMinimize.isPresent();
+	public void initModel() {
+		// Nothing to do
+	}
+
+	public String getSolutionStr(boolean extractSolutionStr) {
+		String solutionStr = null;
+		if (extractSolutionStr) {
+			solutionStr = instantiationString(false);
+		}
+		if(competitionOutput) {
+			solutionStr = instantiationString(true);
+		}
+		return solutionStr;
+	}
+
+	public IntVar[] getDecisionVars() {
+		List<IntVar> vars = mapVar.entrySet().stream().sorted(new EntryComparator())
+				.map(Map.Entry::getValue).collect(Collectors.toList());
+		vars.addAll(minicpVarsSymbolic);
+		return vars.toArray(new IntVar[0]);
+	}
+
+	public ModelGoal getGoal() {
+		if (objectiveMinimize.isPresent()) {
+			// We define all COPs as minimization problems.
+			// Maximisation problems are converted to minimization problems by inverting their objective.
+			return ModelGoal.MIN;
+		} else {
+			return ModelGoal.SAT;
+		}
+	}
+
+	public IntVar getObjectiveVar() {
+		return objectiveMinimize.orElse(null);
+	}
+
+	public void onSolutionFound(SearchStatistics stats, String solutionStr) {
+		if (!competitionOutput) {
+			Log.info("solution found");
+		} else {
+			Log.info("s SATISFIABLE");
+			Log.info(solutionStr);
+			Log.info("c "+stats.numberOfFailures()+" backtracks");
+		}
+	}
+
+	public void onNoSolutionFound(SearchStatistics stats) {
+		if (!competitionOutput) {
+			Log.info("no solution was found");
+		} else {
+			Log.info("s UNSATISFIABLE");
+			Log.info("c "+stats.numberOfFailures()+" backtracks");
+		}
+	}
+
+	public void onInconclusiveSearch(SearchStatistics stats) {
+		if (!competitionOutput) {
+			Log.info("no solution was found");
+		} else {
+			Log.info("s UNKNOWN");
+		}
+	}
+
+	@Override
+	public void onPreInitFail() {
+		if (!competitionOutput) {
+			super.onPreInitFail();
+		} else {
+			Log.info("s UNSATISFIABLE");
+			Log.info("c problem failed before initiating the search");
+			throw InconsistencyException.INCONSISTENCY;
+		}
 	}
 
 	public List<String> getViolatedCtrs(String solution) throws Exception {
@@ -167,6 +215,27 @@ public class XCSP implements XCallbacks2 {
 		minicpVars.add(minicpVar);
 		xVars.add(x);
 		minicpVar.setName(x.id());
+	}
+
+	/**
+	 * The solution as an XCSP3 <instantiation>; symbolic variables are printed
+	 * as their symbols, not as the integer ids they are solved with, so that
+	 * the XCSP3 solution checker can read the result back.
+	 */
+	private String instantiationString(boolean competition) {
+		StringBuilder sol = new StringBuilder(competition
+				? "v <instantiation>\nv <list> " : "<instantiation>\n\t<list>\n\t\t");
+		for (XVarInteger x : xVars)
+			sol.append(x.id()).append(" ");
+		for (XVarSymbolic x : xVarsSymbolic)
+			sol.append(x.id()).append(" ");
+		sol.append(competition ? "</list>\nv <values> " : "\n\t</list>\n\t<values>\n\t\t");
+		for (IntVar x : minicpVars)
+			sol.append(x.min()).append(" ");
+		for (IntVar x : minicpVarsSymbolic)
+			sol.append(symbolName.get(x.min())).append(" ");
+		sol.append(competition ? "</values>\nv </instantiation>" : "\n\t</values>\n</instantiation>");
+		return sol.toString();
 	}
 
 	// ================================================================
@@ -1345,9 +1414,7 @@ public class XCSP implements XCallbacks2 {
 
 	private void setObj(IntVar obj, boolean minimization) {
 		IntVar minobj = minimization ? obj : minus(obj);
-
 		objectiveMinimize = Optional.of(minobj);
-		realObjective = Optional.of(obj);
 	}
 
 	@Override
@@ -2232,205 +2299,6 @@ public class XCSP implements XCallbacks2 {
 			return o1.getKey().id.compareTo(o2.getKey().id);
 		}
 	}
-
-	/**
-	 * The variables the search branches on: the integer ones sorted by id (see
-	 * the 2026-08-16 note below on reproducibility), then the symbolic ones in
-	 * declaration order. Symbolic variables must be here too, or a "solution"
-	 * could leave them unassigned.
-	 */
-	private IntVar[] searchVars() {
-		List<IntVar> vars = mapVar.entrySet().stream().sorted(new EntryComparator())
-				.map(Map.Entry::getValue).collect(Collectors.toList());
-		vars.addAll(minicpVarsSymbolic);
-		return vars.toArray(new IntVar[0]);
-	}
-
-	/**
-	 * The solution as an XCSP3 <instantiation>; symbolic variables are printed
-	 * as their symbols, not as the integer ids they are solved with, so that
-	 * the XCSP3 solution checker can read the result back.
-	 */
-	private String instantiationString(boolean competition) {
-		StringBuilder sol = new StringBuilder(competition
-				? "v <instantiation>\nv <list> " : "<instantiation>\n\t<list>\n\t\t");
-		for (XVarInteger x : xVars)
-			sol.append(x.id()).append(" ");
-		for (XVarSymbolic x : xVarsSymbolic)
-			sol.append(x.id()).append(" ");
-		sol.append(competition ? "</list>\nv <values> " : "\n\t</list>\n\t<values>\n\t\t");
-		for (IntVar x : minicpVars)
-			sol.append(x.min()).append(" ");
-		for (IntVar x : minicpVarsSymbolic)
-			sol.append(symbolName.get(x.min())).append(" ");
-		sol.append(competition ? "</values>\nv </instantiation>" : "\n\t</values>\n</instantiation>");
-		return sol.toString();
-	}
-
-	public String solve(int nSolution, int timeOut) {
-		AtomicReference<String> lastSolution = new AtomicReference<>("");
-		Long t0 = System.currentTimeMillis();
-
-		solve((solution, value) -> {
-			Log.info("solfound " + (value == Integer.MAX_VALUE ? value : "solution"));
-			lastSolution.set(solution);
-		}, ss -> {
-			int nSols = isCOP() ? nSolution : 1;
-			return (System.currentTimeMillis() - t0 >= timeOut * 1000 || ss.numberOfSolutions() >= nSols);
-		});
-
-		return lastSolution.get();
-	}
-
-	public void buildAnnotationDecision(XVarInteger[] list) {
-		decisionVars.clear();
-		Arrays.stream(list).map(mapVar::get).forEach(decisionVars::add);
-	}
-
-	/**
-	 * @param onSolution: void onSolution(solution, obj). If not a COP, obj =
-	 *        Integer.MAXVALUE
-	 * @param shouldStop: boolean shouldStop(stats, isCOP).
-	 * @return Stats
-	 */
-	public SearchStatistics solve(BiConsumer<String, Integer> onSolution,
-			Function<SearchStatistics, Boolean> shouldStop) {
-
-		IntVar[] vars = searchVars();
-		LDSearch search;
-		// TODO change firstfail to maxMarginalStrength
-		if (decisionVars.isEmpty()) {
-			search = makeLds(minicp, firstFail(vars));
-		} else {
-			search = makeLds(minicp, and(firstFail(decisionVars.toArray(new IntVar[0])), firstFail(vars)));
-		}
-
-		if (objectiveMinimize.isPresent()) {
-			try {
-				minicp.minimize(objectiveMinimize.get());
-			} catch (InconsistencyException e) {
-				hasFailed = true;
-			}
-		}
-
-		if (hasFailed) {
-			throw InconsistencyException.INCONSISTENCY;
-		}
-
-		search.onSolution(() -> {
-			onSolution.accept(instantiationString(false),
-					realObjective.map(IntVar::min).orElse(Integer.MAX_VALUE));
-		});
-
-		return search.solve(shouldStop::apply);
-	}
-
-	private String solutionStr = null;
-	private boolean extractSolutionStr = false;
-	private boolean foundSolution = false;
-
-	private static boolean checkSolution = false;
-
-	public void checkSolution(boolean checkSolution) {
-		XCSP.checkSolution = checkSolution;
-	}
-
-	private static boolean traceBP = false;
-
-	public void traceBP(boolean traceBP) {
-		XCSP.traceBP = traceBP;
-		Log.setTraceBP(traceBP);
-	}
-
-	private static boolean traceSearch = false;
-
-	public void traceSearch(boolean traceSearch) {
-		XCSP.traceSearch = traceSearch;
-		Log.setTraceSearch(traceSearch);
-	}
-
-	private static boolean traceEntropy = false;
-
-	public void traceEntropy(boolean traceEntropy) {
-		XCSP.traceEntropy = traceEntropy;
-	}
-
-	private static int maxIter = 5;
-
-	public void maxIter(int maxIter) {
-		XCSP.maxIter = maxIter;
-	}
-
-	private static boolean damp = false;
-
-	/**
-	 * INTENTIONALLY INERT (BP_COST_PROFILE.md 1.4 / Part 4 item 4). Damping is
-	 * decided by {@code MiniCP.BPtuneDamping} at the root, and whatever factor
-	 * it lands on stays in force for the whole search; this setter was never
-	 * forwarded to the solver ({@code minicp.setDamp} call deliberately absent
-	 * from {@code solve()}). Kept so existing harness callers compile, and
-	 * documented so nobody believes {@code damp(false)} disables damping.
-	 * Forwarding it would change every measured arm's behaviour and therefore
-	 * requires a registered protocol and new campaigns, not a reconnect.
-	 */
-	public void damp(boolean damp) {
-		XCSP.damp = damp;
-	}
-
-	private static double dampingFactor = 0.5;
-
-	/** INTENTIONALLY INERT — see {@link #damp(boolean)}. */
-	public void dampingFactor(double dampingFactor) {
-		XCSP.dampingFactor = dampingFactor;
-	}
-
-	private static boolean restart = false;
-	
-	public void restart(boolean restart) {
-		XCSP.restart = restart;
-	}
-
-	private static int nbFailCutof = 100;
-
-	public void nbFailCutof(int nbFailCutof) {
-		XCSP.nbFailCutof = nbFailCutof;
-	} 
-
-	private static double restartFactor = 1.5;
-
-	public void restartFactor(double restartFactor) {
-		XCSP.restartFactor = restartFactor;
-	}
-
-	private static double variationThreshold = -Double.MAX_VALUE;
-
-	public void variationThreshold(double variationThreshold) {
-		XCSP.variationThreshold = variationThreshold;
-	}
-
-	private static TreeSearchType searchType = TreeSearchType.DFS;
-
-	public void searchType(TreeSearchType searchType) {
-		XCSP.searchType = searchType;
-	}
-
-	private static boolean initImpact = false;
-
-	public void initImpact(boolean initImpact) {
-		XCSP.initImpact = initImpact;
-	}
-
-	private static boolean dynamicStopBP = false;
-
-	public void dynamicStopBP(boolean dynamicStopBP) {
-		XCSP.dynamicStopBP = dynamicStopBP;
-	}
-
-	private static boolean traceNbIter = false;
-
-	public void traceNbIter(boolean traceNbIter) {
-		XCSP.traceNbIter = traceNbIter;
-	}
 	
 	private static boolean competitionOutput = false;
 
@@ -2438,302 +2306,7 @@ public class XCSP implements XCallbacks2 {
 		XCSP.competitionOutput = competitionOutput;
 	}
 
-	private Search makeSearch(Supplier<Procedure[]> branching) {
-		Search search = null;
-		switch (searchType) {
-		case DFS:
-			search = makeDfs(minicp, branching);
-			break;
-		case LDS:
-			search = makeLds(minicp, branching);
-			break;
-		default:
-			Log.info("unknown search type");
-			System.exit(1);
-		}
-		return search;
-	}
-
-	public void solve(BranchingHeuristic heuristic, int timeout, String statsFileStr, String solFileStr) {
-
-		// GP: this is the solve we use
-		Long t0 = System.currentTimeMillis();
-
-		minicp.setTraceBPFlag(traceBP);
-		minicp.setTraceSearchFlag(traceSearch);
-//		minicp.setTraceNbIterFlag(traceNbIter);
-		minicp.setTraceEntropyFlag(traceEntropy);
-		minicp.setMaxIter(maxIter);
-//		minicp.setDynamicStopBP(dynamicStopBP);
-		// setDamp / setDampingFactor deliberately NOT forwarded: damping is
-		// decided by BPtuneDamping at the root. See damp(boolean) above.
-//		minicp.setVariationThreshold(variationThreshold);
-
-		if (hasFailed) {
-			if (!competitionOutput) {
-				Log.info("problem failed before initiating the search");
-				throw InconsistencyException.INCONSISTENCY;
-			} else {
-				Log.info("s UNSATISFIABLE");
-				Log.info("c problem failed before initiating the search");
-				return;
-			}
-		}
-
-		/*
-		Stream<IntVar> nonDecisionVars = mapVar.entrySet().stream().sorted(new EntryComparator())
-				.map(Map.Entry::getValue).filter(v -> !decisionVars.contains(v));
-		IntVar[] vars = Stream.concat(decisionVars.stream(),
-		 nonDecisionVars).toArray(IntVar[]::new);
-		*/
-
-		/* */
-		// 2026-08-16: mapVar is a HashMap keyed by XVarInteger, whose hashCode is
-		// the identity hash, so the branching order used to change from one JVM to
-		// the next and node counts were not reproducible. Sorting by variable id
-		// makes a run depend only on the model and the heuristic, which is what a
-		// paired comparison of counting routines needs. See IMPLEMENTATION_LOG.md.
-		IntVar[] vars = searchVars();
-		/* */
-
-		// 2026-08-18: a constraint-free instance (seen from a pycsp3
-		// mis-compilation that emits variables but no constraints) leaves
-		// mapVar empty and used to crash the branching heuristics with an
-		// ArrayIndexOutOfBoundsException; fail with a diagnosis instead.
-		if (vars.length == 0) {
-			System.out.println("status: UNSUPPORTED");
-			Log.info("c no branching variables (constraint-free or unparsed instance); not searching");
-			return;
-		}
-
-		/*
-		// GP for branching, use all vars registered in solver, not only those appearing in the model
-		IntVar[] vars = new IntVar[minicp.getVariables().size()];
-		for (int i = 0; i < minicp.getVariables().size(); i++) {
-			vars[i] = minicp.getVariables().get(i);
-		}
-		*/
-
-		Search search = null;
-		switch (heuristic) {
-		case FFRV:
-			minicp.setMode(PropaMode.SP);
-			search = makeSearch(firstFailRandomVal(vars));
-			break;
-		case MXMS:
-			search = makeSearch(maxMarginalStrength(vars));
-			break;
-		case MXM:
-			search = makeSearch(maxMarginal(vars));
-			break;
-		case MNMS:
-			search = makeSearch(minMarginalStrength(vars));
-			break;
-		case MNM:
-			search = makeSearch(minMarginal(vars));
-			break;
-		case MNE:
-			search = makeSearch(minEntropy(vars));
-			break;
-		case MNERTB:
-			// probe N (BP_PROBE_PROTOCOL amendments 10/10a): min entropy with a
-			// uniform random tie-break among variables whose entropy agrees to
-			// 2 decimals. Seed it with -Dminicpbp.seed; absent that property the
-			// solver RNG is new Random() and the run is unreproducible.
-			// NOTE: minEntropyRandomTieBreak does not call setBranchingOrder, so
-			// stopRule=decision would sample the deterministic heuristic's
-			// decision. Ship-stop arms only until that is fixed.
-			search = makeSearch(minEntropyRandomTieBreak(vars));
-			break;
-		case IE:
-			search = makeSearch(impactEntropy(vars));
-			if(XCSP.initImpact)
-				search.initializeImpact(vars);
-			break;
-		case IBS:
-			minicp.setMode(PropaMode.SP);
-			search = makeSearch(impactBasedSearch(vars));
-			search.initializeImpactDomains(vars);
-			nbFailCutof = nbFailCutof*vars.length;
-			break;
-		case MIE:
-			search = makeDfs(minicp, minEntropyRegisterImpact(vars),impactEntropy(vars));
-			if(XCSP.initImpact)
-				search.initializeImpact(vars);
-			break;
-		case MNEBW:
-			search = makeSearch(minEntropyBiasedWheelSelectVal(vars));
-			break;
-		case WDEG:
-			// -Dexp.forceSBP=true keeps belief propagation ON under the
-			// deterministic dom/wdeg tree (BP_COST_PROFILE.md Part 0). BP never
-			// removes a value (MiniCP.actOnZeroOneBelief=false), so SP and SBP
-			// explore a byte-identical tree and the wall-clock difference is
-			// exactly the price of BP. Default unchanged (SP).
-			minicp.setMode(Boolean.getBoolean("exp.forceSBP") ? PropaMode.SBP : PropaMode.SP);
-			search = makeSearch(domWdeg(vars));
-			nbFailCutof = nbFailCutof*vars.length;
-			break;
-		case WDEGCNT:
-			// amendment A5 (MDD_COUNTING_PLAN.md §6.3): SP mode, no BP; the value
-			// comes from the incident ValueCounter constraints (Cumulative)
-			minicp.setMode(PropaMode.SP);
-			search = makeSearch(domWdegCountValue(vars));
-			nbFailCutof = nbFailCutof*vars.length;
-			break;
-		case WDEGRV:
-			// N7 (VALUE_ISOLATION_EXPERIMENT.md, W4): the unbiased value-rule
-			// control. Same variable rule as WDEG and WDEGMXM, same PropaMode.SP
-			// and the same nbFailCutof scaling as WDEG, so the ONLY difference
-			// from the dom-wdeg baseline is xs.randomValue() in place of
-			// xs.min(). Seeded: pass -Dminicpbp.seed or the run is
-			// unreproducible.
-			minicp.setMode(PropaMode.SP);
-			search = makeSearch(domWdegRandomValue(vars));
-			nbFailCutof = nbFailCutof*vars.length;
-			break;
-		case WDEGMXM:
-			// probe O (BP_PROBE_PROTOCOL amendment 11): dom/wdeg variable
-			// selection with max-marginal value selection. BP mode is left ON
-			// deliberately — BP's only job here is the branched variable's
-			// marginal (value selection); variable selection needs no BP.
-			// No nbFailCutof scaling: LDS/DFS only, no restart path uses it.
-			search = makeSearch(domWdegMaxMarginalValue(vars));
-			break;
-		default:
-			Log.info("unknown search strategy");
-			System.exit(1);
-		}
-
-		if (checkSolution || (solFileStr != ""))
-			extractSolutionStr = true;
-
-		search.onSolution(() -> {
-			foundSolution = true;
-			if (extractSolutionStr) {
-				solutionStr = instantiationString(false);
-			}
-			if(competitionOutput) {
-				solutionStr = instantiationString(true);
-			}
-			// GP: printing each solution
-//			Log.info("SOLN:"+solutionStr);
-		});
-
-		SearchStatistics stats;
-		if(!restart) {
-			stats = search.solve(ss -> {
-				return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
-				// GP; print all solns
-//				return (System.currentTimeMillis() - t0 >= timeout * 1000);
-			});
-		}
-		else {
-			stats = search.solveRestarts(ss -> {
-				return (System.currentTimeMillis() - t0 >= timeout * 1000 || foundSolution);
-			}, nbFailCutof, restartFactor);
-		}
-
-		if(!competitionOutput) {
-			if (foundSolution) {
-				if(competitionOutput) {}
-				Log.info("solution found");
-				if (checkSolution)
-					verifySolution();
-				printSolution(solFileStr);
-			} else
-				Log.info("no solution was found");
-
-			Long runtime = System.currentTimeMillis() - t0;
-			// 2026-08-19 LDS amendment: report the exact discrepancy of the
-			// solution path (-1 for DFS or when no solution was found).
-			int solutionDiscrepancy = (search instanceof LDSearch)
-					? ((LDSearch) search).solutionDiscrepancy() : -1;
-			// 2026-08-19 run-length accounting (TODO.md item 3): naive LDS
-			// re-expands the tree prefix each pass, so cumulative nodes are
-			// not comparable to a DFS tree size. Per-pass deltas
-			// (cap:nodes:failures:solutions) make total-expanded vs
-			// final-pass work distinguishable downstream.
-			String ldsPasses = (search instanceof LDSearch)
-					? ((LDSearch) search).passSummary() : "";
-			printStats(stats, statsFileStr, runtime, solutionDiscrepancy, ldsPasses);
-		}
-		else {
-			if(foundSolution) {
-				Log.info("s SATISFIABLE");
-				Log.info(solutionStr);
-				Log.info("c "+stats.numberOfFailures()+" backtracks");
-			}
-			else if(stats.isCompleted()) {
-				Log.info("s UNSATISFIABLE");
-				Log.info("c "+stats.numberOfFailures()+" backtracks");
-			}
-			else {
-				Log.info("s UNKNOWN");
-			}
-		}
-
-	}
-
-	/**
-	 * Amendment 10b (probe N phase 2): run an in-process dovetail over LDS
-	 * passes on the parsed model, instead of one JVM per pass. The model is
-	 * parsed and built once; {@link DovetailSearch} owns the pass schedule, the
-	 * per-pass configuration and the completion rule.
-	 *
-	 * Only the two min-entropy heuristics are accepted: the arms of this
-	 * experiment differ in BP configuration and in RNG seed, not in heuristic
-	 * family, and the heuristics that also flip the propagation mode (FFRV,
-	 * IBS, WDEG) have no meaning inside a BP dovetail.
-	 */
-	public DovetailSearch.Result solveDovetail(BranchingHeuristic heuristic,
-											  java.util.List<DovetailSearch.Arm> arms,
-											  int[] ladder, long globalBudgetMs,
-											  long calibBudgetMs, int maxPasses,
-											  String solFileStr) {
-		if (heuristic != BranchingHeuristic.MNE && heuristic != BranchingHeuristic.MNERTB)
-			throw new IllegalArgumentException("c solveDovetail supports min-entropy and "
-					+ "min-entropy-rtb only, not " + heuristic);
-		if (hasFailed) {
-			DovetailSearch.Result r = new DovetailSearch.Result();
-			r.status = "UNSAT";
-			r.decidingLabel = "root";
-			return r;
-		}
-		minicp.setTraceBPFlag(traceBP);
-		minicp.setTraceSearchFlag(traceSearch);
-		minicp.setTraceEntropyFlag(traceEntropy);
-
-		IntVar[] vars = searchVars();
-		if (vars.length == 0) {
-			DovetailSearch.Result r = new DovetailSearch.Result();
-			r.status = "UNSUPPORTED";
-			return r;
-		}
-		extractSolutionStr = true;
-
-		// A fresh search AND a fresh branching per pass: minEntropyRandomTieBreak
-		// captures the RNG and the branching flags at construction, so a reseed
-		// between passes is only visible to a heuristic built after it.
-		java.util.function.Supplier<LDSearch> factory = () -> {
-			Supplier<Procedure[]> branching = (heuristic == BranchingHeuristic.MNERTB)
-					? minEntropyRandomTieBreak(vars) : minEntropy(vars);
-			LDSearch s = makeLds(minicp, branching);
-			s.onSolution(() -> {
-				foundSolution = true;
-				solutionStr = instantiationString(false);
-			});
-			return s;
-		};
-
-		DovetailSearch.Result r = DovetailSearch.run(minicp, factory,
-				() -> foundSolution, arms, ladder, globalBudgetMs, calibBudgetMs, maxPasses);
-		if (foundSolution && solFileStr != null && !solFileStr.isEmpty())
-			printSolution(solFileStr);
-		return r;
-	}
-
-	private void verifySolution() {
+	public void verifySolution(String solutionStr) {
 		Log.info("verifying the solution (begin)");
 		try {
 			SolutionChecker checker = new SolutionChecker(false, fileName,
@@ -2749,24 +2322,14 @@ public class XCSP implements XCallbacks2 {
 		Log.info("verifying the solution (end)");
 	}
 
-	private void printSolution(String solFileStr) {
-		if (solFileStr != "")
-			try {
-				PrintWriter out = new PrintWriter(new File(solFileStr));
-				out.print(solutionStr);
-				out.close();
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-				Log.info("unable to create file " + solFileStr);
-				System.exit(1);
-			}
-	}
-
-	private void printStats(SearchStatistics stats, String statsFileStr, Long runtime, int solutionDiscrepancy, String ldsPasses) {
+	public void printStats(SearchStatistics stats, String statsFileStr, Long runtime, int solutionDiscrepancy, String ldsPasses) {
 		PrintStream out = null;
-		if (statsFileStr == "")
+		if (Objects.equals(statsFileStr, "")) {
+			if (competitionOutput) {
+				return;
+			}
 			out = System.out;
-		else
+		} else {
 			try {
 				out = new PrintStream(new File(statsFileStr));
 			} catch (FileNotFoundException e) {
@@ -2774,9 +2337,10 @@ public class XCSP implements XCallbacks2 {
 				Log.info("unable to create file " + statsFileStr);
 				System.exit(1);
 			}
+		}
 
 		String statusStr;
-		if (foundSolution)
+		if (stats.numberOfSolutions() > 0)
 			statusStr = "SAT";
 		else if (stats.isCompleted())
 			statusStr = "UNSAT";
@@ -2793,16 +2357,5 @@ public class XCSP implements XCallbacks2 {
 
 		out.close();
 
-	}
-
-	public static void main(String[] args) {
-		try {
-			XCSP xcsp = new XCSP(args[0]);
-			String solution = xcsp.solve(Integer.MAX_VALUE, 100);
-			List<String> violatedCtrs = xcsp.getViolatedCtrs(solution);
-			Log.info(violatedCtrs.toString());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 }
