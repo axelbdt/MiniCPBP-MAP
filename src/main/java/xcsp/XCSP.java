@@ -73,8 +73,6 @@ public class XCSP extends ModelFormatFrontend implements XCallbacks2 {
 
 	private final Set<IntVar> decisionVars = new LinkedHashSet<>();
 
-	private final Solver minicp = makeSolver();
-
 	// reified decomposition of intension expression trees (kept for the
 	// encapsulated Intension constraint, whose internal factor graph is by
 	// design the reified decomposition with a conditioned root Boolean)
@@ -236,6 +234,12 @@ public class XCSP extends ModelFormatFrontend implements XCallbacks2 {
 			sol.append(symbolName.get(x.min())).append(" ");
 		sol.append(competition ? "</values>\nv </instantiation>" : "\n\t</values>\n</instantiation>");
 		return sol.toString();
+	}
+
+	@Override
+	public void buildAnnotationDecision(XVarInteger[] list) {
+		decisionVars.clear();
+		Arrays.stream(list).map(mapVar::get).forEach(decisionVars::add);
 	}
 
 	// ================================================================
