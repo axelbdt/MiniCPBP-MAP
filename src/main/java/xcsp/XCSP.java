@@ -1219,51 +1219,7 @@ public class XCSP extends ModelFormatFrontend implements XCallbacks2 {
 		if (hasFailed)
 			return;
 		try {
-			IntVar[] xs = mapVarArray(list);
-			int minVal = xs[0].min();
-			int maxVal = xs[0].max();
-			for (IntVar x : xs) {
-				if (x.min() < minVal)
-					minVal = x.min();
-				if (x.max() > maxVal)
-					maxVal = x.max();
-			}
-			// Regular indexes its transition function by the RAW domain value
-			// and requires rows of width maxVal+1 (it asserts exactly that,
-			// but assertions are off at runtime, so a narrower row silently
-			// became an ArrayIndexOutOfBoundsException here on any instance
-			// whose values do not start at 0 -- every Mondoku).
-			// The rows must also cover a declared value that is in no domain
-			// (e.g. precedence over 1 2 3 on variables that can only take
-			// 1 or 2): it still needs its -1 entries, and its state is simply
-			// never reached.
-			for (int v : values)
-				if (v > maxVal)
-					maxVal = v;
-			for (int v : values)
-				if (v < minVal)
-					minVal = v;
-			if (minVal < 0)
-				throw new NotImplementedException("precedence over negative values: Regular indexes"
-						+ " its transition function by the raw value, so " + minVal + " has no row entry");
-			int[][] A = new int[values.length+1][maxVal+1];
-			// TODO: potentially wasteful in terms of space; define A over union of domains only
-			for (int i = 0; i <= values.length; i++) {
-				for (int j = 0; j <= maxVal; j++) {
-					A[i][j] = i; // loop by default
-				}
-				if (i < values.length) A[i][values[i]] = i+1; // first occurrence of values[i]
-				for (int j = i+1; j < values.length; j++) {
-					A[i][values[j]] = -1; // cannot be used yet
-				}
-			}
-			if (covered) {
-				List<Integer> f = new ArrayList<Integer>();
-				f.add(values.length);
-				minicp.post(regular(xs,A,f));
-			}else {
-				minicp.post(regular(xs,A));
-			}
+			minicp.post(precedence(mapVarArray(list), values, covered));
 		} catch (InconsistencyException e) {
 			hasFailed = true;
 		}

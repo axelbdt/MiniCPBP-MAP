@@ -140,6 +140,25 @@ public class constraintBuilder {
         minicp.post(Factory.or(array));
     }
 
+    public void makeBoolClauseReif(BoolVar[] as, BoolVar[] bs, BoolVar r) {
+        BoolVar[] literals = new BoolVar[as.length + bs.length];
+        System.arraycopy(as, 0, literals, 0, as.length);
+        for (int i = 0; i < bs.length; i++)
+            literals[as.length + i] = Factory.not(bs[i]);
+        if (literals.length == 0)
+            r.assign(false);
+        else
+            minicp.post(Factory.isOr(r, literals));
+    }
+
+    public void makeNValue(IntVar n, IntVar[] x) {
+        minicp.post(Factory.nValues(x, n));
+    }
+
+    public void makeValuePrecede(int[] values, IntVar[] x) {
+        minicp.post(Factory.precedence(x, values, false));
+    }
+
     public void makeBool2Int(BoolVar a, IntVar b) {
         minicp.post(Factory.equal(a, b));
     }

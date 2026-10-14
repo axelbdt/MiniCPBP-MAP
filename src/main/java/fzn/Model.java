@@ -601,9 +601,11 @@ public class Model {
                 builder.makeIntAbs(getIntVar(args.get(0)), getIntVar(args.get(1)));
                 break;
             case "maximum_int":  
+            case "array_int_maximum":
                 builder.makeMaximumInt(getIntVar(args.get(0)), getIntVarArray(args.get(1)));
                 break;
             case "minimum_int":  
+            case "array_int_minimum":
                 builder.makeMinimumInt(getIntVar(args.get(0)), getIntVarArray(args.get(1)));
                 break;
             case "fzn_circuit_with_offset":
@@ -649,11 +651,32 @@ public class Model {
             case "minicpbp_disjunctive":
                 builder.makeDisjunctive(getIntVarArray(args.get(0)), getIntArray(args.get(1)));
                 break;
-            case "fzn_lex_less_int":
+            case "minicpbp_lex_less_int":
                 builder.makeLexLess(getIntVarArray(args.get(0)), getIntVarArray(args.get(1)));
                 break;
-            case "fzn_lex_lesseq_int":
+            case "minicpbp_lex_lesseq_int":
                 builder.makeLexLesseq(getIntVarArray(args.get(0)), getIntVarArray(args.get(1)));
+                break;
+            case "minicpbp_lex_less_bool":
+                builder.makeLexLess(getBoolVarArray(args.get(0)), getBoolVarArray(args.get(1)));
+                break;
+            case "minicpbp_lex_lesseq_bool":
+                builder.makeLexLesseq(getBoolVarArray(args.get(0)), getBoolVarArray(args.get(1)));
+                break;
+            case "minicpbp_count_eq":
+                builder.makeAmong(getIntVarArray(args.get(0)), new int[]{getInt(args.get(1))}, getIntVar(args.get(2)));
+                break;
+            case "minicpbp_nvalue":
+                builder.makeNValue(getIntVar(args.get(0)), getIntVarArray(args.get(1)));
+                break;
+            case "minicpbp_table_bool":
+                builder.makeTable(getBoolVarArray(args.get(0)), boolsToInts(getBoolArray(args.get(1))));
+                break;
+            case "minicpbp_value_precede":
+                builder.makeValuePrecede(getIntArray(args.get(0)), getIntVarArray(args.get(1)));
+                break;
+            case "bool_clause_reif":
+                builder.makeBoolClauseReif(getBoolVarArray(args.get(0)), getBoolVarArray(args.get(1)), getBoolVar(args.get(2)));
                 break;
             default:
                 throw new NotImplementedException("Constraint : " + name);
@@ -700,6 +723,13 @@ public class Model {
         }
         sol.append("----------\n");
         return sol.toString();
+    }
+
+    private static int[] boolsToInts(boolean[] bs) {
+        int[] is = new int[bs.length];
+        for (int i = 0; i < bs.length; i++)
+            is[i] = bs[i] ? 1 : 0;
+        return is;
     }
 
     private static String outputValue(IntVar x, boolean isBool) {
