@@ -54,6 +54,9 @@ public class StateStack<E> {
     }
 
     public E get(int index) {
+        if (index >= size.value()) {
+            throw new IndexOutOfBoundsException();
+        }
         return stack.get(index);
     }
 
