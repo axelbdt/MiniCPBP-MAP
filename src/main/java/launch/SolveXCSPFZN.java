@@ -161,6 +161,10 @@ public class SolveXCSPFZN {
 			return;
 		}
 		frontend.initModel();
+		if (frontend.hasFailed()) {
+			earlyReturnSummary.run();
+			return;
+		}
 
 		IntVar[] decisionsVars = frontend.getDecisionVars();
 
@@ -360,13 +364,17 @@ public class SolveXCSPFZN {
 	public void solve() {
 		ModelFormatFrontend frontend;
 		try {
-			Log.info(inputStr.substring(inputStr.lastIndexOf('.')+1));
-			if(inputStr.substring(inputStr.lastIndexOf('.')+1).equals("fzn")) {
+			String extension = inputStr.substring(inputStr.lastIndexOf('.')+1);
+			if(extension.equals("fzn")) {
+				// stdout is parsed by MiniZinc's solns2out: no banner line and
+				// no optimization trace between solutions
+				Log.setTraceOptimization(false);
 				FZN fzn = new FZN(minicp, inputStr);
 				fzn.printStats(true);
 				frontend = fzn;
 			}
 			else {
+				Log.info(extension);
 				System.out.println("XCSP");
 				frontend = new XCSP(minicp, inputStr);
 			}

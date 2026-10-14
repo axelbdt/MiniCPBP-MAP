@@ -1128,13 +1128,14 @@ public final class Factory {
     }
 
     public static Constraint element(IntVar[] array, IntVar y, IntVar z) {
-        IntVar[] vars = Arrays.copyOf(array, array.length + 2);
+        // IntVar[].class: array may be a BoolVar[], and y, z need not be BoolVars
+        IntVar[] vars = Arrays.copyOf(array, array.length + 2, IntVar[].class);
         vars[array.length] = y;
         vars[array.length + 1] = z;
         return new Element1DVar(array, y, z, vars);
     }
     public static Constraint element(IntVar[] array, IntVar y, int v) {
-        IntVar[] vars = Arrays.copyOf(array, array.length + 1);
+        IntVar[] vars = Arrays.copyOf(array, array.length + 1, IntVar[].class);
         vars[array.length] = y;
         IntVar z = makeIntVar(y.getSolver(), v, v);
         return new Element1DVar(array, y, z, vars);

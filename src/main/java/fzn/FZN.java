@@ -12,6 +12,7 @@ import java.util.*;
 
 import fzn.parser.FZParser;
 import fzn.parser.intermediatemodel.*;
+import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.NotImplementedException;
 
 import minicpbp.util.Log;
@@ -37,7 +38,12 @@ public class FZN extends ModelFormatFrontend {
 		m.addSolver(minicp);
 
 		//build the model from the Flatzinc file
-		m.buildModel();
+		try {
+			m.buildModel();
+		} catch (InconsistencyException e) {
+			// root propagation proved the model unsatisfiable
+			hasFailed = true;
+		}
 	}
 
 	public String getSolutionStr(boolean extractSolutionStr) {

@@ -318,7 +318,7 @@ public class Model {
      */
     private boolean getBool(ASTLit lit) {
         // case where the literal is the value of the boolean
-        if(lit instanceof ASTInt) {
+        if(lit instanceof ASTBool) {
             boolean valeur = ((ASTBool) lit).getValue();
             return valeur;
         }
@@ -516,6 +516,21 @@ public class Model {
             case "bool_le":  
                 builder.makeBoolLe(getBoolVar(args.get(0)),getBoolVar(args.get(1)));
                 break; 
+            case "bool_eq_reif":
+                builder.makeIntEqReif(getBoolVar(args.get(0)), getBoolVar(args.get(1)), getBoolVar(args.get(2)));
+                break;
+            case "bool_le_reif":
+                builder.makeIntLeReif(getBoolVar(args.get(0)), getBoolVar(args.get(1)), getBoolVar(args.get(2)));
+                break;
+            case "bool_lt_reif":
+                builder.makeIntLtReif(getBoolVar(args.get(0)), getBoolVar(args.get(1)), getBoolVar(args.get(2)));
+                break;
+            case "bool_lin_eq":
+                builder.makeBoolLinEq(getIntArray(args.get(0)), getBoolVarArray(args.get(1)), getIntVar(args.get(2)));
+                break;
+            case "bool_lin_le":
+                builder.makeIntLinLe(getIntArray(args.get(0)), getBoolVarArray(args.get(1)), getInt(args.get(2)));
+                break;
             case "bool_not":  
                 builder.makeBoolNot(getBoolVar(args.get(0)),getBoolVar(args.get(1)));
                 break;
@@ -603,7 +618,10 @@ public class Model {
             case "set_in":
                 builder.makeSetIn(getIntVar(args.get(0)), getSetInt(args.get(1)));
                 break;
-            case "fzn_table_int":
+            case "set_in_reif":
+                builder.makeSetInReif(getIntVar(args.get(0)), getSetInt(args.get(1)), getBoolVar(args.get(2)));
+                break;
+            case "minicpbp_table_int":
                 builder.makeTable(getIntVarArray(args.get(0)), getIntArray(args.get(1)));
                 break;
             case "fzn_inverse_with_offset":
@@ -636,9 +654,10 @@ public class Model {
         for(Map.Entry<String, ASTLit> entry : outputVars.entrySet()) {
             String var = entry.getKey();
             ASTLit ann = entry.getValue();
+            boolean isBool = declDict.get(var).getType().getDataType() == ASTConstants.BOOL;
             if(ann instanceof ASTId) {
-                IntVar x = varDict.get(var);
-                sol.append(x.getName() + " = " + x.min()+";\n");
+                IntVar x = isBool ? getBoolVar(new ASTId(var)) : getIntVar(new ASTId(var));
+                sol.append(var + " = " + outputValue(x, isBool) + ";\n");
             }
             else {
                 ASTAnnotation annot = (ASTAnnotation) ann;
@@ -650,14 +669,20 @@ public class Model {
                 for(ASTLit elem : dimensions.getElems())
                     sol.append(elem.toString() + ", ");
                 sol.append("[");
-                IntVar array[] = getIntVarArray(declDict.get(var).getExpr());
-                for(int i = 0; i < array.length-1; i++) 
-                    sol.append(array[i].min() + ", ");
-                    //Log.constraint(array[i].getName());
-                sol.append(array[array.length-1].min() + "]);\n");
+                ASTLit expr = declDict.get(var).getExpr();
+                IntVar array[] = isBool ? getBoolVarArray(expr) : getIntVarArray(expr);
+                for(int i = 0; i < array.length; i++)
+                    sol.append((i > 0 ? ", " : "") + outputValue(array[i], isBool));
+                sol.append("]);\n");
             }
         }
         sol.append("----------\n");
         return sol.toString();
+    }
+
+    private static String outputValue(IntVar x, boolean isBool) {
+        if (isBool)
+            return x.min() == 1 ? "true" : "false";
+        return Integer.toString(x.min());
     }
 }

@@ -253,6 +253,20 @@ public class constraintBuilder {
         x.removeOutside(s);
     }
 
+    public void makeSetInReif(IntVar x, Set<Integer> s, BoolVar r) {
+        // r <-> x in s, as a binary table over (x, r): one tuple per value of x
+        int[] dom = new int[x.size()];
+        x.fillArray(dom);
+        int[][] tuples = new int[dom.length][];
+        for (int i = 0; i < dom.length; i++)
+            tuples[i] = new int[]{dom[i], s.contains(dom[i]) ? 1 : 0};
+        minicp.post(Factory.table(new IntVar[]{x, r}, tuples));
+    }
+
+    public void makeBoolLinEq(int[] as, BoolVar[] bs, IntVar c) {
+        minicp.post(Factory.equal(Factory.sum(as, bs), c));
+    }
+
     public void makeTable(IntVar[] x, int[] t) {
         int t2D[][] = new int[t.length/x.length][x.length];
         for(int i = 0; i < t2D.length; i ++) 
