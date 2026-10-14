@@ -627,6 +627,28 @@ public class Model {
             case "fzn_inverse_with_offset":
                 builder.makeInverse(getIntVarArray(args.get(0)), getIntVarArray(args.get(1)), getInt(args.get(2)));
                 break;
+            case "minicpbp_regular":
+                builder.makeRegular(getIntVarArray(args.get(0)), getInt(args.get(1)), getInt(args.get(2)),
+                        getIntArray(args.get(3)), getInt(args.get(4)), getSetInt(args.get(5)));
+                break;
+            case "minicpbp_bin_packing":
+                builder.makeBinPacking(getInt(args.get(0)), getIntVarArray(args.get(1)), getIntArray(args.get(2)));
+                break;
+            case "minicpbp_bin_packing_capa":
+                builder.makeBinPackingCapa(getIntArray(args.get(0)), getIntVarArray(args.get(1)),
+                        getIntArray(args.get(2)), getInt(args.get(3)));
+                break;
+            case "minicpbp_bin_packing_load":
+                builder.makeBinPackingLoad(getIntVarArray(args.get(0)), getIntVarArray(args.get(1)),
+                        getIntArray(args.get(2)), getInt(args.get(3)));
+                break;
+            case "minicpbp_cumulative":
+                builder.makeCumulative(getIntVarArray(args.get(0)), getIntArray(args.get(1)),
+                        getIntArray(args.get(2)), getInt(args.get(3)));
+                break;
+            case "minicpbp_disjunctive":
+                builder.makeDisjunctive(getIntVarArray(args.get(0)), getIntArray(args.get(1)));
+                break;
             case "fzn_lex_less_int":
                 builder.makeLexLess(getIntVarArray(args.get(0)), getIntVarArray(args.get(1)));
                 break;

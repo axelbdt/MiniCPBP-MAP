@@ -366,9 +366,10 @@ public class SolveXCSPFZN {
 		try {
 			String extension = inputStr.substring(inputStr.lastIndexOf('.')+1);
 			if(extension.equals("fzn")) {
-				// stdout is parsed by MiniZinc's solns2out: no banner line and
-				// no optimization trace between solutions
+				// stdout is parsed by MiniZinc's solns2out: no banner line,
+				// no optimization trace between solutions, warnings on stderr
 				Log.setTraceOptimization(false);
+				Log.setWarningStream(System.err);
 				FZN fzn = new FZN(minicp, inputStr);
 				fzn.printStats(true);
 				frontend = fzn;

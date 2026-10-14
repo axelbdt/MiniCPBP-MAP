@@ -52,6 +52,7 @@ fail=0
 for m in "${models[@]}"; do
   name="$(basename "$m" .mzn)"
   problems=()
+  note=
 
   if ! "$MINIZINC" --solver "$SOLVER" -c "$m" --fzn "$TMP/$name.fzn" --ozn "$TMP/$name.ozn" \
        --output-mode dzn --output-objective >"$TMP/$name.compile" 2>&1; then
@@ -83,12 +84,13 @@ for m in "${models[@]}"; do
         mine="$(grep '^_objective' "$out" | tail -1)"
         ref="$("$MINIZINC" --solver "$REF_SOLVER" "$m" --output-mode dzn --output-objective | grep '^_objective' | tail -1)"
         [ "$mine" = "$ref" ] || problems+=("optimum $mine, $REF_SOLVER says $ref")
+        note=" (optimum $(echo "${mine#_objective = }" | tr -d ";"))"
       fi
     fi
   fi
 
   if [ ${#problems[@]} -eq 0 ]; then
-    echo "ok   $name"
+    echo "ok   $name$note"
   else
     fail=1
     for p in "${problems[@]}"; do echo "FAIL $name: $p"; done

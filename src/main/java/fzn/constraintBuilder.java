@@ -8,6 +8,10 @@ import minicpbp.util.exception.NotImplementedException;
 import minicpbp.engine.core.Solver;
 
 
+import minicpbp.util.exception.InconsistencyException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 
@@ -231,6 +235,60 @@ public class constraintBuilder {
 
     public void makeCumulative(IntVar[] start, int[] duration, int[] demand, int capa) {
         minicp.post(Factory.cumulative(start, duration, demand, capa));
+    }
+
+    /**
+     * FlatZinc regular: states 1..Q, symbols 1..S, d row-major Q x S with
+     * 0 as the failure state. MiniCPBP's Regular wants 0-based states and
+     * symbols and a negative entry for a missing transition.
+     */
+    public void makeRegular(IntVar[] x, int Q, int S, int[] d, int q0, Set<Integer> F) {
+        IntVar[] symbols = new IntVar[x.length];
+        for (int i = 0; i < x.length; i++) {
+            x[i].removeBelow(1);
+            x[i].removeAbove(S);
+            symbols[i] = Factory.minus(x[i], 1);
+        }
+        int[][] A = new int[Q][S];
+        for (int q = 0; q < Q; q++)
+            for (int s = 0; s < S; s++)
+                A[q][s] = d[q * S + s] - 1;
+        List<Integer> finals = new ArrayList<>();
+        for (int q : F)
+            if (q >= 1 && q <= Q)
+                finals.add(q - 1);
+        minicp.post(Factory.regular(symbols, A, q0 - 1, finals));
+    }
+
+    /** bin_packing: bins are the values the bin variables can take; every load is at most c. */
+    public void makeBinPacking(int c, IntVar[] bin, int[] w) {
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        for (IntVar b : bin) {
+            lo = Math.min(lo, b.min());
+            hi = Math.max(hi, b.max());
+        }
+        int[] capa = new int[hi - lo + 1];
+        Arrays.fill(capa, c);
+        makeBinPackingCapa(capa, bin, w, lo);
+    }
+
+    /** bin_packing_capa: bin j (counting from firstBin) has capacity c[j]. */
+    public void makeBinPackingCapa(int[] c, IntVar[] bin, int[] w, int firstBin) {
+        IntVar[] load = new IntVar[c.length];
+        for (int j = 0; j < c.length; j++) {
+            if (c[j] < 0)
+                throw InconsistencyException.INCONSISTENCY;
+            load[j] = Factory.makeIntVar(minicp, 0, c[j]);
+        }
+        makeBinPackingLoad(load, bin, w, firstBin);
+    }
+
+    /** bin_packing_load: load[j] is the weight in bin j (counting from firstBin). */
+    public void makeBinPackingLoad(IntVar[] load, IntVar[] bin, int[] w, int firstBin) {
+        IntVar[] b = new IntVar[bin.length];
+        for (int i = 0; i < bin.length; i++)
+            b[i] = Factory.minus(bin[i], firstBin);
+        minicp.post(Factory.binPacking(b, w, load));
     }
 
     public void makeIntTimes(IntVar a, IntVar b, IntVar c) {

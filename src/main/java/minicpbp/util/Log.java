@@ -29,6 +29,7 @@ public final class Log {
 
     private static PrintStream out = System.out;
     private static PrintStream err = System.err;
+    private static PrintStream warn = System.out;
 
     private Log() {} // utility class, no instantiation
 
@@ -255,7 +256,15 @@ public final class Log {
      * Warning output (always printed, prefixed with "c Warning: ").
      */
     public static void warn(String msg) {
-        out.println("c Warning: " + msg);
+        warn.println("c Warning: " + msg);
+    }
+
+    /**
+     * Redirects warnings, e.g. to stderr when stdout must carry solver
+     * protocol output only (FlatZinc).
+     */
+    public static void setWarningStream(PrintStream stream) {
+        warn = stream;
     }
 
     /**
