@@ -4,9 +4,14 @@
   "description": "MiniCPBP FlatZinc executable",
   "version": "1.0",
   "mznlib": "src/main/java/fzn/mzn_lib",
-  "executable": "fzn-minicpbp",
-  "tags": ["cp"],
-  "stdFlags": ["-i","-f"],
+  "executable": "./fzn-minicpbp",
+  "tags": ["cp", "int"],
+  "stdFlags": ["-i", "-f", "-r", "-s", "-t"],
+  "extraFlags": [
+    ["--branching", "Branching heuristic (min-entropy, max-marginal, dom-wdeg, first-fail-random-value, ...)", "string", "min-entropy"],
+    ["--search-type", "Tree search", "opt:dfs:lds", "dfs"],
+    ["--max-iter", "Maximum number of belief propagation iterations", "int", "10"]
+  ],
   "supportsMzn": false,
   "supportsFzn": true,
   "needsSolns2Out": true,

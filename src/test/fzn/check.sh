@@ -2,8 +2,8 @@
 # End-to-end check of the FlatZinc front end.
 #
 # Each model in models/ (or each model given as argument) is compiled with
-# MiniCPBP's mzn_lib, the .fzn file (with MiniZinc's comment header) is solved
-# by MiniCPBP, its output goes through MiniZinc's solns2out, and the solution is
+# minicpbp.msc, the .fzn file (with MiniZinc's comment header) is solved by
+# fzn-minicpbp, its output goes through MiniZinc's solns2out, and the solution is
 # verified by a reference solver: the solution is passed back as data, so the
 # reference solver must find the model satisfiable with those values fixed.
 # Optimization models proven optimal by MiniCPBP must match the reference
@@ -18,14 +18,14 @@
 #
 # Environment:
 #   MINIZINC     minizinc executable (default: minizinc)
-#   MINICPBP_CP  classpath for the solver (default: target/minicpbp-1.0.jar)
+#   MINICPBP_CP  classpath for the solver (default: target/minicpbp-1.0.jar),
+#                read by fzn-minicpbp
 #   REF_SOLVER   reference solver id (default: gecode)
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MCP="$(cd "$HERE/../../.." && pwd)"
 MINIZINC="${MINIZINC:-minizinc}"
-MINICPBP_CP="${MINICPBP_CP:-$MCP/target/minicpbp-1.0.jar}"
 REF_SOLVER="${REF_SOLVER:-gecode}"
 
 command -v "$MINIZINC" >/dev/null || { echo "minizinc not found (set MINIZINC)"; exit 2; }
@@ -33,18 +33,7 @@ command -v "$MINIZINC" >/dev/null || { echo "minizinc not found (set MINIZINC)";
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-cat > "$TMP/fzn-minicpbp" <<WRAP
-#!/usr/bin/env bash
-exec java -cp "$MINICPBP_CP" launch.SolveXCSPFZN --input "\${!#}" --branching min-entropy --search-type dfs --timeout 60
-WRAP
-chmod +x "$TMP/fzn-minicpbp"
-cat > "$TMP/minicpbp.msc" <<MSC
-{"id": "org.minicpbp.check", "name": "MiniCPBP (check)", "version": "1.0",
- "mznlib": "$MCP/src/main/java/fzn/mzn_lib", "executable": "$TMP/fzn-minicpbp",
- "tags": ["cp", "int"], "stdFlags": [], "supportsMzn": false, "supportsFzn": true,
- "needsSolns2Out": true}
-MSC
-SOLVER="$TMP/minicpbp.msc"
+SOLVER="$MCP/minicpbp.msc"
 
 if [ $# -gt 0 ]; then models=("$@"); else models=("$HERE"/models/*.mzn); fi
 
@@ -65,7 +54,7 @@ for m in "${models[@]}"; do
 
   if [ ${#problems[@]} -eq 0 ]; then
     out="$TMP/$name.out"
-    "$TMP/fzn-minicpbp" "$TMP/$name.fzn" >"$TMP/$name.raw" 2>"$TMP/$name.err"
+    "$MCP/fzn-minicpbp" -t 60000 "$TMP/$name.fzn" >"$TMP/$name.raw" 2>"$TMP/$name.err"
     if [ $? -ne 0 ] || grep -q 'Exception' "$TMP/$name.err" \
        || ! "$MINIZINC" --ozn-file "$TMP/$name.ozn" <"$TMP/$name.raw" >"$out" 2>>"$TMP/$name.err"; then
       problems+=("solver failed: $(grep -v '_JAVA_OPTIONS' "$TMP/$name.err" | head -3 | tr '\n' ' ')")

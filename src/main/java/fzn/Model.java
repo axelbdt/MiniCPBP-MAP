@@ -54,6 +54,9 @@ public class Model {
 
     private final Map<String,ASTLit> outputVars = new HashMap<>(); 
 
+    //variables of the search annotations, in annotation order
+    private final Set<IntVar> searchVars = new LinkedHashSet<>();
+
     private boolean acceptAnyCstr;
 
     public Model(boolean acceptAnyCstr) {
@@ -92,9 +95,33 @@ public class Model {
         if(type != ASTSolve.SAT) {
             objective = getIntVar(solve.getExpr());
         }
-        //annotations are not used, because search parameters such as heuristic or search-type
-        //are given by the user with the SolveXCSPFZN interface
-        //ArrayList<ASTLit> anns =  solve.getAnns();
+        //only the variables of the search annotations are used: the heuristic
+        //and search type are given by the user with the SolveXCSPFZN interface
+        collectSearchVars(solve.getAnns());
+    }
+
+    private void collectSearchVars(List<ASTLit> anns) {
+        for (ASTLit ann : anns) {
+            if (!(ann instanceof ASTAnnotation))
+                continue;
+            ASTAnnotation a = (ASTAnnotation) ann;
+            switch (a.getId().getValue()) {
+                case "seq_search":
+                    collectSearchVars(((ASTArray) a.getArgs().get(0)).getElems());
+                    break;
+                case "int_search":
+                    searchVars.addAll(Arrays.asList(getIntVarArray(a.getArgs().get(0))));
+                    break;
+                case "bool_search":
+                    searchVars.addAll(Arrays.asList(getBoolVarArray(a.getArgs().get(0))));
+                    break;
+                default: // set, float, warm start and restart annotations are ignored
+            }
+        }
+    }
+
+    public IntVar[] getSearchVars() {
+        return searchVars.toArray(new IntVar[0]);
     }
 
     /**
