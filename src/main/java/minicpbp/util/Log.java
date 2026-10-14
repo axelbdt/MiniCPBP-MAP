@@ -29,7 +29,7 @@ public final class Log {
 
     private static PrintStream out = System.out;
     private static PrintStream err = System.err;
-    private static PrintStream warn = System.out;
+    private static PrintStream warn = null; // null: same stream as info output
 
     private Log() {} // utility class, no instantiation
 
@@ -256,7 +256,7 @@ public final class Log {
      * Warning output (always printed, prefixed with "c Warning: ").
      */
     public static void warn(String msg) {
-        warn.println("c Warning: " + msg);
+        (warn != null ? warn : out).println("c Warning: " + msg);
     }
 
     /**
