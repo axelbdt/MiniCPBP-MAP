@@ -19,7 +19,9 @@
  *                then root-to-leaves, with dirty gating and early exit. Two
  *                passes are exact wherever the graph is acyclic, and on a
  *                cyclic component the order leaves one stale message per
- *                independent cycle, which is the minimum
+ *                independent cycle, which is the minimum. Under
+ *                rootAtDecision the last pass is always inward, toward the
+ *                decision variable (see ROOT_AT_DECISION, rootScope)
  *      residual  asynchronous priority scheduling on message residuals,
  *                seeded with the topo order
  *      inward    the collect half of topo, restricted to the decision
@@ -29,10 +31,13 @@
  *                exactly one marginal -- the one value selection reads --
  *                so it requires rootAtDecision (the root would otherwise be
  *                posting-order arbitrary) and a stop rule that does not
- *                read non-root marginals (fixed or decision). KNOWN COST:
- *                a wipeout in another component goes unseen, so UNSAT
- *                detection through problemEntropy()==0 is weakened by
- *                construction
+ *                read non-root marginals (fixed or decision). Other
+ *                components keep their entry marginals, so an all-zero
+ *                marginal there (a BP wipeout) is not produced. This
+ *                costs no UNSAT detection: actOnZeroOneBelief is false, so
+ *                no wipeout prunes or fails a node under any schedule, and
+ *                problemEntropy()==0 only ends the sweep loop once EVERY
+ *                unbound branching variable has zero entropy
  *  minicpbp.bp.warmStart  true | false  (default false)
  *                         keep the restored marginals/local beliefs when BP
  *                         is triggered instead of resetting them to uniform
@@ -219,8 +224,23 @@ public final class BPConfig {
      * decision consumes — the root's factors execute last and read fresh
      * messages from their whole component. Requires {@code schedule=topo}.
      * Default false: the order construction is untouched.
+     * <p>
+     * A rooted topo run serves one marginal, so it always ENDS on an inward
+     * pass: with a budget of K passes, pass i is inward iff K - i is even
+     * (odd K: in, out, ..., in; even K: out, in, ..., in), and the monitor --
+     * stop rule, entropy scan, traces -- runs only after inward passes (or
+     * once nothing is dirty). Unrooted topo keeps the odd-inward alternation.
      */
     public static final boolean ROOT_AT_DECISION;
+
+    /**
+     * {@code -Dminicpbp.bp.rootScope=all|component} (default all). Under
+     * rootAtDecision, {@code component} restricts every pass to the decision
+     * variable's component, order[0..rootComponentEnd): no message from
+     * another component can reach the root's marginal. Requires
+     * rootAtDecision.
+     */
+    public static final boolean ROOT_SCOPE_COMPONENT;
 
     static {
         SCHEDULE = Schedule.valueOf(System.getProperty("minicpbp.bp.schedule", "flood").toUpperCase());
@@ -281,13 +301,20 @@ public final class BPConfig {
         // one marginal the pass is built to serve would sit mid-tree
         if (SCHEDULE == Schedule.INWARD && !ROOT_AT_DECISION)
             throw new IllegalStateException("c schedule=inward requires -Dminicpbp.bp.rootAtDecision=true");
-        // one inward pass leaves every non-root marginal half-updated (fresh
-        // from its subtree side only), so a stop rule that reads them --
-        // shipped's smallestVariableEntropy, converge's marginalMovement --
-        // would be measuring garbage rather than the schedule
-        if (SCHEDULE == Schedule.INWARD
+        String scope = System.getProperty("minicpbp.bp.rootScope", "all");
+        if (!scope.equals("all") && !scope.equals("component"))
+            throw new IllegalStateException("c minicpbp.bp.rootScope must be all or component, not " + scope);
+        ROOT_SCOPE_COMPONENT = scope.equals("component");
+        if (ROOT_SCOPE_COMPONENT && !ROOT_AT_DECISION)
+            throw new IllegalStateException("c rootScope=component requires -Dminicpbp.bp.rootAtDecision=true");
+        // a rooted run hands the monitor only post-inward states, in which
+        // every non-root marginal is half-updated (fresh from its subtree side
+        // only), so a stop rule that reads them -- shipped's
+        // smallestVariableEntropy, converge's marginalMovement -- would be
+        // measuring garbage rather than the schedule
+        if (ROOT_AT_DECISION
                 && STOP_RULE != StopRule.FIXED && STOP_RULE != StopRule.DECISION)
-            throw new IllegalStateException("c schedule=inward needs stopRule=fixed or decision, not "
+            throw new IllegalStateException("c rootAtDecision needs stopRule=fixed or decision, not "
                     + STOP_RULE + ": non-root marginals are half-updated and must not feed a stop rule");
         // Measurement-only (incremental-mechanism evaluation): skip the phase-3
         // residual arithmetic and return residual 0.0, which also suppresses
@@ -369,9 +396,9 @@ public final class BPConfig {
         // reach a configuration a JVM could not have been started in
         if (p.schedule == Schedule.INWARD && !ROOT_AT_DECISION)
             throw new IllegalStateException("c schedule=inward requires -Dminicpbp.bp.rootAtDecision=true");
-        if (p.schedule == Schedule.INWARD
+        if (ROOT_AT_DECISION && (p.schedule == Schedule.TOPO || p.schedule == Schedule.INWARD)
                 && p.stopRule != StopRule.FIXED && p.stopRule != StopRule.DECISION)
-            throw new IllegalStateException("c schedule=inward needs stopRule=fixed or decision, not "
+            throw new IllegalStateException("c rootAtDecision needs stopRule=fixed or decision, not "
                     + p.stopRule);
         boolean scheduleChanged = SCHEDULE != p.schedule;
         SCHEDULE = p.schedule;
@@ -403,6 +430,7 @@ public final class BPConfig {
                 + " stopRule=" + STOP_RULE
                 + " decisionRule=" + DECISION_RULE
                 + " rootAtDecision=" + ROOT_AT_DECISION
+                + " rootScope=" + (ROOT_SCOPE_COMPONENT ? "component" : "all")
                 + " leanMonitor=" + LEAN_MONITOR
                 + " convergeTol=" + CONVERGE_TOL
                 + " stableDecisionSweeps=" + STABLE_DECISION_SWEEPS

@@ -187,7 +187,7 @@ public class MiniCP implements Solver {
                     scheduler = new SequentialScheduler(bpGraph(), true);
                     break;
                 case TOPO:
-                    scheduler = new TopoScheduler(bpGraph());
+                    scheduler = new TopoScheduler(bpGraph(), minicpbp.util.BPConfig.ROOT_SCOPE_COMPONENT);
                     break;
                 case RESIDUAL:
                     scheduler = new ResidualScheduler(bpGraph());

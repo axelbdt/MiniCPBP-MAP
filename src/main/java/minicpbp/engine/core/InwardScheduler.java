@@ -23,9 +23,13 @@
  *   - non-root marginals are half-updated -- fresh from their subtree side
  *     only -- so the schedule refuses to run under a stop rule that reads
  *     them (shipped, converge); fixed and decision are allowed;
- *   - a wipeout in a component other than the root's goes unseen, weakening
- *     the problemEntropy() == 0 correctness stop by construction. This is a
- *     measured cost of the experiment, not an oversight;
+ *   - components other than the root's keep their entry marginals, so the
+ *     pass produces no all-zero marginal (BP wipeout) there. No UNSAT
+ *     detection is lost: actOnZeroOneBelief is false, so a wipeout prunes
+ *     nothing and fails no node under any schedule, and problemEntropy() == 0
+ *     (the mean normalised entropy of the unbound branching variables) only
+ *     ends the sweep loop early, and only once every such variable has zero
+ *     entropy. The effect is at most extra sweeps when maxSweeps > 1;
  *   - requires rootAtDecision: without the hint the root is posting-order
  *     arbitrary and the pass serves no particular marginal (BPGraph then
  *     reports the whole forest as the prefix, so behaviour degrades to a
