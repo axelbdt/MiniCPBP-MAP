@@ -24,20 +24,13 @@
  *                decision variable (see ROOT_AT_DECISION, rootScope)
  *      residual  asynchronous priority scheduling on message residuals,
  *                seeded with the topo order
- *      inward    the collect half of topo, restricted to the decision
- *                variable's component: one leaves-to-root pass over
- *                order[0..rootComponentEnd), nothing outward, other
- *                components never executed. Computes fresh information for
- *                exactly one marginal -- the one value selection reads --
- *                so it requires rootAtDecision (the root would otherwise be
- *                posting-order arbitrary) and a stop rule that does not
- *                read non-root marginals (fixed or decision). Other
- *                components keep their entry marginals, so an all-zero
- *                marginal there (a BP wipeout) is not produced. This
- *                costs no UNSAT detection: actOnZeroOneBelief is false, so
- *                no wipeout prunes or fails a node under any schedule, and
- *                problemEntropy()==0 only ends the sweep loop once EVERY
- *                unbound branching variable has zero entropy
+ *      inward    alias of topo + rootAtDecision + rootScope=component: every
+ *                pass restricted to the decision variable's component,
+ *                the last pass inward. Requires rootAtDecision and a stop
+ *                rule that does not read non-root marginals (fixed or
+ *                decision). At K=1 it is the former InwardScheduler bit for
+ *                bit; at K>1 it now alternates (even K starts outward)
+ *                instead of repeating inward passes
  *  minicpbp.bp.warmStart  true | false  (default false)
  *                         keep the restored marginals/local beliefs when BP
  *                         is triggered instead of resetting them to uniform

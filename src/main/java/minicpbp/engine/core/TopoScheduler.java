@@ -56,7 +56,8 @@
  * pass would execute nothing). An outward pass is kept only where it is
  * followed by a collect, whose stale inputs on cycles it refreshes.
  * {@code componentOnly} restricts every pass to the root's component,
- * order[0..rootComponentEnd), which nothing outside it can reach.
+ * order[0..rootComponentEnd), which nothing outside it can reach
+ * (rootScope=component, and schedule=inward, which is this mode's alias).
  */
 
 package minicpbp.engine.core;

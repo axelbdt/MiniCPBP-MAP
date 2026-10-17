@@ -92,7 +92,7 @@ final class BPGraph implements MarginalResync {
     /** end of the preferred root's component in {@link #order}: the factors in
      *  order[0..rootComponentEnd) are exactly that component when the hint was
      *  consumed, and rootComponentEnd == nFactors otherwise, so a prefix
-     *  iteration degrades to the whole forest. Consumed by the inward schedule */
+     *  iteration degrades to the whole forest. Consumed by rootScope=component */
     private int rootComponentEnd;
     private boolean[] frozen = new boolean[64];
     private boolean[] pruned = new boolean[64];
