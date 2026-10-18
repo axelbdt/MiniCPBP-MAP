@@ -38,6 +38,9 @@ public class NegTableCT extends AbstractConstraint {
     private double[][] beliefs;
     private BitSet menacing;
     private BitSet conflictsi;
+    // per-tuple prefix/suffix products for leave-one-out weights
+    private double[] tuplePrefix;
+    private double[] tupleSuffix;
     /**
      * Negative Table constraint.
      * <p>Assignment of {@code x_0=v_0, x_1=v_1,...} only valid if there does not
@@ -84,6 +87,8 @@ public class NegTableCT extends AbstractConstraint {
         this.tableLength = this.table.length;
         menacing = new BitSet(tableLength);
         conflictsi = new BitSet(tableLength);
+        tuplePrefix = new double[xLength + 1];
+        tupleSuffix = new double[xLength + 1];
 
         // Allocate conflicts and beliefs
         conflicts = new BitSet[xLength][];
@@ -168,28 +173,22 @@ public class NegTableCT extends AbstractConstraint {
             menacing.and(conflictsi);
         }
 
-        // Each tuple has its own weight given by the product of the outside_belief of its elements.
-        // Compute these products, but only for menacing tuples.
-        // At the same time, distribute these weights to the appropriate i,v pairs
+        // Leave-one-out weights of the menacing tuples from per-tuple
+        // prefix/suffix products, with no division (TableCT.updateBelief).
+        // The outside beliefs are not rescaled as in TableCT: complement()
+        // below relies on each position's beliefs summing to one. An underflow
+        // of the forbidden mass only overestimates the message, never zeroes it.
         for (int k = menacing.nextSetBit(0); k >= 0; k = menacing.nextSetBit(k + 1)) {
-            double tupleWeight = beliefRep.one();
+            tuplePrefix[0] = beliefRep.one();
+            for (int i = 0; i < xLength; i++)
+                tuplePrefix[i + 1] = beliefRep.multiply(tuplePrefix[i], outsideBelief(i, table[k][i]));
+            tupleSuffix[xLength] = beliefRep.one();
+            for (int i = xLength - 1; i >= 0; i--)
+                tupleSuffix[i] = beliefRep.multiply(outsideBelief(i, table[k][i]), tupleSuffix[i + 1]);
             for (int i = 0; i < xLength; i++) {
-                tupleWeight = beliefRep.multiply(tupleWeight, outsideBelief(i, table[k][i]));
-            }
-            for (int i = 0; i < xLength; i++) {
-                int j = table[k][i] - ofs[i];
-                if (!beliefRep.isZero(outsideBelief(i, table[k][i])))
-                    beliefs[i][j] = beliefRep.add(beliefs[i][j], beliefRep.divide(tupleWeight, outsideBelief(i, table[k][i])));
-                else { // Do we really need to handle the special case of null outside belief (division by zero)?
-                    double weight = beliefRep.one();
-                    for (int i2 = 0; i2 < i; i2++) {
-                        weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
-                    }
-                    for (int i2 = i + 1; i2 < xLength; i2++) {
-                        weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
-                    }
-                    beliefs[i][j] = beliefRep.add(beliefs[i][j], weight);
-                }
+                int idx = table[k][i] - ofs[i];
+                beliefs[i][idx] = beliefRep.add(beliefs[i][idx],
+                        beliefRep.multiply(tuplePrefix[i], tupleSuffix[i + 1]));
             }
         }
 

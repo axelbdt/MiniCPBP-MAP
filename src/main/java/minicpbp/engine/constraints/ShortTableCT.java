@@ -39,6 +39,13 @@ public class ShortTableCT extends AbstractConstraint {
     //supportedTuples is the set of tuples supported by the current domains of the variables
     private BitSet supportedTuples;
     private BitSet supporti;
+    // scratch for updateBelief (lazily allocated): per-position scaled outside
+    // beliefs, the scaled factor of a star at each position, and per-tuple
+    // prefix/suffix products for leave-one-out weights
+    private double[][] scaledBelief;
+    private double[] starFactor;
+    private double[] tuplePrefix;
+    private double[] tupleSuffix;
 
     /**
      * Create a Table constraint with short tuples.
@@ -146,35 +153,57 @@ public class ShortTableCT extends AbstractConstraint {
             supportedTuples.and(supporti);
         }
 
-        // Each tuple has its own weight given by the product of the outside_belief of its elements.
-        // Compute these products, but only for supported tuples.
-        // At the same time, distribute these weights to the appropriate i,v pairs
-        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
-            double tupleWeight = beliefRep.one();
-            for (int i = 0; i < xLength; i++) {
-                if (table[k][i] != star) // otherwise it is the "any" value and we would multiply by one
-                    tupleWeight = beliefRep.multiply(tupleWeight, outsideBelief(i, table[k][i]));
+        if (scaledBelief == null) {
+            scaledBelief = new double[xLength][];
+            for (int i = 0; i < xLength; i++)
+                scaledBelief[i] = new double[supports[i].length];
+            starFactor = new double[xLength];
+            tuplePrefix = new double[xLength + 1];
+            tupleSuffix = new double[xLength + 1];
+        }
+
+        // Same circuit as TableCT.updateBelief: scale each position's outside
+        // beliefs so their max is one (a per-position constant that the
+        // per-variable message normalization cancels) and take leave-one-out
+        // weights from per-tuple prefix/suffix products, with no division.
+        // A star stands for every domain value, so its factor is the sum of the
+        // position's beliefs: one before scaling, the same scaled sum after,
+        // which keeps the scale constant across starred and unstarred tuples.
+        for (int i = 0; i < xLength; i++) {
+            int s = x[i].fillArray(domainValues);
+            double mx = beliefRep.zero();
+            for (int j = 0; j < s; j++) {
+                double ob = outsideBelief(i, domainValues[j]);
+                if (ob > mx) mx = ob;
             }
+            starFactor[i] = beliefRep.zero();
+            for (int j = 0; j < s; j++) {
+                int v = domainValues[j];
+                double b = beliefRep.isZero(mx) ? beliefRep.zero() : beliefRep.divide(outsideBelief(i, v), mx);
+                scaledBelief[i][v - ofs[i]] = b;
+                starFactor[i] = beliefRep.add(starFactor[i], b);
+            }
+        }
+
+        // one pass over the supported tuples (every non-star position of a
+        // supported tuple is in the current domain by construction of supportedTuples)
+        for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
+            tuplePrefix[0] = beliefRep.one();
+            for (int i = 0; i < xLength; i++)
+                tuplePrefix[i + 1] = beliefRep.multiply(tuplePrefix[i], factor(k, i));
+            tupleSuffix[xLength] = beliefRep.one();
+            for (int i = xLength - 1; i >= 0; i--)
+                tupleSuffix[i] = beliefRep.multiply(factor(k, i), tupleSuffix[i + 1]);
             for (int i = 0; i < xLength; i++) {
+                double w = beliefRep.multiply(tuplePrefix[i], tupleSuffix[i + 1]);
                 if (table[k][i] != star) {
-                    int j = table[k][i] - ofs[i];
-                    if (!beliefRep.isZero(outsideBelief(i, table[k][i])))
-                        beliefs[i][j] = beliefRep.add(beliefs[i][j], beliefRep.divide(tupleWeight, outsideBelief(i, table[k][i])));
-                    else { // Do we really need to handle the special case of null outside belief (division by zero)?
-                        double weight = beliefRep.one();
-                        for (int i2 = 0; i2 < i; i2++) {
-                            weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
-                        }
-                        for (int i2 = i + 1; i2 < xLength; i2++) {
-                            weight = beliefRep.multiply(weight, outsideBelief(i2, table[k][i2]));
-                        }
-                        beliefs[i][j] = beliefRep.add(beliefs[i][j], weight);
-                    }
-                } else { // it's the "any" value: every domain value adds the weight and no need to divide by one
+                    int idx = table[k][i] - ofs[i];
+                    beliefs[i][idx] = beliefRep.add(beliefs[i][idx], w);
+                } else { // the "any" value: the tuple supports every domain value of x[i]
                     int s = x[i].fillArray(domainValues);
                     for (int j = 0; j < s; j++) {
-                        int jj = domainValues[j] - ofs[i];
-                        beliefs[i][jj] = beliefRep.add(beliefs[i][jj], tupleWeight);
+                        int idx = domainValues[j] - ofs[i];
+                        beliefs[i][idx] = beliefRep.add(beliefs[i][idx], w);
                     }
                 }
             }
@@ -187,6 +216,11 @@ public class ShortTableCT extends AbstractConstraint {
                 setLocalBelief(i, v, beliefs[i][v - ofs[i]]);
             }
         }
+    }
+
+    // scaled factor of tuple k at position i
+    private double factor(int k, int i) {
+        return table[k][i] == star ? starFactor[i] : scaledBelief[i][table[k][i] - ofs[i]];
     }
 
     @Override
