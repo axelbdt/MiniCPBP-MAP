@@ -39,15 +39,14 @@ public class TableCT extends AbstractConstraint {
     private int[] ofs; //offsets for each variable's domain
     //supports[i][v] is the set of tuples supported by x[i]=v
     private BitSet[][] supports;
+    //beliefs[i][v] is the accumulated weight of tuples supported by x[i]=v
+    private double[][] beliefs;
     //supportedTuples is the set of tuples supported by the current domains of the variables
     private BitSet supportedTuples;
     private BitSet supporti;
-    private double[] tupleWeight;
     // scratch for updateBelief (lazily allocated): per-position scaled outside
-    // beliefs, per-(position,value) message accumulators, and per-tuple
-    // prefix/suffix products for leave-one-out weights
+    // beliefs and per-tuple prefix/suffix products for leave-one-out weights
     private double[][] scaledBelief;
-    private double[][] acc;
     private double[] tuplePrefix;
     private double[] tupleSuffix;
 
@@ -77,15 +76,17 @@ public class TableCT extends AbstractConstraint {
         ofs = new int[xLength];
         supportedTuples = new BitSet(tableLength);
         supporti = new BitSet(tableLength);
-        tupleWeight = new double[tableLength];
 
-        // Allocate supports
+        // Allocate supports and beliefs
         supports = new BitSet[xLength][];
+        beliefs = new double[xLength][];
         for (int i = 0; i < xLength; i++) {
-            ofs[i] = x[i].min(); // offsets map the variables' domain to start at 0 for supports[][]
+            ofs[i] = x[i].min(); // offsets map the variables' domain to start at 0 for supports[][] and beliefs[][]
             supports[i] = new BitSet[x[i].max() - x[i].min() + 1];
-            for (int j = 0; j < supports[i].length; j++)
+            beliefs[i] = new double[x[i].max() - x[i].min() + 1];
+            for (int j = 0; j < supports[i].length; j++) {
                 supports[i][j] = new BitSet();
+            }
         }
 
         // Set values in supports, which contains all the tuples supported by each var-val pair
@@ -117,15 +118,17 @@ public class TableCT extends AbstractConstraint {
         ofs = new int[xLength];
         supportedTuples = new BitSet(tableLength);
         supporti = new BitSet(tableLength);
-        tupleWeight = new double[tableLength];
 
-        // Allocate supports
+        // Allocate supports and beliefs
         supports = new BitSet[xLength][];
+        beliefs = new double[xLength][];
         for (int i = 0; i < xLength; i++) {
-            ofs[i] = x[i].min(); // offsets map the variables' domain to start at 0 for supports[][]
+            ofs[i] = x[i].min(); // offsets map the variables' domain to start at 0 for supports[][] and beliefs[][]
             supports[i] = new BitSet[x[i].max() - x[i].min() + 1];
-            for (int j = 0; j < supports[i].length; j++)
+            beliefs[i] = new double[x[i].max() - x[i].min() + 1];
+            for (int j = 0; j < supports[i].length; j++) {
                 supports[i][j] = new BitSet();
+            }
         }
 
         // Set values in supports, which contains all the tuples supported by each var-val pair
@@ -189,24 +192,22 @@ public class TableCT extends AbstractConstraint {
         // Compute supportedTuples as
         // supportedTuples = (supports[0][x[0].min()] | ... | supports[0][x[0].max()] ) & ... &
         //                   (supports[x.length][x[0].min()] | ... | supports[x.length][x[0].max()] )
-        //
+        // Initialize beliefs as well.
         supportedTuples.set(0, tableLength); // set them all to true
         for (int i = 0; i < xLength; i++) {
             supporti.clear(); // set them all to false
             int s = x[i].fillArray(domainValues);
             for (int j = 0; j < s; j++) {
                 supporti.or(supports[i][domainValues[j] - ofs[i]]);
+                beliefs[i][domainValues[j] - ofs[i]] = beliefRep.zero();
             }
             supportedTuples.and(supporti);
         }
 
         if (scaledBelief == null) {
             scaledBelief = new double[xLength][];
-            acc = new double[xLength][];
-            for (int i = 0; i < xLength; i++) {
+            for (int i = 0; i < xLength; i++)
                 scaledBelief[i] = new double[supports[i].length];
-                acc[i] = new double[supports[i].length];
-            }
             tuplePrefix = new double[xLength + 1];
             tupleSuffix = new double[xLength + 1];
         }
@@ -233,7 +234,6 @@ public class TableCT extends AbstractConstraint {
                 scaledBelief[i][v - ofs[i]] = beliefRep.isZero(mx)
                         ? beliefRep.zero() : beliefRep.divide(outsideBelief(i, v), mx);
             }
-            java.util.Arrays.fill(acc[i], beliefRep.zero());
         }
 
         // one pass over the supported tuples (every position of a supported
@@ -247,7 +247,7 @@ public class TableCT extends AbstractConstraint {
                 tupleSuffix[i] = beliefRep.multiply(scaledBelief[i][table[k][i] - ofs[i]], tupleSuffix[i + 1]);
             for (int i = 0; i < xLength; i++) {
                 int idx = table[k][i] - ofs[i];
-                acc[i][idx] = beliefRep.add(acc[i][idx],
+                beliefs[i][idx] = beliefRep.add(beliefs[i][idx],
                         beliefRep.multiply(tuplePrefix[i], tupleSuffix[i + 1]));
             }
         }
@@ -256,7 +256,7 @@ public class TableCT extends AbstractConstraint {
             int s = x[i].fillArray(domainValues);
             for (int j = 0; j < s; j++) {
                 int v = domainValues[j];
-                setLocalBelief(i, v, acc[i][v - ofs[i]]);
+                setLocalBelief(i, v, beliefs[i][v - ofs[i]]);
             }
         }
     }
@@ -286,11 +286,11 @@ public class TableCT extends AbstractConstraint {
         // Each tuple has its own weight given by the product of the outside_belief of its elements.
         // Compute these products, but only for supported tuples.
         for (int k = supportedTuples.nextSetBit(0); k >= 0; k = supportedTuples.nextSetBit(k + 1)) {
-            tupleWeight[k] = beliefRep.one();
+            double tupleWeight = beliefRep.one();
             for (int i = 0; i < xLength; i++) {
-                tupleWeight[k] = beliefRep.multiply(tupleWeight[k], outsideBelief(i, table[k][i]));
+                tupleWeight = beliefRep.multiply(tupleWeight, outsideBelief(i, table[k][i]));
             }
-            weightedCount = beliefRep.add(weightedCount, tupleWeight[k]);
+            weightedCount = beliefRep.add(weightedCount, tupleWeight);
         }
         Log.constraint("weighted count for "+this.getName()+" constraint: "+weightedCount);
         return weightedCount;
