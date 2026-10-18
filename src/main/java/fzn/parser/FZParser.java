@@ -23,15 +23,22 @@ import fzn.Model;
 import minicpbp.util.exception.NotImplementedException;
 import minicpbp.util.Log;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FilterReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 
 public class FZParser {
 	public static Model readFlatZincModelFromFile(String fname, boolean acceptAnyCstr){
 		try{
 		//ANTLRInputStream input = new ANTLRInputStream(new FileInputStream(fname));
-		UnbufferedCharStream input = new UnbufferedCharStream(new FileInputStream(fname));
+		Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fname), StandardCharsets.UTF_8));
+		UnbufferedCharStream input = new UnbufferedCharStream(new CommentStrippingReader(reader));
 		return readFlatZincModel(input, acceptAnyCstr);
 		}catch(IOException e){
 	        Log.error("File " + fname + " not found. Aborting.");
@@ -40,7 +47,7 @@ public class FZParser {
 		return null;
 	}
 	public static Model readFlatZincModelFromString(String content, boolean acceptAnyCstr){
-		ANTLRInputStream input = new ANTLRInputStream(content);
+		UnbufferedCharStream input = new UnbufferedCharStream(new CommentStrippingReader(new StringReader(content)));
 		return readFlatZincModel(input, acceptAnyCstr);
 	}
 	public static Model readFlatZincModel(CharStream input, boolean acceptAnyCstr){
@@ -105,5 +112,64 @@ public class FZParser {
           System.exit(1);
 		}*/
 		//return null;
+	}
+
+	/**
+	 * Drops FlatZinc comments ('%' to end of line, outside string literals).
+	 * The generated lexer has no comment rule, and MiniZinc writes a comment
+	 * header into every .fzn file it produces.
+	 */
+	static final class CommentStrippingReader extends FilterReader {
+		private boolean inString = false;
+		private boolean escaped = false;
+		private boolean inComment = false;
+
+		CommentStrippingReader(Reader in) {
+			super(in);
+		}
+
+		@Override
+		public int read() throws IOException {
+			while (true) {
+				int c = in.read();
+				if (c == -1)
+					return -1;
+				if (inComment) {
+					if (c != '\n')
+						continue;
+					inComment = false;
+				} else if (inString) {
+					if (escaped)
+						escaped = false;
+					else if (c == '\\')
+						escaped = true;
+					else if (c == '"')
+						inString = false;
+				} else if (c == '"') {
+					inString = true;
+				} else if (c == '%') {
+					inComment = true;
+					continue;
+				}
+				return c;
+			}
+		}
+
+		@Override
+		public int read(char[] buf, int off, int len) throws IOException {
+			int n = 0;
+			while (n < len) {
+				int c = read();
+				if (c == -1)
+					return n == 0 ? -1 : n;
+				buf[off + n++] = (char) c;
+			}
+			return n;
+		}
+
+		@Override
+		public boolean markSupported() {
+			return false;
+		}
 	}
 }

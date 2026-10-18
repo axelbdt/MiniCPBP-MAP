@@ -44,6 +44,20 @@
  * initialisation semantics. MiniCPBP resets or warm-starts every message
  * uniformly at the start of an invocation and rebuilds the schedule per node,
  * so there is no initialisation choice left to optimise.
+ *
+ * Rooted mode (rootAtDecision)
+ * ----------------------------
+ * The alternation above serves convergence of ALL marginals. Rooted at the
+ * variable dom/wdeg will branch on, the schedule serves one marginal, and only
+ * an inward pass delivers it: on an acyclic component a single collect makes
+ * it exact, and an outward pass cannot change it. So a rooted run counts the
+ * parity from the END -- pass i of K is inward iff K - i is even -- and hands
+ * the monitor only post-inward states (or a quiescent one, where a further
+ * pass would execute nothing). An outward pass is kept only where it is
+ * followed by a collect, whose stale inputs on cycles it refreshes.
+ * {@code componentOnly} restricts every pass to the root's component,
+ * order[0..rootComponentEnd), which nothing outside it can reach
+ * (rootScope=component, and schedule=inward, which is this mode's alias).
  */
 
 package minicpbp.engine.core;
@@ -55,10 +69,14 @@ final class TopoScheduler implements BPScheduler {
 
     private final BPGraph graph;
     private final double tol;
+    private final boolean rooted;
+    private final boolean componentOnly;
 
-    TopoScheduler(BPGraph graph) {
+    TopoScheduler(BPGraph graph, boolean componentOnly) {
         this.graph = graph;
         this.tol = BPConfig.RESIDUAL_TOL;
+        this.rooted = BPConfig.ROOT_AT_DECISION;
+        this.componentOnly = componentOnly;
     }
 
     @Override
@@ -80,14 +98,14 @@ final class TopoScheduler implements BPScheduler {
 
     @Override
     public void run(int maxSweeps, SweepMonitor monitor) {
-        int n = graph.factorCount();
+        int n = componentOnly ? graph.rootComponentEnd() : graph.factorCount();
         for (int iter = 1; iter <= maxSweeps; iter++) {
-            // odd sweeps run the forest backwards, i.e. leaves to root: a
+            // inward sweeps run the forest backwards, i.e. leaves to root: a
             // factor's inward message must be computed after the messages it
-            // summarises. Even sweeps run root to leaves. On an acyclic
-            // component that pair is exact BP and the third sweep finds nothing
-            // stale.
-            boolean inward = (iter % 2 == 1);
+            // summarises. Unrooted: odd sweeps inward, even sweeps root to
+            // leaves; on an acyclic component that pair is exact BP and the
+            // third sweep finds nothing stale. Rooted: the last sweep is inward.
+            boolean inward = rooted ? (maxSweeps - iter) % 2 == 0 : iter % 2 == 1;
             for (int i = 0; i < n; i++) {
                 int f = graph.orderAt(inward ? n - 1 - i : i);
                 if (graph.isPruned(f)) {
@@ -109,7 +127,9 @@ final class TopoScheduler implements BPScheduler {
             graph.normalizeMarginals();
             BPStats.sweeps++;
             boolean quiescent = graph.dirtyCount() == 0;
-            if (monitor.afterSweep(iter)) break;
+            // rooted: after an outward sweep the root's marginal is not yet
+            // collected, so neither the stop rule nor a trace may read it
+            if ((!rooted || inward || quiescent) && monitor.afterSweep(iter)) break;
             if (quiescent) break; // no message is stale: further sweeps are no-ops
         }
     }

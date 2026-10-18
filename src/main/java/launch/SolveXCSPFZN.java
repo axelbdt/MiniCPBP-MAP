@@ -114,6 +114,7 @@ public class SolveXCSPFZN {
 	private double restartFactor = 1.5;
 	private boolean initImpact = false;
 	private boolean enumerateSolutions = false;
+	private IntVar[] priorityVars = new IntVar[0];
 
 	/**
 	 * INTENTIONALLY INERT (BP_COST_PROFILE.md 1.4 / Part 4 item 4). Damping is
@@ -161,8 +162,13 @@ public class SolveXCSPFZN {
 			return;
 		}
 		frontend.initModel();
+		if (frontend.hasFailed()) {
+			earlyReturnSummary.run();
+			return;
+		}
 
 		IntVar[] decisionsVars = frontend.getDecisionVars();
+		priorityVars = frontend.getPriorityDecisionVars();
 
 		// 2026-08-18: a constraint-free instance (seen from a pycsp3
 		// mis-compilation that emits variables but no constraints) leaves
@@ -179,22 +185,22 @@ public class SolveXCSPFZN {
 			switch (heuristic) {
 				case FFRV:
 					minicp.setMode(Solver.PropaMode.SP);
-					search = makeSearch(firstFailRandomVal(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> firstFailRandomVal(vs)));
 					break;
 				case MXMS:
-					search = makeSearch(maxMarginalStrength(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> maxMarginalStrength(vs)));
 					break;
 				case MXM:
-					search = makeSearch(maxMarginal(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> maxMarginal(vs)));
 					break;
 				case MNMS:
-					search = makeSearch(minMarginalStrength(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> minMarginalStrength(vs)));
 					break;
 				case MNM:
-					search = makeSearch(minMarginal(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> minMarginal(vs)));
 					break;
 				case MNE:
-					search = makeSearch(minEntropy(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> minEntropy(vs)));
 					break;
 				case MNERTB:
 					// probe N (BP_PROBE_PROTOCOL amendments 10/10a): min entropy with a
@@ -204,26 +210,27 @@ public class SolveXCSPFZN {
 					// NOTE: minEntropyRandomTieBreak does not call setBranchingOrder, so
 					// stopRule=decision would sample the deterministic heuristic's
 					// decision. Ship-stop arms only until that is fixed.
-					search = makeSearch(minEntropyRandomTieBreak(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> minEntropyRandomTieBreak(vs)));
 					break;
 				case IE:
-					search = makeSearch(impactEntropy(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> impactEntropy(vs)));
 					if (initImpact)
 						search.initializeImpact(decisionsVars);
 					break;
 				case IBS:
 					minicp.setMode(Solver.PropaMode.SP);
-					search = makeSearch(impactBasedSearch(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> impactBasedSearch(vs)));
 					search.initializeImpactDomains(decisionsVars);
 					nbFailCutof = nbFailCutof * decisionsVars.length;
 					break;
 				case MIE:
-					search = makeDfs(minicp, minEntropyRegisterImpact(decisionsVars), impactEntropy(decisionsVars));
+					search = makeDfs(minicp, phased(decisionsVars, vs -> minEntropyRegisterImpact(vs)),
+							phased(decisionsVars, vs -> impactEntropy(vs)));
 					if (initImpact)
 						search.initializeImpact(decisionsVars);
 					break;
 				case MNEBW:
-					search = makeSearch(minEntropyBiasedWheelSelectVal(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> minEntropyBiasedWheelSelectVal(vs)));
 					break;
 				case WDEG:
 					// -Dexp.forceSBP=true keeps belief propagation ON under the
@@ -232,14 +239,14 @@ public class SolveXCSPFZN {
 					// explore a byte-identical tree and the wall-clock difference is
 					// exactly the price of BP. Default unchanged (SP).
 					minicp.setMode(Boolean.getBoolean("exp.forceSBP") ? Solver.PropaMode.SBP : Solver.PropaMode.SP);
-					search = makeSearch(domWdeg(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> domWdeg(vs)));
 					nbFailCutof = nbFailCutof * decisionsVars.length;
 					break;
 				case WDEGCNT:
 					// amendment A5 (MDD_COUNTING_PLAN.md §6.3): SP mode, no BP; the value
 					// comes from the incident ValueCounter constraints (Cumulative)
 					minicp.setMode(Solver.PropaMode.SP);
-					search = makeSearch(domWdegCountValue(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> domWdegCountValue(vs)));
 					nbFailCutof = nbFailCutof * decisionsVars.length;
 					break;
 				case WDEGRV:
@@ -250,7 +257,7 @@ public class SolveXCSPFZN {
 					// xs.min(). Seeded: pass -Dminicpbp.seed or the run is
 					// unreproducible.
 					minicp.setMode(Solver.PropaMode.SP);
-					search = makeSearch(domWdegRandomValue(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> domWdegRandomValue(vs)));
 					nbFailCutof = nbFailCutof * decisionsVars.length;
 					break;
 				case WDEGMXM:
@@ -259,7 +266,7 @@ public class SolveXCSPFZN {
 					// deliberately — BP's only job here is the branched variable's
 					// marginal (value selection); variable selection needs no BP.
 					// No nbFailCutof scaling: LDS/DFS only, no restart path uses it.
-					search = makeSearch(domWdegMaxMarginalValue(decisionsVars));
+					search = makeSearch(phased(decisionsVars, vs -> domWdegMaxMarginalValue(vs)));
 					break;
 				default:
 					Log.info("unknown search strategy");
@@ -360,13 +367,16 @@ public class SolveXCSPFZN {
 	public void solve() {
 		ModelFormatFrontend frontend;
 		try {
-			Log.info(inputStr.substring(inputStr.lastIndexOf('.')+1));
-			if(inputStr.substring(inputStr.lastIndexOf('.')+1).equals("fzn")) {
+			String extension = inputStr.substring(inputStr.lastIndexOf('.')+1);
+			if(extension.equals("fzn")) {
+				// no banner line: stdout is parsed by MiniZinc's solns2out
 				FZN fzn = new FZN(minicp, inputStr);
-				fzn.printStats(true);
+				// %%%mzn-stat lines only on request (MiniZinc's -s)
+				fzn.printStats(Boolean.getBoolean("minicpbp.fzn.stats"));
 				frontend = fzn;
 			}
 			else {
+				Log.info(extension);
 				System.out.println("XCSP");
 				frontend = new XCSP(minicp, inputStr);
 			}
@@ -666,6 +676,16 @@ public class SolveXCSPFZN {
 	 * @param branching a branching heuristic
 	 * @return a search object
 	 */
+	/**
+	 * Branches on the frontend's priority variables first, then on all
+	 * decision variables; just the latter when there are no priority variables.
+	 */
+	private Supplier<Procedure[]> phased(IntVar[] all, java.util.function.Function<IntVar[], Supplier<Procedure[]>> heuristic) {
+		if (priorityVars.length == 0)
+			return heuristic.apply(all);
+		return and(heuristic.apply(priorityVars), heuristic.apply(all));
+	}
+
 	private Search makeSearch(Supplier<Procedure[]> branching) {
 		Search search = null;
 		switch (searchType) {

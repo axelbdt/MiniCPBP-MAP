@@ -184,6 +184,16 @@ runtime (ms): 82
 
 To understand how to interpret the output, go to the later sections in this document. 
 
+## Solving MiniZinc models
+
+`minicpbp.msc` registers MiniCPBP as a MiniZinc solver (FlatZinc input, integer and Boolean variables):
+
+```
+minizinc --solver path/to/MiniCPBP/minicpbp.msc model.mzn data.dzn
+```
+
+The standard flags `-t` (time limit), `-r` (seed), `-f` (ignore search annotations), `-s` (statistics) and `-i` are supported, and `--branching`, `--search-type` and `--max-iter` are passed to the runner. Without `-f`, the variables of the model's `int_search`/`bool_search` annotations are branched on first, with the chosen heuristic. `src/test/fzn/check.sh` checks the FlatZinc front end end to end against Gecode.
+
 ## Optional arguments
 
 You can ask the runner to verify the solutions, or print the solution or search statistics to some file instead of standard output. 

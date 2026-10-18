@@ -1,3 +1,43 @@
-#!/bin/bash
-NbArguments=$#
-java -jar /MiniCPBP/target/minicpbp-1.0.jar ${!#}
+#!/usr/bin/env bash
+# MiniZinc solver executable for MiniCPBP (configured in minicpbp.msc).
+#
+# Maps MiniZinc's standard flags onto launch.SolveXCSPFZN:
+#   -t MS     time limit in milliseconds (rounded up to whole seconds)
+#   -r SEED   random seed (-Dminicpbp.seed)
+#   -f        free search: ignore the model's search annotations
+#   -s        print statistics (%%%mzn-stat lines)
+#   -i, -a    intermediate solutions: optimization always reports them;
+#             all-solutions search for satisfaction is not supported
+# Any other option (e.g. --branching dom-wdeg, --search-type lds,
+# --max-iter 5) is passed through to SolveXCSPFZN; the last argument is the
+# .fzn file.
+#
+# Environment: MINICPBP_CP overrides the classpath (default: the shaded jar
+# in target/), MINICPBP_JAVA_OPTS adds JVM options.
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CP="${MINICPBP_CP:-$DIR/target/minicpbp-1.0.jar}"
+
+timeout=31536000 # no -t: one year
+jvm=()
+pass=()
+branching=min-entropy
+search=dfs
+while [ $# -gt 1 ]; do
+  case "$1" in
+    -t) timeout=$(( ($2 + 999) / 1000 )); shift 2 ;;
+    -r) jvm+=("-Dminicpbp.seed=$2"); shift 2 ;;
+    -f) jvm+=("-Dminicpbp.fzn.freeSearch=true"); shift ;;
+    -s) jvm+=("-Dminicpbp.fzn.stats=true"); shift ;;
+    -i|-a) shift ;;
+    --branching) branching="$2"; shift 2 ;;
+    --search-type) search="$2"; shift 2 ;;
+    *) pass+=("$1"); shift ;;
+  esac
+done
+[ $# -eq 1 ] || { echo "usage: fzn-minicpbp [options] model.fzn" >&2; exit 1; }
+
+# shellcheck disable=SC2086
+exec java ${MINICPBP_JAVA_OPTS:-} "${jvm[@]}" -cp "$CP" launch.SolveXCSPFZN \
+  --input "$1" --branching "$branching" --search-type "$search" --timeout "$timeout" "${pass[@]}"

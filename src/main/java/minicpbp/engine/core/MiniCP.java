@@ -187,13 +187,13 @@ public class MiniCP implements Solver {
                     scheduler = new SequentialScheduler(bpGraph(), true);
                     break;
                 case TOPO:
-                    scheduler = new TopoScheduler(bpGraph());
+                    scheduler = new TopoScheduler(bpGraph(), minicpbp.util.BPConfig.ROOT_SCOPE_COMPONENT);
                     break;
                 case RESIDUAL:
                     scheduler = new ResidualScheduler(bpGraph());
                     break;
-                case INWARD:
-                    scheduler = new InwardScheduler(bpGraph());
+                case INWARD: // alias: rooted topo, decision variable's component only
+                    scheduler = new TopoScheduler(bpGraph(), true);
                     break;
                 default:
                     scheduler = new FloodingScheduler(this);

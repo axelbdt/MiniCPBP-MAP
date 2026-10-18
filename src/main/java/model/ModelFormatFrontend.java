@@ -39,6 +39,14 @@ public abstract class ModelFormatFrontend {
         System.out.println("problem failed before initiating the search");
     }
 
+    /**
+     * Variables to branch on before the others (e.g. FlatZinc search
+     * annotations). The search then continues on all decision variables.
+     */
+    public IntVar[] getPriorityDecisionVars() {
+        return new IntVar[0];
+    }
+
     public boolean hasFailed() {
         return hasFailed;
     }

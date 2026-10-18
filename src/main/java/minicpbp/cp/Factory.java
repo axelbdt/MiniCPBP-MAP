@@ -1128,13 +1128,14 @@ public final class Factory {
     }
 
     public static Constraint element(IntVar[] array, IntVar y, IntVar z) {
-        IntVar[] vars = Arrays.copyOf(array, array.length + 2);
+        // IntVar[].class: array may be a BoolVar[], and y, z need not be BoolVars
+        IntVar[] vars = Arrays.copyOf(array, array.length + 2, IntVar[].class);
         vars[array.length] = y;
         vars[array.length + 1] = z;
         return new Element1DVar(array, y, z, vars);
     }
     public static Constraint element(IntVar[] array, IntVar y, int v) {
-        IntVar[] vars = Arrays.copyOf(array, array.length + 1);
+        IntVar[] vars = Arrays.copyOf(array, array.length + 1, IntVar[].class);
         vars[array.length] = y;
         IntVar z = makeIntVar(y.getSolver(), v, v);
         return new Element1DVar(array, y, z, vars);
@@ -2190,6 +2191,65 @@ public final class Factory {
             vars[b.length + l.length + i] = size[i];
         }
         return new BinPackingVar(b,size,l,vars);
+    }
+
+    /**
+     * Returns a value precedence constraint, enforced by a {@link Regular} automaton:
+     * values[j] occurs in x only after values[j-1] has occurred (for every j > 0).
+     * The values must be distinct.
+     *
+     * @param x       an array of variables
+     * @param values  the chain of values, in precedence order
+     * @param covered if true, every value of the chain must occur in x
+     * @return a value precedence constraint
+     */
+    public static Constraint precedence(IntVar[] x, int[] values, boolean covered) {
+        int minVal = x[0].min();
+        int maxVal = x[0].max();
+        for (IntVar xi : x) {
+            minVal = Math.min(minVal, xi.min());
+            maxVal = Math.max(maxVal, xi.max());
+        }
+        // Regular indexes its transition function by the RAW domain value
+        // and requires rows of width maxVal+1 (it asserts exactly that,
+        // but assertions are off at runtime, so a narrower row silently
+        // became an ArrayIndexOutOfBoundsException on any instance
+        // whose values do not start at 0 -- every Mondoku).
+        // The rows must also cover a declared value that is in no domain
+        // (e.g. precedence over 1 2 3 on variables that can only take
+        // 1 or 2): it still needs its -1 entries, and its state is simply
+        // never reached.
+        for (int v : values) {
+            minVal = Math.min(minVal, v);
+            maxVal = Math.max(maxVal, v);
+        }
+        if (minVal < 0) {
+            // shift values to start at 0
+            IntVar[] shifted = new IntVar[x.length];
+            for (int i = 0; i < x.length; i++)
+                shifted[i] = minus(x[i], minVal);
+            int[] shiftedValues = new int[values.length];
+            for (int j = 0; j < values.length; j++)
+                shiftedValues[j] = values[j] - minVal;
+            return precedence(shifted, shiftedValues, covered);
+        }
+        int[][] A = new int[values.length+1][maxVal+1];
+        // TODO: potentially wasteful in terms of space; define A over union of domains only
+        for (int i = 0; i <= values.length; i++) {
+            for (int j = 0; j <= maxVal; j++) {
+                A[i][j] = i; // loop by default
+            }
+            if (i < values.length) A[i][values[i]] = i+1; // first occurrence of values[i]
+            for (int j = i+1; j < values.length; j++) {
+                A[i][values[j]] = -1; // cannot be used yet
+            }
+        }
+        if (covered) {
+            List<Integer> f = new ArrayList<Integer>();
+            f.add(values.length);
+            return regular(x,A,f);
+        }
+        return regular(x,A);
     }
 
     /**

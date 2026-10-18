@@ -12,6 +12,7 @@ import java.util.*;
 
 import fzn.parser.FZParser;
 import fzn.parser.intermediatemodel.*;
+import minicpbp.util.exception.InconsistencyException;
 import minicpbp.util.exception.NotImplementedException;
 
 import minicpbp.util.Log;
@@ -23,6 +24,10 @@ public class FZN extends ModelFormatFrontend {
     public FZN(Solver minicp, String filename) throws Exception {
 		super(minicp);
         hasFailed = false;
+		// stdout is parsed by MiniZinc's solns2out: no optimization trace
+		// between solutions, warnings on stderr
+		Log.setTraceOptimization(false);
+		Log.setWarningStream(System.err);
 		//read the Flatzinc File
 		this.m = FZParser.readFlatZincModelFromFile(filename, false);
     }
@@ -37,7 +42,12 @@ public class FZN extends ModelFormatFrontend {
 		m.addSolver(minicp);
 
 		//build the model from the Flatzinc file
-		m.buildModel();
+		try {
+			m.buildModel();
+		} catch (InconsistencyException e) {
+			// root propagation proved the model unsatisfiable
+			hasFailed = true;
+		}
 	}
 
 	public String getSolutionStr(boolean extractSolutionStr) {
@@ -48,6 +58,17 @@ public class FZN extends ModelFormatFrontend {
 
 	public IntVar[] getDecisionVars() {
 		return m.getDecisionsVar();
+	}
+
+	/**
+	 * Variables of the int_search/bool_search annotations, in order; empty
+	 * under free search (-Dminicpbp.fzn.freeSearch=true, MiniZinc's -f).
+	 */
+	@Override
+	public IntVar[] getPriorityDecisionVars() {
+		if (Boolean.getBoolean("minicpbp.fzn.freeSearch"))
+			return new IntVar[0];
+		return m.getSearchVars();
 	}
 
 	public ModelGoal getGoal() {
@@ -91,17 +112,14 @@ public class FZN extends ModelFormatFrontend {
 	 * @param runtime
 	 */
 	public void printStats(SearchStatistics stats, String statsFileStr, Long runtime, int solutionDiscrepancy, String ldsPasses) {
-		if(!printStats) {
-			return;
+		if(printStats) {
+			Log.info("%%%mzn-stat: failures=" + stats.numberOfFailures());
+			if(m.getGoal() != ASTSolve.SAT)
+				Log.info("%%%mzn-stat: objective=" + m.getObjective().min());
+			Log.info("%%%mzn-stat: nodes=" + stats.numberOfNodes());
+			Log.info("%%%mzn-stat: solveTime=" + runtime);
+			Log.info("%%%mzn-stat-end");
 		}
-
-		//out.println("status: " + statusStr);
-		Log.info("%%%mzn-stat: failures=" + stats.numberOfFailures());
-		if(m.getGoal() != ASTSolve.SAT)
-			Log.info("%%%mzn-stat: objective=" + m.getObjective().min());
-		Log.info("%%%mzn-stat: nodes=" + stats.numberOfNodes());
-		Log.info("%%%mzn-stat: solveTime=" + runtime);
-		Log.info("%%%mzn-stat-end");
 
 		if(!Objects.equals(statsFileStr, "")) {
 			PrintStream out = null;
